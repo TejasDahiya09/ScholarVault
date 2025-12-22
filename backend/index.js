@@ -4,8 +4,6 @@ import config from "./src/config.js";
 import corsMiddleware from "./src/middlewares/cors.js";
 import { errorHandler } from "./src/middlewares/auth.js";
 import { createAuthLimiter } from "./src/middlewares/rateLimiter.js";
-import Cache from "./src/utils/cache.js";
-import { subjectsDB } from "./src/db/subjects.js";
 
 // Route imports
 import authRoutes from "./src/routes/auth.js";
@@ -60,23 +58,6 @@ app.get("/healthz", (req, res) => {
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-  });
-});
-
-/**
- * Keep-Alive Endpoint (prevents cold starts)
- * Lightweight ping to keep server warm
- * Call this every 5 minutes from external monitor
- */
-app.get("/api/ping", (req, res) => {
-  res.json({
-    status: "alive",
-    timestamp: new Date().toISOString(),
-    latency: process.uptime() > 60 ? "warm" : "cold"
-  });
-});
     environment: config.NODE_ENV,
   });
 });
@@ -108,22 +89,11 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 /**
- * Start Server & Initialize Performance Optimizations
+ * Start Server
  */
 const PORT = config.PORT;
 
-// Warm cache on startup (prevents first-request delay)
-async function warmCache() {
-  try {
-    console.log('⚡ Warming cache...');
-    await subjectsDB.getAll(); // Preload subjects
-    console.log('✅ Cache warmed successfully');
-  } catch (error) {
-    console.error('⚠️  Cache warming failed:', error.message);
-  }
-}
-
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║         🎓 ScholarVault Backend API Server                ║
@@ -134,7 +104,6 @@ app.listen(PORT, async () => {
 🔐 JWT Secret configured: ${!!config.JWT_SECRET}
 📦 Database configured: ${!!config.SUPABASE_URL}
 🤖 Vertex AI configured: ${!!config.VERTEX_PROJECT}
-🚀 Performance caching: ENABLED
 
 Available Endpoints:
   POST   /api/auth/register        - Register new user
@@ -158,11 +127,37 @@ Available Endpoints:
   GET    /api/files/signed-url     - Get signed S3 URL (auth)
 
 Health Check: GET /healthz
-Keep-Alive: GET /api/ping
   `);
+
+✨ Server running on: http://localhost:${PORT}
+📍 Environment: ${config.NODE_ENV}
+🔐 JWT Secret configured: ${!!config.JWT_SECRET}
+📦 Database configured: ${!!config.SUPABASE_URL}
+🤖 Vertex AI configured: ${!!config.VERTEX_PROJECT}
+
+Available Endpoints:
+  POST   /api/auth/register        - Register new user
+  POST   /api/auth/login           - Login user
+  GET    /api/auth/me              - Get current user
   
-  // Warm cache in background (non-blocking)
-  warmCache();
+  GET    /api/notes                - Get all notes
+  GET    /api/notes/:id            - Get note by ID
+  GET    /api/notes/:id/summary    - Get note summary
+  POST   /api/notes/:id/ask        - Ask question about note
+  POST   /api/notes/:id/complete   - Mark note as completed
+  
+  GET    /api/subjects             - Get all subjects
+  GET    /api/subjects/:id         - Get subject by ID
+  GET    /api/subjects/:id/notes   - Get subject notes
+  
+  GET    /api/search?q=...         - Hybrid search (keyword + semantic)
+  GET    /api/search/suggest?q=... - Autocomplete suggestions
+  GET    /api/search/analytics     - Top search queries
+  GET    /api/notes/:id/search?q=...- Search inside a PDF
+  GET    /api/files/signed-url     - Get signed S3 URL (auth)
+
+Health Check: GET /healthz
+  `);
 });
 
 export default app;
