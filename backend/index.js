@@ -38,6 +38,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /**
+ * Global Request Timeout Safety
+ * Prevents hanging requests; returns 503 after 15 seconds
+ */
+app.use((req, res, next) => {
+  res.setTimeout(15000, () => {
+    if (!res.headersSent) {
+      res.status(503).json({ error: 'Request timeout. Please try again.' });
+    }
+  });
+  next();
+});
+
+/**
  * Health Check Endpoint
  * No auth required, excluded from rate limiting
  */

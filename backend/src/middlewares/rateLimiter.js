@@ -17,8 +17,8 @@ export function createAuthLimiter() {
       error: 'Too many authentication attempts. Please try again later.',
       retryAfter: '15 minutes'
     },
-    standardHeaders: false, // Disable default X-RateLimit headers
-    legacyHeaders: false,
+    standardHeaders: true, // Enable X-RateLimit-* headers for clients
+    legacyHeaders: false, // Disable RateLimit-* headers
     skip: (req) => {
       // Skip health check and public routes
       return req.path === '/healthz';
