@@ -253,7 +253,7 @@ export default function SearchPage() {
   }, [query, searchState]);
 
   // Main search function with caching and strict validation
-  const performSearch = async (searchQuery, pageNum = 1, append = false) => {
+  const performSearch = useCallback(async (searchQuery, pageNum = 1, append = false) => {
     const trimmedQuery = searchQuery.trim();
     
     // Strict validation: no search for empty or too short queries
@@ -341,7 +341,7 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [useClientSearch, performClientSearch, logSearchAnalytics]);
 
   // Handle search submission
   const handleSearch = (e) => {
