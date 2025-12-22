@@ -5,6 +5,7 @@ import config from "./src/config.js";
 import corsMiddleware from "./src/middlewares/cors.js";
 import { errorHandler } from "./src/middlewares/auth.js";
 import { createAuthLimiter } from "./src/middlewares/rateLimiter.js";
+import compression from "compression";
 
 // Route imports
 import authRoutes from "./src/routes/auth.js";
@@ -34,6 +35,9 @@ const morganFormat = config.NODE_ENV === 'production' ? 'combined' : 'dev';
 app.use(morgan(morganFormat, {
   skip: (req) => req.path === '/healthz' // Skip health check logs
 }));
+
+// Gzip/deflate compression to reduce payload sizes
+app.use(compression());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
