@@ -15,6 +15,11 @@ export const config = {
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRY: process.env.JWT_EXPIRY || "7d",
 
+  // Redis (Upstash)
+  REDIS_URL: process.env.UPSTASH_REDIS_REST_URL,
+  REDIS_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+  SESSION_TTL_SECONDS: Number(process.env.SESSION_TTL_SECONDS || 1200),
+
   // CORS
   ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(",").map(s => s.trim())

@@ -1,0 +1,15 @@
+[build]
+  base = "frontend"
+  command = "npm install && npm run build"
+  publish = "dist"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[edge_functions]]
+  path = "/api/*"
+  function = "auth-check"
+
+[[scheduled_functions]]
+  name = "warmup"
+  schedule = "*/5 * * * *"
