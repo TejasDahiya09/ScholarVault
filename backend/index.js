@@ -14,9 +14,11 @@ const app = express();
 /**
  * Middleware Setup
  */
+// CORS MUST come first, before body parsers
+app.use(corsMiddleware);
+app.options("*", corsMiddleware);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(corsMiddleware);
 
 /**
  * Health Check Endpoint

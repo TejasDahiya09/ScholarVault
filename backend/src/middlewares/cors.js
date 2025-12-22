@@ -6,26 +6,24 @@ import config from "../config.js";
  */
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps, curl, or server requests)
     if (!origin) return callback(null, true);
 
-    // Parse allowed origins (comma-separated string → array)
-const allowedOrigins = config.ALLOWED_ORIGINS
-  ? config.ALLOWED_ORIGINS.split(",").map(o => o.trim())
-  : [];
+    // Get allowed origins from config (already parsed as array in config.js)
+    const allowedOrigins = config.ALLOWED_ORIGINS;
 
-// If no allowed origins configured, allow all
-if (allowedOrigins.length === 0) {
-  return callback(null, true);
-}
+    // If no allowed origins configured, allow all (development mode)
+    if (allowedOrigins.length === 0) {
+      return callback(null, true);
+    }
 
-// Check if origin is in allowed list
-if (allowedOrigins.includes(origin)) {
-  return callback(null, true);
-}
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
 
-
-    return callback(new Error("CORS not allowed"));
+    // IMPORTANT: Do NOT throw error; return callback(null, false) instead
+    return callback(null, false);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
