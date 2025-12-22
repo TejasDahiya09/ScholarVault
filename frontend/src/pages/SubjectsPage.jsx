@@ -13,15 +13,8 @@ export default function SubjectsPage() {
   const { user } = useAuth();
   
   const [subjects, setSubjects] = useState([]);
-  const [availableSemesters, setAvailableSemesters] = useState([]);
-  const [selectedSemester, setSelectedSemester] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const yearToSemesters = {
-    '1st Year': ['1', '2'],
-    '2nd Year': ['3', '4'],
-  };
 
   // Fetch subjects filtered by user's selected semester
   useEffect(() => {
@@ -33,19 +26,6 @@ export default function SubjectsPage() {
         });
         const allSubjects = Array.isArray(res.data) ? res.data : [];
 
-        const allowedSemesters = yearToSemesters[user?.selected_year] || [];
-        const semesters = allowedSemesters.length > 0
-          ? allowedSemesters
-          : Array.from(
-              new Set(
-                allSubjects
-                  .map((s) => String(s.semester || "").trim())
-                  .filter(Boolean)
-              )
-            ).sort((a, b) => Number(a) - Number(b));
-
-        setAvailableSemesters(semesters);
-        setSelectedSemester("all");
         setSubjects(allSubjects);
         setError(null);
       } catch (err) {
@@ -106,22 +86,6 @@ export default function SubjectsPage() {
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Subjects</h1>
           <p className="text-sm sm:text-base text-gray-600 mt-1">Browse subjects and study materials</p>
         </div>
-
-        {availableSemesters.length > 0 && (
-          <div className="flex items-center gap-2 text-sm">
-            <label className="text-gray-600">Semester</label>
-            <select
-              value={selectedSemester}
-              onChange={(e) => setSelectedSemester(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-100"
-            >
-              <option value="all">All</option>
-              {availableSemesters.map((sem) => (
-                <option key={sem} value={sem}>{sem}</option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
       {subjects.length === 0 ? (
@@ -136,13 +100,7 @@ export default function SubjectsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-          {subjects
-            .filter((subject) =>
-              selectedSemester === "all"
-                ? true
-                : String(subject.semester || "").trim() === selectedSemester
-            )
-            .map((subject) => (
+          {subjects.map((subject) => (
             <button
               key={subject.id}
               onClick={() => handleSubjectClick(subject)}
