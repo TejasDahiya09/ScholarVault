@@ -11,6 +11,7 @@ import { Readable } from "stream";
 // Initialize S3 client once
 const s3Client = new S3Client({
   region: config.AWS_REGION,
+  endpoint: `https://s3.${config.AWS_REGION}.amazonaws.com`,
   credentials: config.AWS_ACCESS_KEY_ID && config.AWS_SECRET_ACCESS_KEY ? {
     accessKeyId: config.AWS_ACCESS_KEY_ID,
     secretAccessKey: config.AWS_SECRET_ACCESS_KEY,

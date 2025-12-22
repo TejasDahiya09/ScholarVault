@@ -9,25 +9,27 @@ import rateLimit from 'express-rate-limit';
  * - 20 requests max per IP
  * - Returns clean JSON error on limit exceeded
  */
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 requests per windowMs
-  message: {
-    error: 'Too many authentication attempts. Please try again later.',
-    retryAfter: '15 minutes'
-  },
-  standardHeaders: false, // Disable default X-RateLimit headers
-  legacyHeaders: false,
-  skip: (req) => {
-    // Skip health check and public routes
-    return req.path === '/healthz';
-  },
-  handler: (req, res) => {
-    res.status(429).json({
+export function createAuthLimiter() {
+  return rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20, // 20 requests per windowMs
+    message: {
       error: 'Too many authentication attempts. Please try again later.',
       retryAfter: '15 minutes'
-    });
-  }
-});
+    },
+    standardHeaders: false, // Disable default X-RateLimit headers
+    legacyHeaders: false,
+    skip: (req) => {
+      // Skip health check and public routes
+      return req.path === '/healthz';
+    },
+    handler: (req, res) => {
+      res.status(429).json({
+        error: 'Too many authentication attempts. Please try again later.',
+        retryAfter: '15 minutes'
+      });
+    }
+  });
+}
 
-export default { authLimiter };
+export default { createAuthLimiter };

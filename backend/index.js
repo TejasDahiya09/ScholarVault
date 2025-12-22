@@ -3,7 +3,7 @@ import morgan from "morgan";
 import config from "./src/config.js";
 import corsMiddleware from "./src/middlewares/cors.js";
 import { errorHandler } from "./src/middlewares/auth.js";
-import { authLimiter } from "./src/middlewares/rateLimiter.js";
+import { createAuthLimiter } from "./src/middlewares/rateLimiter.js";
 
 // Route imports
 import authRoutes from "./src/routes/auth.js";
@@ -12,6 +12,12 @@ import subjectsRoutes from "./src/routes/subjects.js";
 import searchRoutes from "./src/routes/search.js";
 
 const app = express();
+
+// Trust Render's proxy for correct client IPs and rate limiting
+app.set("trust proxy", 1);
+
+// Create rate limiter AFTER trust proxy is set
+const authLimiter = createAuthLimiter();
 
 /**
  * Middleware Setup
