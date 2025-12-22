@@ -2,6 +2,35 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import client from "../api/client";
 import { Link } from "react-router-dom";
 
+// Add animation styles
+const styles = `
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+  
+  kbd {
+    font-family: ui-monospace, monospace;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement("style");
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+}
+
 // Search state machine
 const SEARCH_STATES = {
   IDLE: 'idle',
@@ -27,6 +56,9 @@ export default function SearchPage() {
   const [sortBy, setSortBy] = useState('relevance'); // relevance, date, name
   const [filters, setFilters] = useState({ semester: '', unit: '' });
   const [recentSearches, setRecentSearches] = useState([]);
+  const [didYouMean, setDidYouMean] = useState(null);
+  const [showTips, setShowTips] = useState(false);
+  const [searchPerformance, setSearchPerformance] = useState(null);
   
   const debounceRef = useRef(null);
   const searchInputRef = useRef(null);
@@ -43,6 +75,20 @@ export default function SearchPage() {
         console.error('Failed to load recent searches:', e);
       }
     }
+  }, []);
+
+  // Global keyboard shortcut: Ctrl/Cmd+K to focus search
+  useEffect(() => {
+    const handleGlobalKeyboard = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setSearchState(SEARCH_STATES.FOCUSED);
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyboard);
+    return () => document.removeEventListener('keydown', handleGlobalKeyboard);
   }, []);
 
   // Save search to recent searches
@@ -150,6 +196,12 @@ export default function SearchPage() {
       setHasMore(!!data.next_page);
       setPage(pageNum);
       
+      // Set did-you-mean suggestion
+      setDidYouMean(data.did_you_mean || null);
+      
+      // Set performance metrics
+      setSearchPerformance(data.performance || null);
+      
       // Update state based on results
       if ((data.results || []).length > 0) {
         setSearchState(SEARCH_STATES.RESULTS);
@@ -221,6 +273,33 @@ export default function SearchPage() {
       return true;
     });
   }, [filters]);
+  
+  // Export results to CSV
+  const exportResults = useCallback(() => {
+    if (processedResults.length === 0) return;
+    
+    const csvContent = [
+      ['File Name', 'Subject', 'Semester', 'Unit', 'Branch', 'Relevance Score'],
+      ...processedResults.map(r => [
+        r.file_name || '',
+        r.subject || '',
+        r.semester || '',
+        r.unit_number || '',
+        r.branch || '',
+        r.weighted_score?.toFixed(2) || ''
+      ])
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `search-results-${query.replace(/\\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [processedResults, query]);
 
   // Handle keyboard navigation with Escape to close
   const handleKeyDown = (e) => {
@@ -278,10 +357,24 @@ export default function SearchPage() {
     [hasMore, loading, query, results.length]
   );
   
+  // Loading skeleton component
+  const LoadingSkeleton = () => (
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+        </div>
+      ))}
+    </div>
+  );
+  
   // Processed results with sorting and filtering
   const processedResults = useMemo(() => {
     return sortResults(filterResults(results));
-  }, [results, sortBy, filters]);
+  }, [results, sortBy, filters, sortResults, filterResults]);
   
   // Update grouped results when processed results change
   useEffect(() => {
@@ -303,12 +396,40 @@ export default function SearchPage() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
         {/* Header */}
         <div className="mb-4 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 mb-1 sm:mb-2">
-            🔍 Intelligent Search
-          </h1>
-          <p className="text-slate-600 text-xs sm:text-sm">
-            Hybrid keyword + semantic search across all your notes
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 mb-1 sm:mb-2">
+                🔍 Intelligent Search
+              </h1>
+              <p className="text-slate-600 text-xs sm:text-sm">
+                Hybrid keyword + semantic search across all your notes
+              </p>
+            </div>
+            <button
+              onClick={() => setShowTips(!showTips)}
+              className="px-3 py-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+              title="Search Tips"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Tips
+            </button>
+          </div>
+          
+          {/* Search Tips Panel */}
+          {showTips && (
+            <div className="mt-3 p-4 bg-blue-50 rounded-lg border border-blue-200 text-sm">
+              <h3 className="font-semibold text-blue-900 mb-2">💡 Search Tips:</h3>
+              <ul className="space-y-1 text-blue-800">
+                <li>• Use <kbd className="px-1.5 py-0.5 bg-white rounded border text-xs">Ctrl+K</kbd> to quickly focus search</li>
+                <li>• Search by unit: "unit 3" or "chapter 2"</li>
+                <li>• Use abbreviations: "algo" → "algorithm", "db" → "database"</li>
+                <li>• Try semantic search for concepts, not just keywords</li>
+                <li>• Filter by semester and unit for precise results</li>
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Search Box with Autocomplete */}
@@ -397,7 +518,7 @@ export default function SearchPage() {
           <div className="mb-4 flex flex-wrap gap-3 items-center">
             {/* Sort Dropdown */}
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-slate-700">Sort:</label>
+              <label className="text-sm font-medium text-slate-700 hidden sm:inline">Sort:</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
@@ -411,33 +532,33 @@ export default function SearchPage() {
             
             {/* Semester Filter */}
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-slate-700">Semester:</label>
+              <label className="text-sm font-medium text-slate-700 hidden sm:inline">Semester:</label>
               <select
                 value={filters.semester}
                 onChange={(e) => setFilters(prev => ({ ...prev, semester: e.target.value }))}
                 className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
-                <option value="">All</option>
-                <option value="1">Semester 1</option>
-                <option value="2">Semester 2</option>
-                <option value="3">Semester 3</option>
-                <option value="4">Semester 4</option>
-                <option value="5">Semester 5</option>
-                <option value="6">Semester 6</option>
-                <option value="7">Semester 7</option>
-                <option value="8">Semester 8</option>
+                <option value="">All Semesters</option>
+                <option value="1">Sem 1</option>
+                <option value="2">Sem 2</option>
+                <option value="3">Sem 3</option>
+                <option value="4">Sem 4</option>
+                <option value="5">Sem 5</option>
+                <option value="6">Sem 6</option>
+                <option value="7">Sem 7</option>
+                <option value="8">Sem 8</option>
               </select>
             </div>
             
             {/* Unit Filter */}
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-slate-700">Unit:</label>
+              <label className="text-sm font-medium text-slate-700 hidden sm:inline">Unit:</label>
               <select
                 value={filters.unit}
                 onChange={(e) => setFilters(prev => ({ ...prev, unit: e.target.value }))}
                 className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
-                <option value="">All</option>
+                <option value="">All Units</option>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(unit => (
                   <option key={unit} value={unit}>Unit {unit}</option>
                 ))}
@@ -457,8 +578,22 @@ export default function SearchPage() {
               </button>
             )}
             
+            {/* Export Button */}
+            {processedResults.length > 0 && (
+              <button
+                onClick={exportResults}
+                className="ml-auto px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-medium text-slate-700 flex items-center gap-1.5 transition-colors"
+                title="Export results to CSV"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="hidden sm:inline">Export</span>
+              </button>
+            )}
+            
             {/* Results Counter */}
-            <div className="ml-auto text-sm text-slate-600">
+            <div className="w-full sm:w-auto text-xs sm:text-sm text-slate-600">
               Showing {processedResults.length} of {totalResults} results
             </div>
           </div>
@@ -473,8 +608,32 @@ export default function SearchPage() {
 
         {/* Results Count */}
         {totalResults > 0 && (
-          <div className="mb-3 sm:mb-4 text-xs sm:text-sm text-slate-600">
-            Found <span className="font-semibold text-slate-900">{totalResults}</span> results
+          <div className="mb-3 sm:mb-4 flex items-center justify-between">
+            <div className="text-xs sm:text-sm text-slate-600">
+              Found <span className="font-semibold text-slate-900">{totalResults}</span> results
+              {searchPerformance?.cached && (
+                <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">⚡ Cached</span>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Did You Mean Suggestion */}
+        {didYouMean && searchState === SEARCH_STATES.EMPTY && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              Did you mean:{' '}
+              <button
+                onClick={() => {
+                  setQuery(didYouMean);
+                  performSearch(didYouMean, 1, false);
+                }}
+                className="font-semibold text-yellow-900 underline hover:text-yellow-700"
+              >
+                {didYouMean}
+              </button>
+              ?
+            </p>
           </div>
         )}
 
@@ -523,10 +682,7 @@ export default function SearchPage() {
 
         {/* Loading */}
         {searchState === SEARCH_STATES.SEARCHING && page === 1 && (
-          <div className="text-center py-12">
-            <div className="inline-block w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-            <p className="mt-3 text-slate-600">Searching...</p>
-          </div>
+          <LoadingSkeleton />
         )}
 
         {/* No Results */}
@@ -536,7 +692,12 @@ export default function SearchPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-slate-600 font-medium">No results found for "{query}"</p>
-            <p className="text-sm text-slate-500 mt-1">Try different keywords or check your spelling</p>
+            <div className="mt-3 text-sm text-slate-500 space-y-1">
+              <p>Try different keywords or check your spelling</p>
+              <p>• Remove filters to see more results</p>
+              <p>• Try broader search terms</p>
+              <p>• Use synonyms or related terms</p>
+            </div>
           </div>
         )}
 
@@ -544,17 +705,18 @@ export default function SearchPage() {
         {!loading && Object.keys(groupedResults).length > 0 && (
           <div className="space-y-4 sm:space-y-6">
             {Object.entries(groupedResults).map(([unit, unitResults]) => (
-              <div key={unit}>
+              <div key={unit} className="animate-fadeIn">
                 <h2 className="text-base sm:text-lg font-bold text-slate-800 mb-2 sm:mb-3 flex items-center gap-2">
                   <span className="w-1 h-5 sm:h-6 bg-indigo-600 rounded"></span>
                   {unit}
                   <span className="text-xs sm:text-sm font-normal text-slate-500">({unitResults.length})</span>
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  {unitResults.map((result) => (
+                  {unitResults.map((result, idx) => (
                     <div
                       key={result.id}
-                      className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 hover:shadow-md transition-shadow"
+                      className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 hover:shadow-lg hover:border-indigo-200 transition-all duration-200 transform hover:-translate-y-1"
+                      style={{ animationDelay: `${idx * 50}ms` }}
                     >
                       <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2">
                         <h3 className="font-semibold text-sm sm:text-base text-slate-900 line-clamp-2 flex-1">

@@ -1,12 +1,17 @@
 import { supabase } from "../lib/services.js";
 import aiService from "./ai.js";
 import NodeCache from "node-cache";
+import { distance } from "fastest-levenshtein";
+import stringSimilarity from "string-similarity";
 
 // Cache for search results (TTL: 5 minutes, check period: 60s)
 const searchCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
 
 // Cache for embeddings (TTL: 1 hour)
 const embeddingCache = new NodeCache({ stdTTL: 3600, checkperiod: 120 });
+
+// Cache for suggestions (TTL: 10 minutes)
+const suggestionCache = new NodeCache({ stdTTL: 600, checkperiod: 120 });
 
 /**
  * Extract unit number from filename
@@ -199,6 +204,106 @@ function calculateQueryCoverage(text, terms) {
   });
   
   return matchedTerms.length / terms.length;
+}
+
+/**
+ * Find similar terms using fuzzy matching (typo tolerance)
+ */
+function findSimilarTerms(query, corpus) {
+  if (!query || !corpus || corpus.length === 0) return [];
+  
+  const queryLower = query.toLowerCase();
+  const matches = [];
+  
+  corpus.forEach(item => {
+    const itemLower = item.toLowerCase();
+    
+    // Exact match
+    if (itemLower === queryLower) {
+      matches.push({ term: item, score: 1.0, type: 'exact' });
+      return;
+    }
+    
+    // Prefix match
+    if (itemLower.startsWith(queryLower)) {
+      matches.push({ term: item, score: 0.9, type: 'prefix' });
+      return;
+    }
+    
+    // Levenshtein distance for typo tolerance
+    const dist = distance(queryLower, itemLower);
+    const maxLen = Math.max(queryLower.length, itemLower.length);
+    const similarity = 1 - (dist / maxLen);
+    
+    // Only consider if similarity > 0.7 (70%)
+    if (similarity > 0.7) {
+      matches.push({ term: item, score: similarity, type: 'fuzzy' });
+    }
+  });
+  
+  return matches.sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Generate "Did you mean?" suggestions
+ */
+async function getDidYouMeanSuggestions(query) {
+  if (!query || query.length < 3) return null;
+  
+  try {
+    // Get common search terms from analytics
+    const { data: popularQueries } = await supabase
+      .from("search_analytics")
+      .select("query")
+      .limit(1000);
+    
+    if (!popularQueries || popularQueries.length === 0) return null;
+    
+    const corpus = [...new Set(popularQueries.map(q => q.query))];
+    const similar = findSimilarTerms(query, corpus);
+    
+    // Only suggest if not exact match and has good fuzzy match
+    const bestMatch = similar.find(m => m.type === 'fuzzy' && m.score > 0.75);
+    
+    return bestMatch ? bestMatch.term : null;
+  } catch (err) {
+    console.error('Did you mean error:', err);
+    return null;
+  }
+}
+
+/**
+ * Diversify results - prevent too many from same subject/unit
+ */
+function diversifyResults(results, maxPerGroup = 3) {
+  const subjectCounts = new Map();
+  const unitCounts = new Map();
+  const diversified = [];
+  
+  for (const result of results) {
+    const subjectKey = result.subject_id || 'unknown';
+    const unitKey = `${subjectKey}-${result.unit_number || 0}`;
+    
+    const subjectCount = subjectCounts.get(subjectKey) || 0;
+    const unitCount = unitCounts.get(unitKey) || 0;
+    
+    // Allow through if not over-represented
+    if (unitCount < maxPerGroup && subjectCount < maxPerGroup * 2) {
+      diversified.push(result);
+      subjectCounts.set(subjectKey, subjectCount + 1);
+      unitCounts.set(unitKey, unitCount + 1);
+    } else if (diversified.length < results.length * 0.8) {
+      // Still add some if we don't have enough diverse results
+      diversified.push(result);
+    }
+  }
+  
+  // If too much filtering, add back top results
+  if (diversified.length < Math.min(10, results.length * 0.5)) {
+    return results;
+  }
+  
+  return diversified;
 }
 
 /**
@@ -508,10 +613,13 @@ export const searchService = {
     const sortedResults = Array.from(results.values()).sort(
       (a, b) => b.weighted_score - a.weighted_score
     );
+    
+    // 4.5 DIVERSIFY RESULTS (prevent over-representation)
+    const diversifiedResults = diversifyResults(sortedResults, 3);
 
     // 5. GROUP BY UNIT
     const groupedResults = {};
-    sortedResults.forEach((result) => {
+    diversifiedResults.forEach((result) => {
       const unit = result.unit_number ? `Unit ${result.unit_number}` : "Other";
       if (!groupedResults[unit]) {
         groupedResults[unit] = [];
@@ -520,11 +628,17 @@ export const searchService = {
     });
 
     // 6. PAGINATION
-    const totalResults = sortedResults.length;
+    const totalResults = diversifiedResults.length;
     const startIndex = (page - 1) * perPage;
     const endIndex = startIndex + perPage;
-    const paginatedResults = sortedResults.slice(startIndex, endIndex);
+    const paginatedResults = diversifiedResults.slice(startIndex, endIndex);
     const hasNextPage = endIndex < totalResults;
+    
+    // 6.5 GET "DID YOU MEAN" SUGGESTION
+    let didYouMean = null;
+    if (totalResults === 0 && page === 1) {
+      didYouMean = await getDidYouMeanSuggestions(query);
+    }
 
     // 7. LOG ANALYTICS (optional)
     if (userId) {
@@ -547,6 +661,11 @@ export const searchService = {
       page,
       per_page: perPage,
       next_page: hasNextPage ? page + 1 : null,
+      did_you_mean: didYouMean,
+      performance: {
+        cached: page === 1 && searchCache.has(cacheKey),
+        result_count: paginatedResults.length,
+      }
     };
 
     // Cache the response (page 1 only)
@@ -566,6 +685,13 @@ export const searchService = {
 
     if (!query || query.trim().length < 2) {
       return [];
+    }
+
+    // Check cache first
+    const cacheKey = `suggest:${query}:${limit}`;
+    const cached = suggestionCache.get(cacheKey);
+    if (cached) {
+      return cached;
     }
 
     const suggestions = new Map(); // Use Map to track with scores
@@ -655,10 +781,15 @@ export const searchService = {
     }
 
     // Sort by score and return text only
-    return Array.from(suggestions.values())
+    const result = Array.from(suggestions.values())
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
       .map(item => item.text);
+    
+    // Cache the result
+    suggestionCache.set(cacheKey, result);
+    
+    return result;
   },
 
   /**
