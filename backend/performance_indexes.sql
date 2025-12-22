@@ -61,27 +61,30 @@ CREATE INDEX IF NOT EXISTS idx_search_analytics_query
 ON search_analytics(query);
 
 -- Index for timestamp (trending/recent searches)
+-- Uses created_at (per migration 003_create_search_analytics.sql)
 CREATE INDEX IF NOT EXISTS idx_search_analytics_timestamp 
-ON search_analytics(timestamp DESC);
+ON search_analytics(created_at DESC);
 
 -- Composite index for query popularity analysis
 CREATE INDEX IF NOT EXISTS idx_search_analytics_query_timestamp 
-ON search_analytics(query, timestamp DESC);
+ON search_analytics(query, created_at DESC);
 
 -- ===== USER PROGRESS TABLE INDEXES =====
 -- For progress tracking and completion status
 
--- Index for user-based queries
-CREATE INDEX IF NOT EXISTS idx_user_progress_user_id 
-ON user_progress(user_id);
+-- STUDY progress (tracks completion of notes per subject)
+CREATE INDEX IF NOT EXISTS idx_user_study_progress_user_id 
+ON user_study_progress(user_id);
 
--- Index for user + subject queries
-CREATE INDEX IF NOT EXISTS idx_user_progress_user_subject 
-ON user_progress(user_id, subject_id);
+CREATE INDEX IF NOT EXISTS idx_user_study_progress_user_subject 
+ON user_study_progress(user_id, subject_id);
 
--- Index for user + note queries
-CREATE INDEX IF NOT EXISTS idx_user_progress_user_note 
-ON user_progress(user_id, note_id);
+CREATE INDEX IF NOT EXISTS idx_user_study_progress_user_note 
+ON user_study_progress(user_id, note_id);
+
+-- UNIT-level tracking within user_study_progress (merged from user_progress)
+CREATE INDEX IF NOT EXISTS idx_user_study_progress_user_unit 
+ON user_study_progress(user_id, unit_id);
 
 -- ===== USER BOOKMARKS TABLE INDEXES =====
 -- For bookmark lookups

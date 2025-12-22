@@ -9,8 +9,8 @@ export const progressDB = {
    */
   async getUserProgress(userId, unitId) {
     const { data, error } = await supabase
-      .from("user_progress")
-      .select("*")
+      .from("user_study_progress")
+      .select("id, user_id, unit_id, is_completed, updated_at, completed_at")
       .eq("user_id", userId)
       .eq("unit_id", unitId)
       .single();
@@ -27,12 +27,13 @@ export const progressDB = {
    */
   async markUnitComplete(userId, unitId) {
     const { data, error } = await supabase
-      .from("user_progress")
+      .from("user_study_progress")
       .upsert([
         {
           user_id: userId,
           unit_id: unitId,
-          completed: true,
+          is_completed: true,
+          updated_at: new Date().toISOString(),
           completed_at: new Date().toISOString(),
         },
       ])
@@ -51,10 +52,11 @@ export const progressDB = {
    */
   async resetUnitProgress(userId, unitId) {
     const { data, error } = await supabase
-      .from("user_progress")
+      .from("user_study_progress")
       .update({
-        completed: false,
+        is_completed: false,
         completed_at: null,
+        updated_at: new Date().toISOString(),
       })
       .eq("user_id", userId)
       .eq("unit_id", unitId)
@@ -73,16 +75,17 @@ export const progressDB = {
    */
   async getUserOverallProgress(userId) {
     const { data, error } = await supabase
-      .from("user_progress")
-      .select("*")
-      .eq("user_id", userId);
+      .from("user_study_progress")
+      .select("id, is_completed, unit_id")
+      .eq("user_id", userId)
+      .not("unit_id", "is", null);
 
     if (error) {
       throw new Error(`Failed to fetch progress: ${error.message}`);
     }
 
     const items = data || [];
-    const completed = items.filter(p => p.completed).length;
+    const completed = items.filter(p => p.is_completed).length;
     const total = items.length;
 
     return {
