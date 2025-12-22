@@ -11,7 +11,7 @@ import AppShell from "./components/Layout/AppShell";
 
 // AppShell pages
 import Dashboard from "./pages/Dashboard";
-import HomePage from "./pages/HomePage";
+import SubjectsPage from "./pages/SubjectsPage";
 import SearchPage from "./pages/SearchPage";
 import BooksPage from "./pages/BooksPage";
 import ProgressPage from "./pages/ProgressPage";
@@ -41,7 +41,7 @@ export default function App() {
           path="/home"
           element={
             <AppShell>
-              <HomePage />
+              <SubjectsPage />
             </AppShell>
           }
         />
