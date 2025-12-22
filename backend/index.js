@@ -10,6 +10,7 @@ import authRoutes from "./src/routes/auth.js";
 import notesRoutes from "./src/routes/notes.js";
 import subjectsRoutes from "./src/routes/subjects.js";
 import searchRoutes from "./src/routes/search.js";
+import filesRoutes from "./src/routes/files.js";
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/notes", notesRoutes);
 app.use("/api/subjects", subjectsRoutes);
 app.use("/api/search", searchRoutes);
+app.use("/api/files", filesRoutes);
 
 /**
  * 404 Handler
@@ -109,6 +111,7 @@ Available Endpoints:
   GET    /api/search/suggest?q=... - Autocomplete suggestions
   GET    /api/search/analytics     - Top search queries
   GET    /api/notes/:id/search?q=...- Search inside a PDF
+  GET    /api/files/signed-url     - Get signed S3 URL (auth)
 
 Health Check: GET /healthz
   `);

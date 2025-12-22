@@ -22,10 +22,6 @@ router.post("/:id/complete", authenticate, notesController.markAsCompleted);
 router.get("/:id/progress", authenticate, notesController.getProgress);
 router.post("/:id/bookmark", authenticate, notesController.toggleBookmark);
 router.get("/:id/search", searchController.searchInNote); // Search inside PDF
-router.get("/:id/view", notesController.getFileInline); // No auth - public file view
-router.get("/:id/download", notesController.downloadFile); // Download with proper headers
-// HEAD support for PDF viewers requesting headers without body
-router.head("/:id/view", notesController.getFileInline);
 
 // Generic get by ID (must come last)
 router.get("/:id", notesController.getNoteById);

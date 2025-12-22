@@ -5,6 +5,7 @@ import Breadcrumbs from "../../components/Breadcrumbs";
 import InPDFSearch from "../../components/InPDFSearch";
 import ErrorBoundary from "../../components/ErrorBoundary";
 import client from "../../api/client";
+import { getSignedPdfUrl, resolveKeyFromUrl } from "../../api/files";
 
 // Lazy load PDF viewer component for performance
 // Reduces initial bundle size and speeds up page load
@@ -69,6 +70,9 @@ export default function NotesPage() {
   const s3Url = selectedNote?.s3_url?.toLowerCase() || "";
   const isPDF = fileName.endsWith(".pdf") || s3Url.includes(".pdf");
   const isImage = /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(fileName) || /\.(png|jpg|jpeg|webp|gif|svg)/i.test(s3Url);
+    // Signed URL for viewer
+    const [signedViewUrl, setSignedViewUrl] = useState("")
+
   
   // Document type tracking
   const isNote = !selectedNote?.isBook && !selectedNote?.isPyQ && !selectedNote?.isSyllabus;
@@ -289,8 +293,35 @@ export default function NotesPage() {
     setQuestion("");
     setRagEnabled(false);
     setShowResizeHint(true); // Show resize hint when opening document
+    setSignedViewUrl("");
     // User must click "Got it" to close - no auto-hide
   };
+  // Generate signed URL when a PDF note is selected
+  useEffect(() => {
+    let active = true;
+    async function gen() {
+      try {
+        if (!selectedNote) return;
+        const fname = selectedNote?.file_name?.toLowerCase() || "";
+        const surl = selectedNote?.s3_url || "";
+        const isPdf = fname.endsWith(".pdf") || (surl && surl.toLowerCase().includes(".pdf"));
+        if (!isPdf) {
+          setSignedViewUrl("");
+          return;
+        }
+        const key = selectedNote.s3_key || resolveKeyFromUrl(selectedNote.s3_url);
+        if (!key) return;
+        const url = await getSignedPdfUrl(key, "view");
+        if (active) setSignedViewUrl(url);
+      } catch (e) {
+        console.error("Failed to get signed viewer URL:", e);
+        if (active) setSignedViewUrl("");
+      }
+    }
+    gen();
+    return () => { active = false; };
+  }, [selectedNote]);
+
 
   const closeViewer = () => {
     setActiveTab("list");
@@ -419,23 +450,34 @@ export default function NotesPage() {
   ].filter(Boolean);
 
   // Download 
-  const handleDownload = () => {
-    if (!selectedNote?.id) return;
-    // Use the backend download endpoint which sets proper Content-Disposition headers
-    const API_BASE = import.meta.env.VITE_API_BASE_URL;
-    const link = document.createElement("a");
-    link.href = `${API_BASE}/api/notes/${selectedNote.id}/download`;
-    link.download = selectedNote.file_name || "download";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+  const handleDownload = async () => {
+    try {
+      if (!selectedNote) return;
+      const key = selectedNote.s3_key || resolveKeyFromUrl(selectedNote.s3_url);
+      if (!key) return;
+      const url = await getSignedPdfUrl(key, "download");
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = selectedNote.file_name || "download";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (e) {
+      console.error("Download failed:", e);
+    }
   };
 
   // Open in new tab
-  const handleOpenNewTab = () => {
-    if (!selectedNote?.id) return;
-    const API_BASE = import.meta.env.VITE_API_BASE_URL;
-    window.open(`${API_BASE}/api/notes/${selectedNote.id}/view`, "_blank");
+  const handleOpenNewTab = async () => {
+    try {
+      if (!selectedNote) return;
+      const key = selectedNote.s3_key || resolveKeyFromUrl(selectedNote.s3_url);
+      if (!key) return;
+      const url = await getSignedPdfUrl(key, "view");
+      window.open(url, "_blank");
+    } catch (e) {
+      console.error("Open new tab failed:", e);
+    }
   };
 
   // Handle mark as complete
@@ -668,7 +710,7 @@ export default function NotesPage() {
                       }}
                     >
                       <iframe
-                        src={`${import.meta.env.VITE_API_BASE_URL}/api/notes/${selectedNote.id}/view`}
+                        src={signedViewUrl || "about:blank"}
                         className="w-full h-screen bg-white dark:bg-white"
                         style={{ border: "none", background: '#ffffff', colorScheme: 'light' }}
                         allow="fullscreen"
