@@ -18,6 +18,8 @@ function detectContentType(key = "") {
  * Stream file inline (works for PDF, JPG, PNG, SVG)
  * Uses the S3 URL stored in database to fetch and serve files with inline disposition
  * Supports notes, books, pyqs, and syllabus
+ * 
+ * PERFORMANCE: Uses streaming for memory efficiency + aggressive caching for PDFs
  */
 export const getFileInline = async (req, res) => {
   try {
@@ -85,11 +87,12 @@ export const getFileInline = async (req, res) => {
     }
 
     const contentType = detectContentType(s3Url);
+    const isPDF = contentType === "application/pdf";
 
     console.log(`Serving ${tableName} file from S3:`, s3Url, "Content-Type:", contentType);
 
     try {
-      // Fetch from S3 URL and stream to client
+      // Fetch from S3 URL
       const response = await fetch(s3Url);
       if (!response.ok) {
         throw new Error(`S3 fetch failed: ${response.statusText}`);
@@ -98,20 +101,42 @@ export const getFileInline = async (req, res) => {
       // Set inline disposition so browser displays instead of downloads
       res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Disposition", `inline; filename="${document.file_name || 'document'}"`);
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      
+      // AGGRESSIVE CACHING for PDFs: 1 year immutable (content is static)
+      // Do NOT cache auth errors (handled by fetch failure above)
+      if (isPDF) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      } else {
+        res.setHeader("Cache-Control", "public, max-age=3600");
+      }
 
-      // Stream the file to response
-      const buffer = await response.arrayBuffer();
-      res.send(Buffer.from(buffer));
+      // Stream directly to client (memory efficient)
+      response.body.pipe(res);
+
+      // Handle stream errors
+      response.body.on('error', (streamErr) => {
+        console.error("Stream error:", streamErr);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to stream document" });
+        } else {
+          res.end();
+        }
+      });
+
     } catch (fetchErr) {
       console.error("Failed to fetch from S3:", fetchErr);
-      // Fallback: redirect to S3 URL
-      res.redirect(s3Url);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: "Failed to load document" });
+      } else {
+        res.end();
+      }
     }
 
   } catch (err) {
     console.error("❌ getFileInline failed:", err);
-    res.status(500).json({ error: "Failed to load document" });
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to load document" });
+    }
   }
 };
 
@@ -149,7 +174,7 @@ export const getFileSignedUrl = async (req, res) => {
  */
 export const getAllNotes = async (req, res) => {
   try {
-    const { data, error } = await supabase.supabase.from("notes").select("*");
+      const { data, error } = await supabase.supabase.from("notes").select("id, file_name, subject, subject_id, unit_number, semester, branch, created_at");
     if (error) throw error;
     res.json(data);
   } catch (err) {
@@ -166,7 +191,7 @@ export const getNotesBySubject = async (req, res) => {
 
     const { data, error } = await supabase.supabase
       .from("notes")
-      .select("*")
+        .select("id, file_name, subject, subject_id, unit_number, semester, branch, created_at")
       .eq("subject_id", subjectId);
 
     if (error) throw error;
@@ -207,7 +232,7 @@ export const getNotesByUnit = async (req, res) => {
 
     const { data, error } = await supabase.supabase
       .from("notes")
-      .select("*")
+        .select("id, file_name, subject, subject_id, unit_number, semester, branch, created_at")
       .eq("subject_id", subjectId)
       .eq("unit_number", parseInt(unitNumber));
 
@@ -357,6 +382,9 @@ export const toggleBookmark = async (req, res, next) => {
 
 /**
  * Download file with proper Content-Disposition header
+ * 
+ * PERFORMANCE: Streams file directly from S3 without loading into memory
+ * CACHING: Aggressive caching for PDFs (1 year immutable)
  */
 export const downloadFile = async (req, res) => {
   try {
@@ -425,11 +453,12 @@ export const downloadFile = async (req, res) => {
 
     const contentType = detectContentType(s3Url);
     const fileName = document.file_name || 'document';
+    const isPDF = contentType === "application/pdf";
 
     console.log(`Downloading ${tableName} file from S3:`, s3Url);
 
     try {
-      // Fetch from S3 URL and stream to client
+      // Fetch from S3 URL
       const response = await fetch(s3Url);
       if (!response.ok) {
         throw new Error(`S3 fetch failed: ${response.statusText}`);
@@ -438,11 +467,27 @@ export const downloadFile = async (req, res) => {
       // Set attachment disposition to force download
       res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      
+      // AGGRESSIVE CACHING for PDFs: 1 year immutable
+      if (isPDF) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      } else {
+        res.setHeader("Cache-Control", "public, max-age=3600");
+      }
 
-      // Stream the file to response
-      const buffer = await response.arrayBuffer();
-      res.send(Buffer.from(buffer));
+      // Stream directly from S3 to client (memory efficient)
+      response.body.pipe(res);
+
+      // Handle stream errors
+      response.body.on('error', (streamErr) => {
+        console.error("Download stream error:", streamErr);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Failed to download file" });
+        } else {
+          res.end();
+        }
+      });
+
     } catch (fetchErr) {
       console.error("Failed to fetch from S3:", fetchErr);
       return res.status(500).json({ error: "Failed to download file from S3" });

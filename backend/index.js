@@ -1,7 +1,9 @@
 import express from "express";
+import morgan from "morgan";
 import config from "./src/config.js";
 import corsMiddleware from "./src/middlewares/cors.js";
 import { errorHandler } from "./src/middlewares/auth.js";
+import { authLimiter } from "./src/middlewares/rateLimiter.js";
 
 // Route imports
 import authRoutes from "./src/routes/auth.js";
@@ -17,11 +19,20 @@ const app = express();
 // CORS MUST come first, before body parsers
 app.use(corsMiddleware);
 app.options("*", corsMiddleware);
+
+// Request logging with morgan
+// Use 'combined' format in production, 'dev' in development
+const morganFormat = config.NODE_ENV === 'production' ? 'combined' : 'dev';
+app.use(morgan(morganFormat, {
+  skip: (req) => req.path === '/healthz' // Skip health check logs
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /**
  * Health Check Endpoint
+ * No auth required, excluded from rate limiting
  */
 app.get("/healthz", (req, res) => {
   res.json({
@@ -33,8 +44,9 @@ app.get("/healthz", (req, res) => {
 
 /**
  * API Routes
+ * Auth routes have rate limiting
  */
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/notes", notesRoutes);
 app.use("/api/subjects", subjectsRoutes);
 app.use("/api/search", searchRoutes);
