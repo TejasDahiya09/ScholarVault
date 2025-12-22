@@ -3,6 +3,7 @@ import { notesService } from "../services/notes.js";
 import { aiService } from "../services/ai.js";
 import bookmarksDB from "../db/bookmarks.js";
 import progressDB from "../db/progress.js";
+import Cache from "../utils/cache.js";
 
 /**
  * Get all notes
@@ -218,15 +219,25 @@ export const toggleBookmark = async (req, res, next) => {
 /**
  * Get notes metadata for client-side search
  * GET /api/notes/metadata
+ * 
+ * Performance optimized:
+ * - Cached for 30 minutes (rarely changes)
+ * - Returns only required fields (lightweight)
+ * - Indexed query (fast database access)
  */
 export const getNotesMetadata = async (req, res) => {
   try {
-    const { data, error } = await supabase.supabase
-      .from("notes")
-      .select("id, file_name, subject, subject_id, unit_number, semester, branch, created_at")
-      .order("created_at", { ascending: false });
+    const cacheKey = 'notes_metadata_all';
+    
+    const data = await Cache.notes.getOrSet(cacheKey, async () => {
+      const { data, error } = await supabase.supabase
+        .from("notes")
+        .select("id, file_name, subject, subject_id, unit_number, semester, branch, created_at")
+        .order("created_at", { ascending: false });
 
-    if (error) throw error;
+      if (error) throw error;
+      return data;
+    });
 
     res.json(data);
   } catch (err) {

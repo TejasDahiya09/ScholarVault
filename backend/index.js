@@ -4,6 +4,8 @@ import config from "./src/config.js";
 import corsMiddleware from "./src/middlewares/cors.js";
 import { errorHandler } from "./src/middlewares/auth.js";
 import { createAuthLimiter } from "./src/middlewares/rateLimiter.js";
+import Cache from "./src/utils/cache.js";
+import { subjectsDB } from "./src/db/subjects.js";
 
 // Route imports
 import authRoutes from "./src/routes/auth.js";
@@ -58,6 +60,23 @@ app.get("/healthz", (req, res) => {
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+  });
+});
+
+/**
+ * Keep-Alive Endpoint (prevents cold starts)
+ * Lightweight ping to keep server warm
+ * Call this every 5 minutes from external monitor
+ */
+app.get("/api/ping", (req, res) => {
+  res.json({
+    status: "alive",
+    timestamp: new Date().toISOString(),
+    latency: process.uptime() > 60 ? "warm" : "cold"
+  });
+});
     environment: config.NODE_ENV,
   });
 });
@@ -89,11 +108,22 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 /**
- * Start Server
+ * Start Server & Initialize Performance Optimizations
  */
 const PORT = config.PORT;
 
-app.listen(PORT, () => {
+// Warm cache on startup (prevents first-request delay)
+async function warmCache() {
+  try {
+    console.log('⚡ Warming cache...');
+    await subjectsDB.getAll(); // Preload subjects
+    console.log('✅ Cache warmed successfully');
+  } catch (error) {
+    console.error('⚠️  Cache warming failed:', error.message);
+  }
+}
+
+app.listen(PORT, async () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║         🎓 ScholarVault Backend API Server                ║
@@ -104,6 +134,7 @@ app.listen(PORT, () => {
 🔐 JWT Secret configured: ${!!config.JWT_SECRET}
 📦 Database configured: ${!!config.SUPABASE_URL}
 🤖 Vertex AI configured: ${!!config.VERTEX_PROJECT}
+🚀 Performance caching: ENABLED
 
 Available Endpoints:
   POST   /api/auth/register        - Register new user
@@ -127,7 +158,11 @@ Available Endpoints:
   GET    /api/files/signed-url     - Get signed S3 URL (auth)
 
 Health Check: GET /healthz
+Keep-Alive: GET /api/ping
   `);
+  
+  // Warm cache in background (non-blocking)
+  warmCache();
 });
 
 export default app;

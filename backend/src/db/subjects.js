@@ -1,46 +1,58 @@
 import { supabase } from "../lib/services.js";
+import Cache from "../utils/cache.js";
 
 /**
  * Subjects Database Operations
+ * Performance optimized with caching layer
  */
 export const subjectsDB = {
   /**
-   * Get all subjects
+   * Get all subjects (with caching)
    */
   async getAll(filters = {}) {
-    let query = supabase.from("subjects").select("*");
+    // Create cache key from filters
+    const cacheKey = `subjects:all:${JSON.stringify(filters)}`;
+    
+    // Try cache first
+    return Cache.subjects.getOrSet(cacheKey, async () => {
+      let query = supabase.from("subjects").select("*");
 
-    if (filters.branch) query = query.eq("branch", filters.branch);
-    if (filters.semester) query = query.eq("semester", filters.semester);
+      if (filters.branch) query = query.eq("branch", filters.branch);
+      if (filters.semester) query = query.eq("semester", filters.semester);
 
-    const { data, error } = await query;
+      const { data, error } = await query;
 
-    if (error) {
-      throw new Error(`Failed to fetch subjects: ${error.message}`);
-    }
+      if (error) {
+        throw new Error(`Failed to fetch subjects: ${error.message}`);
+      }
 
-    return data || [];
+      return data || [];
+    });
   },
 
   /**
-   * Get subject by ID
+   * Get subject by ID (with caching)
    */
   async getById(id) {
-    const { data, error } = await supabase
-      .from("subjects")
-      .select("*")
-      .eq("id", id)
-      .single();
+    const cacheKey = `subject:${id}`;
+    
+    return Cache.subjects.getOrSet(cacheKey, async () => {
+      const { data, error } = await supabase
+        .from("subjects")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    if (error && error.code !== "PGRST116") {
-      throw new Error(`Database error: ${error.message}`);
-    }
+      if (error && error.code !== "PGRST116") {
+        throw new Error(`Database error: ${error.message}`);
+      }
 
-    return data || null;
+      return data || null;
+    });
   },
 
   /**
-   * Create subject
+   * Create subject (invalidates cache)
    */
   async create(subjectData) {
     const { data, error } = await supabase
@@ -53,11 +65,14 @@ export const subjectsDB = {
       throw new Error(`Failed to create subject: ${error.message}`);
     }
 
+    // Invalidate subjects cache
+    Cache.subjects.invalidateAll();
+
     return data;
   },
 
   /**
-   * Update subject
+   * Update subject (invalidates cache)
    */
   async update(id, updates) {
     const { data, error } = await supabase
@@ -71,6 +86,10 @@ export const subjectsDB = {
       throw new Error(`Failed to update subject: ${error.message}`);
     }
 
+    // Invalidate cache for this subject
+    Cache.subjects.del(`subject:${id}`);
+    Cache.subjects.invalidateAll(); // Also invalidate list caches
+
     return data;
   },
 
@@ -78,16 +97,21 @@ export const subjectsDB = {
    * Get subject with resources (notes, books, pyqs, syllabus)
    * Filters from single notes table by S3 URL path patterns
    * Extracts unit numbers from filenames when not in database
+   * 
+   * Performance: Uses caching for frequently accessed subjects
    */
   async getWithResources(id) {
-    const subject = await this.getById(id);
-    if (!subject) return null;
+    const cacheKey = `subject_resources:${id}`;
+    
+    return Cache.notes.getOrSet(cacheKey, async () => {
+      const subject = await this.getById(id);
+      if (!subject) return null;
 
-    // Fetch all notes for this subject
-    const { data: allNotes } = await supabase
-      .from("notes")
-      .select("*")
-      .eq("subject_id", id)
+      // Fetch all notes for this subject
+      const { data: allNotes } = await supabase
+        .from("notes")
+        .select("*")
+        .eq("subject_id", id)
       .order("created_at", { ascending: false });
 
     // Filter notes into categories based on S3 URL path patterns
@@ -182,6 +206,7 @@ export const subjectsDB = {
       syllabus_text: subject.syllabus_text || null,
       syllabus_json: subject.syllabus_json || null,
     };
+    }); // End of cache wrapper
   },
 };
 
