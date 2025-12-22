@@ -70,6 +70,11 @@ function detectContentType(key = "") {
  */
 export const getFileInline = async (req, res) => {
   try {
+    // HEAD support for PDF viewers
+    if (req.method === "HEAD") {
+      return res.sendStatus(200);
+    }
+
     const { id } = req.params;
 
     // Try to fetch from all possible tables
@@ -143,19 +148,23 @@ export const getFileInline = async (req, res) => {
       return res.status(500).json({ error: "Invalid S3 URL" });
     }
 
-    // Headers for inline view
+    // Headers for inline view (set BEFORE streaming)
+    res.status(200);
     res.setHeader("Content-Type", isPDF ? "application/pdf" : contentType);
     res.setHeader("Content-Disposition", `inline; filename="${(document.file_name || 'document')}${isPDF && !/(\.pdf)$/i.test(document.file_name || '') ? '.pdf' : ''}"`);
+    res.setHeader("Accept-Ranges", "bytes");
     if (isPDF) {
       res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     } else {
       res.setHeader("Cache-Control", "public, max-age=3600");
     }
 
-    console.log("Streaming PDF:", key);
-
     // Stream from S3
     const resp = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    if (resp.ContentLength) {
+      res.setHeader("Content-Length", String(resp.ContentLength));
+    }
+    console.log("Serving PDF:", { noteId: req.params.id, key });
     const stream = resp.Body; // Readable
     stream.on("error", (err) => {
       console.error("PDF stream error:", err);
