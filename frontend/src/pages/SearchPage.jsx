@@ -2,6 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import client from "../api/client";
 import { Link } from "react-router-dom";
 
+// Search state machine
+const SEARCH_STATES = {
+  IDLE: 'idle',
+  FOCUSED: 'focused',
+  SEARCHING: 'searching',
+  RESULTS: 'results',
+  EMPTY: 'empty'
+};
+
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -13,17 +22,37 @@ export default function SearchPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [totalResults, setTotalResults] = useState(0);
-  const [isFocused, setIsFocused] = useState(false);
+  const [searchState, setSearchState] = useState(SEARCH_STATES.IDLE);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   
   const debounceRef = useRef(null);
   const searchInputRef = useRef(null);
+  const searchContainerRef = useRef(null);
+  const resultsCache = useRef(new Map());
 
-  // Autocomplete suggestions
+  // Click outside handler
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+        if (!query.trim()) {
+          setSearchState(SEARCH_STATES.IDLE);
+        }
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [query]);
+
+  // Autocomplete suggestions with strict validation
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     
-    if (query.trim().length < 2) {
+    const trimmedQuery = query.trim();
+    
+    if (trimmedQuery.length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
       return;
@@ -31,28 +60,47 @@ export default function SearchPage() {
 
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await client.get(`/api/search/suggest?q=${encodeURIComponent(query)}&limit=8`);
+        const res = await client.get(`/api/search/suggest?q=${encodeURIComponent(trimmedQuery)}&limit=8`);
         setSuggestions(res.data || []);
-        setShowSuggestions(true);
+        if (searchState === SEARCH_STATES.FOCUSED && (res.data || []).length > 0) {
+          setShowSuggestions(true);
+        }
       } catch (e) {
         console.error("Autocomplete error:", e);
       }
     }, 300);
-  }, [query]);
+  }, [query, searchState]);
 
-  // Main search function
+  // Main search function with caching and strict validation
   const performSearch = async (searchQuery, pageNum = 1, append = false) => {
-    if (!searchQuery.trim()) {
+    const trimmedQuery = searchQuery.trim();
+    
+    // Strict validation: no search for empty or too short queries
+    if (!trimmedQuery || trimmedQuery.length < 2) {
       setResults([]);
       setGroupedResults({});
+      setSearchState(trimmedQuery ? SEARCH_STATES.FOCUSED : SEARCH_STATES.IDLE);
+      return;
+    }
+
+    // Check cache for this query (page 1 only)
+    if (pageNum === 1 && resultsCache.current.has(trimmedQuery)) {
+      const cached = resultsCache.current.get(trimmedQuery);
+      setResults(cached.results);
+      setGroupedResults(cached.grouped_results);
+      setTotalResults(cached.total_results);
+      setHasMore(!!cached.next_page);
+      setPage(1);
+      setSearchState(cached.results.length > 0 ? SEARCH_STATES.RESULTS : SEARCH_STATES.EMPTY);
       return;
     }
 
     try {
       setLoading(true);
+      setSearchState(SEARCH_STATES.SEARCHING);
       setErr("");
       
-      const res = await client.get(`/api/search?q=${encodeURIComponent(searchQuery)}&page=${pageNum}&per_page=10`);
+      const res = await client.get(`/api/search?q=${encodeURIComponent(trimmedQuery)}&page=${pageNum}&per_page=10`);
       const data = res.data;
 
       if (append) {
@@ -60,15 +108,33 @@ export default function SearchPage() {
       } else {
         setResults(data.results || []);
         setGroupedResults(data.grouped_results || {});
+        
+        // Cache first page results
+        if (pageNum === 1) {
+          resultsCache.current.set(trimmedQuery, {
+            results: data.results || [],
+            grouped_results: data.grouped_results || {},
+            total_results: data.total_results || 0,
+            next_page: data.next_page
+          });
+        }
       }
       
       setTotalResults(data.total_results || 0);
       setHasMore(!!data.next_page);
       setPage(pageNum);
+      
+      // Update state based on results
+      if ((data.results || []).length > 0) {
+        setSearchState(SEARCH_STATES.RESULTS);
+      } else {
+        setSearchState(SEARCH_STATES.EMPTY);
+      }
     } catch (e) {
       setErr(e?.response?.data?.error || e?.message || "Search failed");
       setResults([]);
       setGroupedResults({});
+      setSearchState(SEARCH_STATES.EMPTY);
     } finally {
       setLoading(false);
     }
@@ -98,8 +164,18 @@ export default function SearchPage() {
     performSearch(suggestion, 1, false);
   };
 
-  // Handle keyboard navigation
+  // Handle keyboard navigation with Escape to close
   const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setSelectedSuggestionIndex(-1);
+      if (!query.trim()) {
+        setSearchState(SEARCH_STATES.IDLE);
+      }
+      searchInputRef.current?.blur();
+      return;
+    }
+    
     if (!showSuggestions || suggestions.length === 0) return;
 
     if (e.key === 'ArrowDown') {
@@ -110,16 +186,14 @@ export default function SearchPage() {
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedSuggestionIndex((prev) => prev > 0 ? prev - 1 : -1);
-    } else if (e.key === 'Escape') {
-      setShowSuggestions(false);
-      setSelectedSuggestionIndex(-1);
     }
   };
 
-  // Load more results (infinite scroll)
+  // Load more results with strict validation
   const loadMore = () => {
-    if (!loading && hasMore) {
-      performSearch(query, page + 1, true);
+    const trimmedQuery = query.trim();
+    if (!loading && hasMore && trimmedQuery.length >= 2 && results.length >= 10) {
+      performSearch(trimmedQuery, page + 1, true);
     }
   };
 
@@ -136,7 +210,15 @@ export default function SearchPage() {
     });
   };
 
-  const showEmpty = useMemo(() => query && !loading && results.length === 0, [query, loading, results]);
+  const showEmpty = useMemo(() => 
+    searchState === SEARCH_STATES.EMPTY && query.trim().length >= 2 && !loading, 
+    [searchState, query, loading]
+  );
+  
+  const showLoadMore = useMemo(() => 
+    hasMore && !loading && query.trim().length >= 2 && results.length >= 10,
+    [hasMore, loading, query, results.length]
+  );
 
   return (
     <div className="min-h-[calc(100vh-64px)] w-full bg-gradient-to-br from-slate-50 to-blue-50">
@@ -152,11 +234,11 @@ export default function SearchPage() {
         </div>
 
         {/* Search Box with Autocomplete */}
-        <div className="relative mb-4 sm:mb-6">
+        <div ref={searchContainerRef} className="relative mb-4 sm:mb-6">
           <form onSubmit={handleSearch}>
             <div 
               onClick={() => searchInputRef.current?.focus()}
-              className={`bg-white rounded-lg sm:rounded-xl border-2 border-gray-200 shadow-sm focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 transition-all cursor-text ${isFocused ? 'p-3 sm:p-4' : 'p-2 sm:p-3'}`}
+              className={`bg-white rounded-lg sm:rounded-xl border-2 border-gray-200 shadow-sm focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 transition-all cursor-text ${searchState !== SEARCH_STATES.IDLE ? 'p-3 sm:p-4' : 'p-2 sm:p-3'}`}
             >
               <div className="flex items-center gap-2 sm:gap-3">
                 <svg className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,14 +251,14 @@ export default function SearchPage() {
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onFocus={() => {
-                    setIsFocused(true);
+                    setSearchState(SEARCH_STATES.FOCUSED);
                     if (suggestions.length > 0) setShowSuggestions(true);
                   }}
                   onBlur={() => {
                     setTimeout(() => {
-                      setIsFocused(false);
-                      setShowSuggestions(false);
-                      setSelectedSuggestionIndex(-1);
+                      if (!query.trim()) {
+                        setSearchState(SEARCH_STATES.IDLE);
+                      }
                     }, 200);
                   }}
                   placeholder="Search notes by topic, subject, unit, or keyword..."
@@ -190,6 +272,8 @@ export default function SearchPage() {
                       setResults([]);
                       setGroupedResults({});
                       setSuggestions([]);
+                      setSearchState(SEARCH_STATES.IDLE);
+                      setShowSuggestions(false);
                     }}
                     className="text-slate-400 hover:text-slate-600 flex-shrink-0"
                   >
@@ -200,7 +284,7 @@ export default function SearchPage() {
                 )}
                 <button
                   type="submit"
-                  disabled={loading || !query.trim()}
+                  disabled={loading || !query.trim() || query.trim().length < 2}
                   className="px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm flex-shrink-0"
                 >
                   {loading ? "Searching..." : "Search"}
@@ -244,8 +328,19 @@ export default function SearchPage() {
           </div>
         )}
 
+        {/* Idle State */}
+        {searchState === SEARCH_STATES.IDLE && !query.trim() && (
+          <div className="text-center py-12">
+            <svg className="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <p className="text-slate-600 font-medium">Start typing to search notes</p>
+            <p className="text-sm text-slate-500 mt-1">Search across all subjects, units, and materials</p>
+          </div>
+        )}
+
         {/* Loading */}
-        {loading && page === 1 && (
+        {searchState === SEARCH_STATES.SEARCHING && page === 1 && (
           <div className="text-center py-12">
             <div className="inline-block w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
             <p className="mt-3 text-slate-600">Searching...</p>
@@ -258,7 +353,7 @@ export default function SearchPage() {
             <svg className="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-slate-600 font-medium">No results found</p>
+            <p className="text-slate-600 font-medium">No results found for "{query}"</p>
             <p className="text-sm text-slate-500 mt-1">Try different keywords or check your spelling</p>
           </div>
         )}
@@ -328,8 +423,8 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* Load More Button */}
-        {hasMore && !loading && (
+        {/* Load More Button - Only show when query is valid and there are more results */}
+        {showLoadMore && (
           <div className="text-center mt-8">
             <button
               onClick={loadMore}
