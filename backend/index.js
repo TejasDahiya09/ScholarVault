@@ -128,36 +128,6 @@ Available Endpoints:
 
 Health Check: GET /healthz
   `);
-
-✨ Server running on: http://localhost:${PORT}
-📍 Environment: ${config.NODE_ENV}
-🔐 JWT Secret configured: ${!!config.JWT_SECRET}
-📦 Database configured: ${!!config.SUPABASE_URL}
-🤖 Vertex AI configured: ${!!config.VERTEX_PROJECT}
-
-Available Endpoints:
-  POST   /api/auth/register        - Register new user
-  POST   /api/auth/login           - Login user
-  GET    /api/auth/me              - Get current user
-  
-  GET    /api/notes                - Get all notes
-  GET    /api/notes/:id            - Get note by ID
-  GET    /api/notes/:id/summary    - Get note summary
-  POST   /api/notes/:id/ask        - Ask question about note
-  POST   /api/notes/:id/complete   - Mark note as completed
-  
-  GET    /api/subjects             - Get all subjects
-  GET    /api/subjects/:id         - Get subject by ID
-  GET    /api/subjects/:id/notes   - Get subject notes
-  
-  GET    /api/search?q=...         - Hybrid search (keyword + semantic)
-  GET    /api/search/suggest?q=... - Autocomplete suggestions
-  GET    /api/search/analytics     - Top search queries
-  GET    /api/notes/:id/search?q=...- Search inside a PDF
-  GET    /api/files/signed-url     - Get signed S3 URL (auth)
-
-Health Check: GET /healthz
-  `);
 });
 
 export default app;
