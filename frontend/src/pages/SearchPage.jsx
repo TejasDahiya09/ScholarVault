@@ -152,6 +152,20 @@ export default function SearchPage() {
     });
   };
 
+  // Flush analytics queue to backend
+  const flushAnalytics = useCallback(async () => {
+    if (analyticsQueueRef.current.length === 0) return;
+
+    const batch = [...analyticsQueueRef.current];
+    analyticsQueueRef.current = [];
+
+    try {
+      await client.post('/api/search/analytics/batch', { events: batch });
+    } catch (err) {
+      console.error('Analytics batch failed:', err);
+    }
+  }, []);
+
   // Batched analytics logging (non-blocking)
   const logSearchAnalytics = useCallback((query, resultCount, clickedItem = null) => {
     analyticsQueueRef.current.push({
@@ -175,20 +189,6 @@ export default function SearchPage() {
       }, 2000);
     }
   }, [flushAnalytics]);
-
-  // Flush analytics queue to backend
-  const flushAnalytics = useCallback(async () => {
-    if (analyticsQueueRef.current.length === 0) return;
-
-    const batch = [...analyticsQueueRef.current];
-    analyticsQueueRef.current = [];
-
-    try {
-      await client.post('/api/search/analytics/batch', { events: batch });
-    } catch (err) {
-      console.error('Analytics batch failed:', err);
-    }
-  }, []);
 
   // Client-side fuzzy search for instant results
   const performClientSearch = useCallback((searchQuery) => {
