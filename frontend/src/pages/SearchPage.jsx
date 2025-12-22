@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import client from "../api/client";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import Fuse from "fuse.js";
 
 // Add animation styles
 const styles = `
@@ -59,11 +60,17 @@ export default function SearchPage() {
   const [didYouMean, setDidYouMean] = useState(null);
   const [showTips, setShowTips] = useState(false);
   const [searchPerformance, setSearchPerformance] = useState(null);
+  const [allNotesMetadata, setAllNotesMetadata] = useState([]);
+  const [useClientSearch, setUseClientSearch] = useState(false);
   
   const debounceRef = useRef(null);
   const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
   const resultsCache = useRef(new Map());
+  const fuseRef = useRef(null);
+  const analyticsQueueRef = useRef([]);
+  const analyticsTimerRef = useRef(null);
+  const location = useLocation();
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -91,6 +98,49 @@ export default function SearchPage() {
     return () => document.removeEventListener('keydown', handleGlobalKeyboard);
   }, []);
 
+  // Clear search on route change
+  useEffect(() => {
+    return () => {
+      setQuery("");
+      setResults([]);
+      setSearchState(SEARCH_STATES.IDLE);
+      setShowSuggestions(false);
+      // Flush analytics queue on unmount
+      if (analyticsQueueRef.current.length > 0) {
+        flushAnalytics();
+      }
+    };
+  }, [location.pathname, flushAnalytics]);
+
+  // Load all notes metadata for client-side search on mount
+  useEffect(() => {
+    const loadMetadata = async () => {
+      try {
+        const res = await client.get('/api/notes/metadata');
+        if (res.data) {
+          setAllNotesMetadata(res.data);
+          console.log(`Loaded ${res.data.length} notes for instant search`);
+          // Initialize Fuse.js
+          fuseRef.current = new Fuse(res.data, {
+            keys: [
+              { name: 'file_name', weight: 0.4 },
+              { name: 'subject', weight: 0.3 },
+              { name: 'unit_number', weight: 0.2 },
+              { name: 'ocr_text', weight: 0.1 }
+            ],
+            threshold: 0.4,
+            includeScore: true,
+            minMatchCharLength: 2
+          });
+          setUseClientSearch(true);
+        }
+      } catch (err) {
+        console.log('Client-side search not available:', err.message);
+      }
+    };
+    loadMetadata();
+  }, []);
+
   // Save search to recent searches
   const saveRecentSearch = (searchQuery) => {
     if (!searchQuery.trim()) return;
@@ -101,6 +151,65 @@ export default function SearchPage() {
       return updated;
     });
   };
+
+  // Batched analytics logging (non-blocking)
+  const logSearchAnalytics = useCallback((query, resultCount, clickedItem = null) => {
+    analyticsQueueRef.current.push({
+      query,
+      result_count: resultCount,
+      clicked_item: clickedItem,
+      timestamp: new Date().toISOString()
+    });
+
+    // Clear existing timer
+    if (analyticsTimerRef.current) {
+      clearTimeout(analyticsTimerRef.current);
+    }
+
+    // Flush after 2 seconds or when queue reaches 10 items
+    if (analyticsQueueRef.current.length >= 10) {
+      flushAnalytics();
+    } else {
+      analyticsTimerRef.current = setTimeout(() => {
+        flushAnalytics();
+      }, 2000);
+    }
+  }, [flushAnalytics]);
+
+  // Flush analytics queue to backend
+  const flushAnalytics = useCallback(async () => {
+    if (analyticsQueueRef.current.length === 0) return;
+
+    const batch = [...analyticsQueueRef.current];
+    analyticsQueueRef.current = [];
+
+    try {
+      await client.post('/api/search/analytics/batch', { events: batch });
+    } catch (err) {
+      console.error('Analytics batch failed:', err);
+    }
+  }, []);
+
+  // Client-side fuzzy search for instant results
+  const performClientSearch = useCallback((searchQuery) => {
+    if (!fuseRef.current || !searchQuery.trim() || searchQuery.length < 2) {
+      setResults([]);
+      setGroupedResults({});
+      return [];
+    }
+
+    const fuseResults = fuseRef.current.search(searchQuery);
+    const formatted = fuseResults.slice(0, 50).map(r => ({
+      ...r.item,
+      weighted_score: (1 - r.score) * 10, // Convert Fuse score to our scale
+      snippet: `${r.item.file_name} - ${r.item.subject}`,
+      match_count: 1,
+      keyword_match: true,
+      semantic_match: false
+    }));
+
+    return formatted;
+  }, []);
 
   // Click outside handler
   useEffect(() => {
@@ -153,6 +262,16 @@ export default function SearchPage() {
       setGroupedResults({});
       setSearchState(trimmedQuery ? SEARCH_STATES.FOCUSED : SEARCH_STATES.IDLE);
       return;
+    }
+
+    // Use client-side search for instant results while backend loads
+    if (useClientSearch && pageNum === 1) {
+      const clientResults = performClientSearch(trimmedQuery);
+      if (clientResults.length > 0) {
+        setResults(clientResults);
+        setSearchState(SEARCH_STATES.RESULTS);
+        // Continue with backend search in background
+      }
     }
 
     // Check cache for this query (page 1 only)
@@ -208,11 +327,17 @@ export default function SearchPage() {
       } else {
         setSearchState(SEARCH_STATES.EMPTY);
       }
+
+      // Log analytics (batched, non-blocking)
+      if (pageNum === 1) {
+        logSearchAnalytics(trimmedQuery, data.total_results || 0);
+      }
     } catch (e) {
       setErr(e?.response?.data?.error || e?.message || "Search failed");
       setResults([]);
       setGroupedResults({});
       setSearchState(SEARCH_STATES.EMPTY);
+      logSearchAnalytics(trimmedQuery, 0);
     } finally {
       setLoading(false);
     }
@@ -374,7 +499,7 @@ export default function SearchPage() {
   // Processed results with sorting and filtering
   const processedResults = useMemo(() => {
     return sortResults(filterResults(results));
-  }, [results, sortBy, filters, sortResults, filterResults]);
+  }, [results, sortResults, filterResults]);
   
   // Update grouped results when processed results change
   useEffect(() => {
@@ -423,10 +548,12 @@ export default function SearchPage() {
               <h3 className="font-semibold text-blue-900 mb-2">💡 Search Tips:</h3>
               <ul className="space-y-1 text-blue-800">
                 <li>• Use <kbd className="px-1.5 py-0.5 bg-white rounded border text-xs">Ctrl+K</kbd> to quickly focus search</li>
+                <li>• 🚀 Instant results from client-side fuzzy search</li>
                 <li>• Search by unit: "unit 3" or "chapter 2"</li>
                 <li>• Use abbreviations: "algo" → "algorithm", "db" → "database"</li>
-                <li>• Try semantic search for concepts, not just keywords</li>
+                <li>• Semantic search understands concepts, not just keywords</li>
                 <li>• Filter by semester and unit for precise results</li>
+                <li>• Export results to CSV for offline analysis</li>
               </ul>
             </div>
           )}
@@ -613,6 +740,9 @@ export default function SearchPage() {
               Found <span className="font-semibold text-slate-900">{totalResults}</span> results
               {searchPerformance?.cached && (
                 <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">⚡ Cached</span>
+              )}
+              {useClientSearch && results.length > 0 && !loading && (
+                <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">🚀 Instant</span>
               )}
             </div>
           </div>

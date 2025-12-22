@@ -845,6 +845,27 @@ export const searchService = {
   async searchInNote(noteId, query, options = {}) {
     return this.hybridSearch(query, { ...options, noteId });
   },
+
+  /**
+   * Batch analytics logging (non-blocking)
+   */
+  async logAnalyticsBatch(events, userId = null) {
+    if (!events || events.length === 0) return;
+
+    try {
+      const records = events.map(event => ({
+        user_id: userId,
+        query: event.query?.trim() || '',
+        results_count: event.result_count || 0,
+        clicked_item: event.clicked_item || null,
+        created_at: event.timestamp || new Date().toISOString()
+      }));
+
+      await supabase.from("search_analytics").insert(records);
+    } catch (err) {
+      console.error("Batch analytics error:", err);
+    }
+  },
 };
 
 export default searchService;

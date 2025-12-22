@@ -9,6 +9,7 @@ const router = Router();
  * Notes Routes
  */
 router.get("/", notesController.getAllNotes);
+router.get("/metadata", notesController.getNotesMetadata); // Metadata for client-side search
 
 // Specific routes must come before parameterized routes
 router.get("/subjects/:subjectId", authenticate, notesController.getNotesBySubject);

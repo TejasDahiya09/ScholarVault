@@ -215,6 +215,25 @@ export const toggleBookmark = async (req, res, next) => {
   }
 };
 
+/**
+ * Get notes metadata for client-side search
+ * GET /api/notes/metadata
+ */
+export const getNotesMetadata = async (req, res) => {
+  try {
+    const { data, error } = await supabase.supabase
+      .from("notes")
+      .select("id, file_name, subject, subject_id, unit_number, semester, branch, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export default {
   getAllNotes,
   getNotesBySubject,
@@ -225,4 +244,5 @@ export default {
   markAsCompleted,
   toggleBookmark,
   getProgress,
+  getNotesMetadata,
 };

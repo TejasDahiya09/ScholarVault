@@ -103,9 +103,31 @@ export const searchInNote = async (req, res, next) => {
   }
 };
 
+/**
+ * Batch Analytics Endpoint
+ * POST /api/search/analytics/batch
+ */
+export const batchAnalytics = async (req, res, next) => {
+  try {
+    const { events } = req.body;
+    const userId = req.user?.userId || null;
+
+    if (!events || !Array.isArray(events) || events.length === 0) {
+      return res.status(400).json({ error: "Events array is required" });
+    }
+
+    await searchService.logAnalyticsBatch(events, userId);
+    res.json({ success: true, logged: events.length });
+  } catch (err) {
+    console.error("Batch analytics error:", err);
+    next(err);
+  }
+};
+
 export default {
   search,
   suggest,
   analytics,
   searchInNote,
+  batchAnalytics,
 };
