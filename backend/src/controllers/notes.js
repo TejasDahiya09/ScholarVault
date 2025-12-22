@@ -7,11 +7,12 @@ import bookmarksDB from "../db/bookmarks.js";
 import progressDB from "../db/progress.js";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
+import path from "path";
 
-// Initialize S3 client once
+// Initialize S3 client once with explicit region + endpoint to avoid redirects
 const s3Client = new S3Client({
-  region: config.AWS_REGION,
-  endpoint: `https://s3.${config.AWS_REGION}.amazonaws.com`,
+  region: "eu-north-1",
+  endpoint: "https://s3.eu-north-1.amazonaws.com",
   credentials: config.AWS_ACCESS_KEY_ID && config.AWS_SECRET_ACCESS_KEY ? {
     accessKeyId: config.AWS_ACCESS_KEY_ID,
     secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
@@ -526,72 +527,53 @@ export const downloadFile = async (req, res) => {
       return res.status(404).json({ error: "File URL not found" });
     }
 
-    const contentType = detectContentType(s3Url);
-    const isPDF = contentType === "application/pdf";
-    const fileNameBase = (document.file_name || 'document').replace(/\.[^.]+$/, '');
-
-    // Resolve bucket/key
-    const { bucket, key } = parseS3Url(s3Url);
-    if (!bucket || !key) {
-      return res.status(500).json({ error: "Invalid S3 URL" });
+    // Resolve bucket/key and decode key to avoid NoSuchKey for URL-encoded paths
+    const { bucket: parsedBucket, key } = parseS3Url(s3Url);
+    const decodedKey = decodeURIComponent(key || "");
+    const bucketEnv = process.env.S3_BUCKET_NAME || process.env.S3_BUCKET || parsedBucket;
+    if (!bucketEnv || !decodedKey) {
+      res.status(500).end("Download failed");
+      return;
     }
 
-    console.log("Streaming PDF:", key);
+    console.log("Streaming PDF:", decodedKey);
 
-    // Headers for download
-    res.setHeader("Content-Type", isPDF ? "application/pdf" : contentType);
-    res.setHeader("Content-Disposition", `attachment; filename="${fileNameBase}${isPDF ? '.pdf' : ''}"`);
-    if (isPDF) {
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-    } else {
-      res.setHeader("Cache-Control", "public, max-age=3600");
-    }
+    // Safe streaming download headers (force PDF attachment semantics)
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${path.basename(decodedKey)}"`
+    );
+    res.setHeader("Cache-Control", "no-store");
 
-    // Stream via SDK if creds exist; otherwise HTTPS fallback
-    const haveCreds = !!(config.AWS_ACCESS_KEY_ID && config.AWS_SECRET_ACCESS_KEY);
     try {
-      if (haveCreds) {
-        const resp = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-        if (resp.ContentLength) {
-          res.setHeader("Content-Length", String(resp.ContentLength));
+      const command = new GetObjectCommand({
+        Bucket: bucketEnv,
+        Key: decodedKey,
+      });
+      const s3Response = await s3Client.send(command);
+
+      s3Response.Body.pipe(res);
+      s3Response.Body.on("error", (err) => {
+        console.error("Download stream error:", err);
+        if (!res.headersSent) {
+          res.status(500).end("Download failed");
         }
-        const stream = resp.Body;
-        stream.on("error", (err) => {
-          console.error("PDF stream error:", err);
-          if (!res.headersSent) {
-            res.status(500).json({ error: "Failed to stream PDF" });
-          }
-        });
-        stream.pipe(res);
-        return;
-      } else {
-        const fetchResp = await fetch(s3Url);
-        if (!fetchResp.ok) {
-          throw new Error(`Fetch fallback failed with status ${fetchResp.status}`);
-        }
-        const len = fetchResp.headers.get("content-length");
-        if (len) res.setHeader("Content-Length", len);
-        const nodeStream = Readable.fromWeb(fetchResp.body);
-        nodeStream.on("error", (err) => {
-          console.error("PDF fetch stream error:", err);
-          if (!res.headersSent) {
-            res.status(500).json({ error: "Failed to stream PDF" });
-          }
-        });
-        nodeStream.pipe(res);
-        return;
-      }
+      });
+      return;
     } catch (innerErr) {
       console.error("Download stream attempt failed:", innerErr);
       if (!res.headersSent) {
-        res.status(500).json({ error: "Failed to download document" });
+        res.status(500).end("Download failed");
       }
       return;
     }
 
   } catch (err) {
     console.error("❌ downloadFile failed:", err);
-    res.status(500).json({ error: "Failed to download document" });
+    if (!res.headersSent) {
+      res.status(500).end("Download failed");
+    }
   }
 };
 

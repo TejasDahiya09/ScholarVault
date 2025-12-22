@@ -6,7 +6,8 @@ import mime from "mime-types";
 dotenv.config();
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
+  region: "eu-north-1",
+  endpoint: "https://s3.eu-north-1.amazonaws.com",
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,

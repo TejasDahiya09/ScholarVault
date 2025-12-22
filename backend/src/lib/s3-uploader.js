@@ -16,8 +16,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
-  endpoint: `https://s3.${process.env.AWS_REGION}.amazonaws.com`,
+  region: "eu-north-1",
+  endpoint: "https://s3.eu-north-1.amazonaws.com",
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -112,7 +112,7 @@ export async function uploadToS3(key, body, filename, customMetadata = {}) {
     const response = await s3Client.send(command);
 
     // Construct public URL
-    const s3Url = `https://${bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    const s3Url = `https://${bucket}.s3.eu-north-1.amazonaws.com/${key}`;
 
     console.log(`✅ Uploaded: ${filename} → ${key}`);
     console.log(`   Content-Type: ${uploadConfig.ContentType}`);
