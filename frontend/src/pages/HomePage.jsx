@@ -158,10 +158,10 @@ export default function HomePage() {
             {!user?.selected_year && (
               <button
                 onClick={() => navigate('/profile')}
-                className="px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg sm:rounded-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1 hover:scale-105 font-semibold relative overflow-hidden group text-sm sm:text-base"
+                className="px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 bg-linear-to-r from-indigo-600 to-blue-600 text-white rounded-lg sm:rounded-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1 hover:scale-105 font-semibold relative overflow-hidden group text-sm sm:text-base"
               >
                 <span className="relative z-10">Go to Profile</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 bg-linear-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </button>
             )}
           </div>
@@ -172,10 +172,10 @@ export default function HomePage() {
             <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">No subjects available for this branch and semester</p>
             <button
               onClick={() => setSelectedSemester(null)}
-              className="px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg sm:rounded-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1 hover:scale-105 font-semibold relative overflow-hidden group text-sm sm:text-base"
+              className="px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 bg-linear-to-r from-indigo-600 to-blue-600 text-white rounded-lg sm:rounded-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1 hover:scale-105 font-semibold relative overflow-hidden group text-sm sm:text-base"
             >
               <span className="relative z-10">Try Different Semester</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute inset-0 bg-linear-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </button>
           </div>
         ) : (

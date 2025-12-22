@@ -21,9 +21,9 @@ const FeatureCard = ({ icon, title, desc, delay = 0 }) => (
     style={{ animationDelay: `${delay}ms` }}
   >
     {/* Shimmer effect */}
-    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-indigo-100/30 to-transparent" />
-    <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-lg sm:rounded-xl bg-gradient-to-br from-indigo-100 to-blue-100 flex items-center justify-center mb-3 sm:mb-4 group-hover:scale-125 group-hover:rotate-6 transition-all duration-500 shadow-sm group-hover:shadow-lg relative z-10">
-      <img src={icon} alt="" style={{ width: 24, height: 24 }} className="sm:w-[28px] sm:h-[28px]" />
+    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-linear-to-r from-transparent via-indigo-100/30 to-transparent" />
+    <div className="w-12 sm:w-14 h-12 sm:h-14 rounded-lg sm:rounded-xl bg-linear-to-br from-indigo-100 to-blue-100 flex items-center justify-center mb-3 sm:mb-4 group-hover:scale-125 group-hover:rotate-6 transition-all duration-500 shadow-sm group-hover:shadow-lg relative z-10">
+      <img src={icon} alt="" style={{ width: 24, height: 24 }} className="sm:w-7 sm:h-7" />
     </div>
 
     <h3 className="font-bold text-base sm:text-xl text-gray-900 mb-1.5 sm:mb-2 group-hover:text-indigo-600 transition-colors duration-300 relative z-10">{title}</h3>
@@ -75,13 +75,8 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/40">
       <NavBar />
-      
-      {/* Dark Mode Toggle - Top Right Corner */}
-      <div className="fixed top-6 right-6 z-50">
-        <DarkModeToggle variant="compact" />
-      </div>
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-12 sm:py-16 lg:py-24 flex flex-col lg:flex-row items-center gap-8 sm:gap-12 lg:gap-16">
@@ -181,7 +176,7 @@ export default function Landing() {
 
       {/* CTA Section */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-12 py-12 sm:py-16">
-        <div className="rounded-xl sm:rounded-2xl p-6 sm:p-8 lg:p-12 text-center bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-600 shadow-xl">
+        <div className="rounded-xl sm:rounded-2xl p-6 sm:p-8 lg:p-12 text-center bg-linear-to-br from-indigo-600 via-indigo-700 to-blue-600 shadow-xl">
           <h2 className="text-white text-2xl sm:text-3xl lg:text-4xl font-semibold mb-2 sm:mb-3">
             Ready to Transform Your Study Experience?
           </h2>

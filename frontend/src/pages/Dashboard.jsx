@@ -205,7 +205,7 @@ export default function Dashboard() {
 
         {/* 2️⃣ Continue Studying */}
         {nextUnit ? (
-          <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8 text-white">
+          <div className="bg-linear-to-r from-gray-900 to-gray-800 rounded-lg sm:rounded-xl shadow-sm p-4 sm:mb-8 sm:p-6 mb-6 text-white">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex-1">
                 <p className="text-xs text-gray-300 mb-2 uppercase tracking-wide">Continue Studying</p>
@@ -267,7 +267,7 @@ export default function Dashboard() {
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
                         <div
-                          className="bg-gradient-to-r from-indigo-600 to-indigo-500 h-1.5 rounded-full transition-all duration-300"
+                          className="bg-linear-to-r from-indigo-600 to-indigo-500 h-1.5 rounded-full transition-all duration-300"
                           style={{ width: `${subject.progress}%` }}
                         />
                       </div>
@@ -321,7 +321,7 @@ export default function Dashboard() {
           <div className="space-y-6 sm:space-y-8">
             {/* 5️⃣ Subjects That Need Attention */}
             {needsAttention.length > 0 && (
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-amber-200">
+              <div className="bg-linear-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-amber-200">
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
                   <span className="text-lg sm:text-xl">⚠️</span>
                   <span>Needs Attention</span>

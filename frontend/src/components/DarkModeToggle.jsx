@@ -9,13 +9,13 @@ export default function DarkModeToggle({ variant = 'default' }) {
     return (
       <button
         onClick={toggleDarkMode}
-        className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-200 shadow-sm hover:shadow-md border border-slate-200"
+        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 lg:px-4 py-1.5 sm:py-2 bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-200 shadow-sm hover:shadow-md border border-slate-200"
         title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       >
-        <span className={`text-lg transition-transform duration-500 ${darkMode ? 'rotate-180' : ''}`}>
+        <span className={`text-base sm:text-lg transition-transform duration-500 ${darkMode ? 'rotate-180' : ''}`}>
           {darkMode ? '☀️' : '🌙'}
         </span>
-        <span className="text-sm font-medium text-slate-700">
+        <span className="hidden sm:inline text-xs sm:text-sm font-medium text-slate-700">
           {darkMode ? 'Light' : 'Dark'}
         </span>
       </button>
