@@ -443,11 +443,8 @@ export default function NotesPage() {
 
   // Breadcrumbs with proper navigation
   const crumbs = [
-    { label: "Home", to: "/home" },
-    branch && { label: branch, to: "/home" },
-    semester && { label: semester, to: `/home?semester=${semester}` },
-    subjectName && { label: subjectName, onClick: () => window.location.reload() },
-  ].filter(Boolean);
+    { label: "Subjects", to: "/home" },
+  ];
 
   // Download 
   const handleDownload = async () => {
