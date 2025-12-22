@@ -6,6 +6,7 @@ import { aiService } from "../services/ai.js";
 import bookmarksDB from "../db/bookmarks.js";
 import progressDB from "../db/progress.js";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { Readable } from "stream";
 
 // Initialize S3 client once
 const s3Client = new S3Client({
@@ -159,21 +160,51 @@ export const getFileInline = async (req, res) => {
       res.setHeader("Cache-Control", "public, max-age=3600");
     }
 
-    // Stream from S3
-    const resp = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-    if (resp.ContentLength) {
-      res.setHeader("Content-Length", String(resp.ContentLength));
-    }
-    console.log("Serving PDF:", { noteId: req.params.id, key });
-    const stream = resp.Body; // Readable
-    stream.on("error", (err) => {
-      console.error("PDF stream error:", err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Failed to stream PDF" });
+    // Stream from S3 via SDK if credentials are present; else fall back to HTTPS streaming
+    const haveCreds = !!(config.AWS_ACCESS_KEY_ID && config.AWS_SECRET_ACCESS_KEY);
+    try {
+      if (haveCreds) {
+        const resp = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+        if (resp.ContentLength) {
+          res.setHeader("Content-Length", String(resp.ContentLength));
+        }
+        console.log("Serving PDF (SDK):", { noteId: req.params.id, key });
+        const stream = resp.Body; // Node Readable
+        stream.on("error", (err) => {
+          console.error("PDF stream error:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to stream PDF" });
+          }
+        });
+        stream.pipe(res);
+        return;
+      } else {
+        // Anonymous/public fetch fallback (no AWS creds)
+        const fetchResp = await fetch(s3Url);
+        if (!fetchResp.ok) {
+          throw new Error(`Fetch fallback failed with status ${fetchResp.status}`);
+        }
+        const len = fetchResp.headers.get("content-length");
+        if (len) res.setHeader("Content-Length", len);
+        console.log("Serving PDF (HTTPS fallback):", { noteId: req.params.id, key });
+        // Node 18+: convert Web ReadableStream to Node Readable
+        const nodeStream = Readable.fromWeb(fetchResp.body);
+        nodeStream.on("error", (err) => {
+          console.error("PDF fetch stream error:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to stream PDF" });
+          }
+        });
+        nodeStream.pipe(res);
+        return;
       }
-    });
-    stream.pipe(res);
-    return;
+    } catch (innerErr) {
+      console.error("Inline stream attempt failed:", innerErr);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to load document" });
+      }
+      return;
+    }
 
   } catch (err) {
     console.error("❌ getFileInline failed:", err);
@@ -515,16 +546,47 @@ export const downloadFile = async (req, res) => {
       res.setHeader("Cache-Control", "public, max-age=3600");
     }
 
-    const resp = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-    const stream = resp.Body;
-    stream.on("error", (err) => {
-      console.error("PDF stream error:", err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: "Failed to stream PDF" });
+    // Stream via SDK if creds exist; otherwise HTTPS fallback
+    const haveCreds = !!(config.AWS_ACCESS_KEY_ID && config.AWS_SECRET_ACCESS_KEY);
+    try {
+      if (haveCreds) {
+        const resp = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+        if (resp.ContentLength) {
+          res.setHeader("Content-Length", String(resp.ContentLength));
+        }
+        const stream = resp.Body;
+        stream.on("error", (err) => {
+          console.error("PDF stream error:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to stream PDF" });
+          }
+        });
+        stream.pipe(res);
+        return;
+      } else {
+        const fetchResp = await fetch(s3Url);
+        if (!fetchResp.ok) {
+          throw new Error(`Fetch fallback failed with status ${fetchResp.status}`);
+        }
+        const len = fetchResp.headers.get("content-length");
+        if (len) res.setHeader("Content-Length", len);
+        const nodeStream = Readable.fromWeb(fetchResp.body);
+        nodeStream.on("error", (err) => {
+          console.error("PDF fetch stream error:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: "Failed to stream PDF" });
+          }
+        });
+        nodeStream.pipe(res);
+        return;
       }
-    });
-    stream.pipe(res);
-    return;
+    } catch (innerErr) {
+      console.error("Download stream attempt failed:", innerErr);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to download document" });
+      }
+      return;
+    }
 
   } catch (err) {
     console.error("❌ downloadFile failed:", err);
