@@ -404,6 +404,11 @@ export default function SearchPage() {
     });
   }, [filters]);
   
+  // Processed results with sorting and filtering
+  const processedResults = useMemo(() => {
+    return sortResults(filterResults(results));
+  }, [results, sortResults, filterResults]);
+  
   // Export results to CSV
   const exportResults = useCallback(() => {
     if (processedResults.length === 0) return;
@@ -500,11 +505,6 @@ export default function SearchPage() {
       ))}
     </div>
   );
-  
-  // Processed results with sorting and filtering
-  const processedResults = useMemo(() => {
-    return sortResults(filterResults(results));
-  }, [results, sortResults, filterResults]);
   
   // Update grouped results when processed results change
   useEffect(() => {
