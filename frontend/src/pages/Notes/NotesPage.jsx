@@ -995,10 +995,10 @@ export default function NotesPage() {
                 )}
 
             </div>
-            </Suspense>
-          </ErrorBoundary>
           </div>
         </div>
+          </Suspense>
+        </ErrorBoundary>
       )}
 
     </>
