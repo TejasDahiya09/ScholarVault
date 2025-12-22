@@ -112,7 +112,8 @@ export default function NotesPage() {
       responseRef.current = "";
       console.log("Starting summary stream...");
       
-      const response = await fetch(`/api/notes/${selectedNote.id}/summary`, {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL;
+      const response = await fetch(`${API_BASE}/api/notes/${selectedNote.id}/summary`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('sv_token')}`,
         },
@@ -191,7 +192,8 @@ export default function NotesPage() {
       responseRef.current = "";
       console.log("Starting question stream...");
       
-      const response = await fetch(`/api/notes/${selectedNote.id}/ask`, {
+      const API_BASE = import.meta.env.VITE_API_BASE_URL;
+      const response = await fetch(`${API_BASE}/api/notes/${selectedNote.id}/ask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -412,8 +414,9 @@ export default function NotesPage() {
   const handleDownload = () => {
     if (!selectedNote?.id) return;
     // Use the backend download endpoint which sets proper Content-Disposition headers
+    const API_BASE = import.meta.env.VITE_API_BASE_URL;
     const link = document.createElement("a");
-    link.href = `/api/notes/${selectedNote.id}/download`;
+    link.href = `${API_BASE}/api/notes/${selectedNote.id}/download`;
     link.download = selectedNote.file_name || "download";
     document.body.appendChild(link);
     link.click();
@@ -423,7 +426,8 @@ export default function NotesPage() {
   // Open in new tab
   const handleOpenNewTab = () => {
     if (!selectedNote?.id) return;
-    window.open(`/api/notes/${selectedNote.id}/view`, "_blank");
+    const API_BASE = import.meta.env.VITE_API_BASE_URL;
+    window.open(`${API_BASE}/api/notes/${selectedNote.id}/view`, "_blank");
   };
 
   // Handle mark as complete
@@ -654,7 +658,7 @@ export default function NotesPage() {
                       }}
                     >
                       <iframe
-                        src={`/api/notes/${selectedNote.id}/view`}
+                        src={`${import.meta.env.VITE_API_BASE_URL}/api/notes/${selectedNote.id}/view`}
                         className="w-full h-screen bg-white dark:bg-white"
                         style={{ border: "none", background: '#ffffff', colorScheme: 'light' }}
                         allow="fullscreen"
