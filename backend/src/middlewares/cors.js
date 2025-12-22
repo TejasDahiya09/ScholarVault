@@ -9,15 +9,21 @@ export const corsMiddleware = cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    // If no allowed origins configured, allow all
-    if (config.ALLOWED_ORIGINS.length === 0) {
-      return callback(null, true);
-    }
+    // Parse allowed origins (comma-separated string → array)
+const allowedOrigins = config.ALLOWED_ORIGINS
+  ? config.ALLOWED_ORIGINS.split(",").map(o => o.trim())
+  : [];
 
-    // Check if origin is in allowed list
-    if (config.ALLOWED_ORIGINS.includes(origin)) {
-      return callback(null, true);
-    }
+// If no allowed origins configured, allow all
+if (allowedOrigins.length === 0) {
+  return callback(null, true);
+}
+
+// Check if origin is in allowed list
+if (allowedOrigins.includes(origin)) {
+  return callback(null, true);
+}
+
 
     return callback(new Error("CORS not allowed"));
   },
