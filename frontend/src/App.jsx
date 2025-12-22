@@ -1,7 +1,9 @@
 import { Routes, Route } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 
 import Landing from "./pages/Landing";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 // Auth
 import Login from "./pages/Auth/Login";
@@ -33,6 +35,12 @@ function PageLoader() {
 }
 
 export default function App() {
+  // Warm the backend to reduce perceived cold-start latency on free tiers
+  useEffect(() => {
+    if (!API_BASE) return;
+    fetch(`${API_BASE}/healthz`).catch(() => {});
+  }, []);
+
   return (
     <Routes>
 
