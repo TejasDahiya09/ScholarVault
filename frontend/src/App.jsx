@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Suspense } from "react-router-dom";
+import { lazy } from "react";
 
 import Landing from "./pages/Landing";
 
@@ -10,13 +11,26 @@ import Register from "./pages/Auth/Register";
 import AppShell from "./components/Layout/AppShell";
 
 // AppShell pages
-import Dashboard from "./pages/Dashboard";
-import SubjectsPage from "./pages/SubjectsPage";
-import SearchPage from "./pages/SearchPage";
-import BooksPage from "./pages/BooksPage";
-import ProgressPage from "./pages/ProgressPage";
-import ProfilePage from "./pages/ProfilePage";
-import NotesPage from "./pages/Notes/NotesPage";
+// AppShell pages - lazy loaded for route-level code splitting
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const SubjectsPage = lazy(() => import("./pages/SubjectsPage"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
+const BooksPage = lazy(() => import("./pages/BooksPage"));
+const ProgressPage = lazy(() => import("./pages/ProgressPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const NotesPage = lazy(() => import("./pages/Notes/NotesPage"));
+
+// Simple fallback loader
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   return (
@@ -32,7 +46,9 @@ export default function App() {
           path="/dashboard"
           element={
             <AppShell>
+            <Suspense fallback={<PageLoader />}>
               <Dashboard />
+            </Suspense>
             </AppShell>
           }
         />
@@ -41,7 +57,9 @@ export default function App() {
           path="/home"
           element={
             <AppShell>
+            <Suspense fallback={<PageLoader />}>
               <SubjectsPage />
+            </Suspense>
             </AppShell>
           }
         />
@@ -50,7 +68,9 @@ export default function App() {
           path="/search"
           element={
             <AppShell>
+            <Suspense fallback={<PageLoader />}>
               <SearchPage />
+            </Suspense>
             </AppShell>
           }
         />
@@ -59,7 +79,9 @@ export default function App() {
           path="/books"
           element={
             <AppShell>
+            <Suspense fallback={<PageLoader />}>
               <BooksPage />
+            </Suspense>
             </AppShell>
           }
         />
@@ -68,7 +90,9 @@ export default function App() {
           path="/progress"
           element={
             <AppShell>
+            <Suspense fallback={<PageLoader />}>
               <ProgressPage />
+            </Suspense>
             </AppShell>
           }
         />
@@ -77,7 +101,9 @@ export default function App() {
           path="/profile"
           element={
             <AppShell>
+            <Suspense fallback={<PageLoader />}>
               <ProfilePage />
+            </Suspense>
             </AppShell>
           }
         />
@@ -86,7 +112,9 @@ export default function App() {
           path="/notes"
           element={
             <AppShell>
+            <Suspense fallback={<PageLoader />}>
               <NotesPage />
+            </Suspense>
             </AppShell>
           }
         />

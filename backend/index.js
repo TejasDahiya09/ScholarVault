@@ -1,3 +1,4 @@
+import { cacheApi, noCache } from "./src/middlewares/caching.js";
 import express from "express";
 import morgan from "morgan";
 import config from "./src/config.js";
@@ -66,11 +67,11 @@ app.get("/healthz", (req, res) => {
  * API Routes
  * Auth routes have rate limiting
  */
-app.use("/api/auth", authLimiter, authRoutes);
-app.use("/api/notes", notesRoutes);
-app.use("/api/subjects", subjectsRoutes);
-app.use("/api/search", searchRoutes);
-app.use("/api/files", filesRoutes);
+app.use("/api/auth", authLimiter, noCache, authRoutes);
+app.use("/api/notes", cacheApi, notesRoutes);
+app.use("/api/subjects", cacheApi, subjectsRoutes);
+app.use("/api/search", cacheApi, searchRoutes);
+app.use("/api/files", cacheApi, filesRoutes);
 
 /**
  * 404 Handler
