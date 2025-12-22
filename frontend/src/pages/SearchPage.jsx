@@ -107,10 +107,15 @@ export default function SearchPage() {
       setShowSuggestions(false);
       // Flush analytics queue on unmount
       if (analyticsQueueRef.current.length > 0) {
-        flushAnalytics();
+        // Call flush directly via ref to avoid dependency issues
+        if (analyticsQueueRef.current.length > 0) {
+          const batch = [...analyticsQueueRef.current];
+          analyticsQueueRef.current = [];
+          client.post('/api/search/analytics/batch', { events: batch }).catch(console.error);
+        }
       }
     };
-  }, [location.pathname, flushAnalytics]);
+  }, [location.pathname]);
 
   // Load all notes metadata for client-side search on mount
   useEffect(() => {
