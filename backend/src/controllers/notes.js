@@ -5,6 +5,53 @@ import { notesService } from "../services/notes.js";
 import { aiService } from "../services/ai.js";
 import bookmarksDB from "../db/bookmarks.js";
 import progressDB from "../db/progress.js";
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+
+// Initialize S3 client once
+const s3Client = new S3Client({
+  region: config.AWS_REGION,
+  credentials: config.AWS_ACCESS_KEY_ID && config.AWS_SECRET_ACCESS_KEY ? {
+    accessKeyId: config.AWS_ACCESS_KEY_ID,
+    secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
+  } : undefined,
+});
+
+/**
+ * Extract bucket and key from a public S3 URL
+ * Supports both virtual-hosted and path-style URLs
+ */
+function parseS3Url(s3Url = "") {
+  try {
+    const url = new URL(s3Url);
+    const host = url.hostname; // e.g., my-bucket.s3.amazonaws.com or s3.us-east-1.amazonaws.com
+    const pathname = url.pathname.replace(/^\//, "");
+
+    // Virtual-hosted–style: <bucket>.s3.<region>.amazonaws.com/<key>
+    const vhMatch = host.match(/^(?<bucket>[^.]+)\.s3([.-][a-z0-9-]+)?\.amazonaws\.com$/i);
+    if (vhMatch && vhMatch.groups?.bucket) {
+      return { bucket: vhMatch.groups.bucket, key: pathname };
+    }
+
+    // Path-style: s3.<region>.amazonaws.com/<bucket>/<key>
+    const pathStyle = host.match(/^s3([.-][a-z0-9-]+)?\.amazonaws\.com$/i);
+    if (pathStyle) {
+      const [bucket, ...rest] = pathname.split("/");
+      return { bucket, key: rest.join("/") };
+    }
+
+    // Fallback: try common pattern split
+    const parts = s3Url.split(".amazonaws.com/");
+    if (parts.length === 2) {
+      const left = parts[0];
+      const bucket = left.split("//").pop()?.split(".s3")[0];
+      const key = parts[1];
+      if (bucket && key) return { bucket, key };
+    }
+  } catch (e) {
+    // ignore and fallthrough
+  }
+  return { bucket: config.S3_BUCKET || process.env.S3_BUCKET_NAME || "", key: "" };
+}
 
 /**
  * Detect Content-Type using file extension
@@ -86,49 +133,38 @@ export const getFileInline = async (req, res) => {
       return res.status(404).json({ error: "File URL not found" });
     }
 
+    // Determine content type and streaming headers
     const contentType = detectContentType(s3Url);
     const isPDF = contentType === "application/pdf";
 
-    console.log(`Serving ${tableName} file from S3:`, s3Url, "Content-Type:", contentType);
-
-    try {
-      // Fetch from S3 URL
-      const response = await fetch(s3Url);
-      if (!response.ok) {
-        throw new Error(`S3 fetch failed: ${response.statusText}`);
-      }
-
-      // Set inline disposition so browser displays instead of downloads
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Disposition", `inline; filename="${document.file_name || 'document'}"`);
-      
-      // AGGRESSIVE CACHING for PDFs: 1 year immutable (content is static)
-      // Do NOT cache auth errors (handled by fetch failure above)
-      if (isPDF) {
-        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      } else {
-        res.setHeader("Cache-Control", "public, max-age=3600");
-      }
-
-      // Stream directly to client (memory efficient)
-      response.body.pipe(res);
-
-      // Handle stream errors
-      response.body.on('error', (streamErr) => {
-        console.error("❌ Stream error:", streamErr);
-        if (!res.headersSent) {
-          res.status(500).json({ error: "Failed to stream document" });
-        }
-        // If headers already sent, stream is broken - connection will close
-      });
-
-      // IMPORTANT: Return here to prevent any code execution after piping
-      return;
-
-    } catch (fetchErr) {
-      console.error("❌ Failed to fetch from S3:", fetchErr);
-      return res.status(500).json({ error: "Failed to load document" });
+    // Resolve bucket and key from the stored URL
+    const { bucket, key } = parseS3Url(s3Url);
+    if (!bucket || !key) {
+      return res.status(500).json({ error: "Invalid S3 URL" });
     }
+
+    // Headers for inline view
+    res.setHeader("Content-Type", isPDF ? "application/pdf" : contentType);
+    res.setHeader("Content-Disposition", `inline; filename="${(document.file_name || 'document')}${isPDF && !/(\.pdf)$/i.test(document.file_name || '') ? '.pdf' : ''}"`);
+    if (isPDF) {
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    } else {
+      res.setHeader("Cache-Control", "public, max-age=3600");
+    }
+
+    console.log("Streaming PDF:", key);
+
+    // Stream from S3
+    const resp = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    const stream = resp.Body; // Readable
+    stream.on("error", (err) => {
+      console.error("PDF stream error:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to stream PDF" });
+      }
+    });
+    stream.pipe(res);
+    return;
 
   } catch (err) {
     console.error("❌ getFileInline failed:", err);
@@ -450,48 +486,36 @@ export const downloadFile = async (req, res) => {
     }
 
     const contentType = detectContentType(s3Url);
-    const fileName = document.file_name || 'document';
     const isPDF = contentType === "application/pdf";
+    const fileNameBase = (document.file_name || 'document').replace(/\.[^.]+$/, '');
 
-    console.log(`Downloading ${tableName} file from S3:`, s3Url);
-
-    try {
-      // Fetch from S3 URL
-      const response = await fetch(s3Url);
-      if (!response.ok) {
-        throw new Error(`S3 fetch failed: ${response.statusText}`);
-      }
-
-      // Set attachment disposition to force download
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-      
-      // AGGRESSIVE CACHING for PDFs: 1 year immutable
-      if (isPDF) {
-        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      } else {
-        res.setHeader("Cache-Control", "public, max-age=3600");
-      }
-
-      // Stream directly from S3 to client (memory efficient)
-      response.body.pipe(res);
-
-      // Handle stream errors
-      response.body.on('error', (streamErr) => {
-        console.error("❌ Download stream error:", streamErr);
-        if (!res.headersSent) {
-          res.status(500).json({ error: "Failed to download file" });
-        }
-        // If headers already sent, stream is broken - connection will close
-      });
-
-      // IMPORTANT: Return here to prevent any code execution after piping
-      return;
-
-    } catch (fetchErr) {
-      console.error("❌ Failed to fetch from S3:", fetchErr);
-      return res.status(500).json({ error: "Failed to download file from S3" });
+    // Resolve bucket/key
+    const { bucket, key } = parseS3Url(s3Url);
+    if (!bucket || !key) {
+      return res.status(500).json({ error: "Invalid S3 URL" });
     }
+
+    console.log("Streaming PDF:", key);
+
+    // Headers for download
+    res.setHeader("Content-Type", isPDF ? "application/pdf" : contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${fileNameBase}${isPDF ? '.pdf' : ''}"`);
+    if (isPDF) {
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    } else {
+      res.setHeader("Cache-Control", "public, max-age=3600");
+    }
+
+    const resp = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+    const stream = resp.Body;
+    stream.on("error", (err) => {
+      console.error("PDF stream error:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to stream PDF" });
+      }
+    });
+    stream.pipe(res);
+    return;
 
   } catch (err) {
     console.error("❌ downloadFile failed:", err);
