@@ -1,5 +1,12 @@
 import { supabase } from "../lib/services.js";
 import aiService from "./ai.js";
+import NodeCache from "node-cache";
+
+// Cache for search results (TTL: 5 minutes, check period: 60s)
+const searchCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
+
+// Cache for embeddings (TTL: 1 hour)
+const embeddingCache = new NodeCache({ stdTTL: 3600, checkperiod: 120 });
 
 /**
  * Extract unit number from filename
@@ -97,6 +104,104 @@ function escapeRegex(str) {
 }
 
 /**
+ * Common stopwords to remove from search queries
+ */
+const STOPWORDS = new Set([
+  'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+  'of', 'with', 'by', 'from', 'about', 'as', 'is', 'are', 'was', 'were',
+  'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
+  'will', 'would', 'should', 'could', 'may', 'might', 'can'
+]);
+
+/**
+ * Common synonyms for technical terms
+ */
+const SYNONYMS = {
+  'algo': 'algorithm',
+  'db': 'database',
+  'os': 'operating system',
+  'ds': 'data structure',
+  'oop': 'object oriented programming',
+  'ml': 'machine learning',
+  'ai': 'artificial intelligence',
+  'dl': 'deep learning',
+  'nn': 'neural network',
+  'cn': 'computer network',
+};
+
+/**
+ * Preprocess query: normalize, expand synonyms, remove stopwords
+ */
+function preprocessQuery(query) {
+  if (!query) return { original: '', processed: '', terms: [] };
+  
+  // Normalize whitespace and lowercase
+  let processed = query.toLowerCase().trim().replace(/\s+/g, ' ');
+  
+  // Expand common synonyms
+  Object.entries(SYNONYMS).forEach(([abbr, full]) => {
+    const regex = new RegExp(`\\b${escapeRegex(abbr)}\\b`, 'gi');
+    processed = processed.replace(regex, full);
+  });
+  
+  // Split into terms
+  const allTerms = processed.split(/\s+/);
+  
+  // Keep both with and without stopwords for different match types
+  const terms = allTerms.filter(term => term.length > 1 && !STOPWORDS.has(term));
+  
+  return {
+    original: query.trim(),
+    processed: processed,
+    terms: terms.length > 0 ? terms : allTerms, // Fallback if all stopwords
+    allTerms: allTerms
+  };
+}
+
+/**
+ * Calculate term frequency for TF-IDF-like scoring
+ */
+function calculateTermFrequency(text, terms) {
+  if (!text || !terms.length) return 0;
+  
+  const textLower = text.toLowerCase();
+  let totalMatches = 0;
+  
+  terms.forEach(term => {
+    const regex = new RegExp(`\\b${escapeRegex(term)}\\w*\\b`, 'g');
+    const matches = textLower.match(regex);
+    if (matches) totalMatches += matches.length;
+  });
+  
+  // Normalize by document length (longer docs need more matches)
+  const normalizedTF = totalMatches / Math.sqrt(text.length / 1000 + 1);
+  return normalizedTF;
+}
+
+/**
+ * Check if text contains exact phrase match
+ */
+function hasExactPhrase(text, phrase) {
+  if (!text || !phrase) return false;
+  return text.toLowerCase().includes(phrase.toLowerCase());
+}
+
+/**
+ * Calculate query coverage - what % of query terms are in the document
+ */
+function calculateQueryCoverage(text, terms) {
+  if (!text || !terms.length) return 0;
+  
+  const textLower = text.toLowerCase();
+  const matchedTerms = terms.filter(term => {
+    const regex = new RegExp(`\\b${escapeRegex(term)}`, 'i');
+    return regex.test(textLower);
+  });
+  
+  return matchedTerms.length / terms.length;
+}
+
+/**
  * Search Service - Hybrid Search System
  */
 export const searchService = {
@@ -124,6 +229,16 @@ export const searchService = {
       };
     }
 
+    // Check cache for this exact query + options combination (page 1 only)
+    const cacheKey = `search:${query}:${subjectId}:${noteId}:${page}:${perPage}`;
+    if (page === 1) {
+      const cached = searchCache.get(cacheKey);
+      if (cached) {
+        console.log(`[Cache HIT] ${cacheKey}`);
+        return cached;
+      }
+    }
+
     const results = new Map(); // Use Map to deduplicate by note_id
 
     // 1. KEYWORD SEARCH using ILIKE on ocr_text and file_name
@@ -149,14 +264,53 @@ export const searchService = {
           const fileNameLower = (note.file_name || "").toLowerCase();
           const queryLower = query.toLowerCase();
           
-          // Count occurrences in text
+          // Preprocess query for better matching
+          const queryInfo = preprocessQuery(query);
+          
+          // Calculate different match types
+          const hasExactMatch = fileNameLower === queryLower || textLower === queryLower;
+          const hasPhraseMatch = hasExactPhrase(note.ocr_text || note.file_name, queryInfo.processed);
+          const termFrequency = calculateTermFrequency(note.ocr_text || '', queryInfo.terms);
+          const queryCoverage = calculateQueryCoverage(note.ocr_text || note.file_name, queryInfo.terms);
+          
+          // Count occurrences (keeping original for backward compatibility)
           const occurrences = (textLower.match(new RegExp(escapeRegex(queryLower), 'g')) || []).length;
           
-          // Boost score based on where match is found
-          let keywordScore = 1.0;
-          if (fileNameLower.includes(queryLower)) keywordScore += 1.5; // Title match is very relevant
-          if (note.subject && note.subject.toLowerCase().includes(queryLower)) keywordScore += 1.0;
-          keywordScore += Math.min(occurrences * 0.3, 2.0); // More occurrences = higher relevance
+          // Advanced scoring algorithm
+          let keywordScore = 0.5; // Base score
+          
+          // Exact match bonus (highest priority)
+          if (hasExactMatch) keywordScore += 10.0;
+          
+          // Phrase match in different fields (position-based weighting)
+          if (hasPhraseMatch) {
+            if (fileNameLower.includes(queryInfo.processed)) keywordScore += 5.0; // Title phrase match
+            else keywordScore += 3.0; // Content phrase match
+          }
+          
+          // Partial match in title (very important)
+          if (fileNameLower.includes(queryLower)) keywordScore += 3.5;
+          queryInfo.terms.forEach(term => {
+            if (fileNameLower.includes(term)) keywordScore += 1.5;
+          });
+          
+          // Subject match
+          if (note.subject) {
+            const subjectLower = note.subject.toLowerCase();
+            if (subjectLower.includes(queryLower)) keywordScore += 2.0;
+            queryInfo.terms.forEach(term => {
+              if (subjectLower.includes(term)) keywordScore += 0.8;
+            });
+          }
+          
+          // TF-IDF-like scoring for content relevance
+          keywordScore += Math.min(termFrequency * 0.5, 3.0);
+          
+          // Query coverage bonus (how many query terms appear)
+          keywordScore += queryCoverage * 2.0;
+          
+          // Occurrence count with diminishing returns
+          keywordScore += Math.log10(occurrences + 1) * 0.8;
 
           results.set(note.id, {
             ...note,
@@ -176,7 +330,20 @@ export const searchService = {
 
     // 2. SEMANTIC VECTOR SEARCH using embeddings
     try {
-      const embedding = await aiService.generateEmbedding(query);
+      // Use processed query for better semantic matching
+      const queryInfo = preprocessQuery(query);
+      const semanticQuery = queryInfo.processed || query;
+      
+      // Check embedding cache first
+      const embeddingKey = `embedding:${semanticQuery}`;
+      let embedding = embeddingCache.get(embeddingKey);
+      
+      if (!embedding) {
+        embedding = await aiService.generateEmbedding(semanticQuery);
+        if (embedding) {
+          embeddingCache.set(embeddingKey, embedding);
+        }
+      }
       
       if (embedding && embedding.length > 0) {
         const { data: vectorResults, error: vectorError } = await supabase.rpc(
@@ -211,6 +378,9 @@ export const searchService = {
                 const weight = Math.pow(0.7, idx); // Exponential decay
                 return sum + (1 - c.similarity) * weight;
               }, 0) / chunks.reduce((sum, _, idx) => sum + Math.pow(0.7, idx), 0);
+              
+              // Normalize similarity score to 0-1 range (higher is better)
+              const normalizedSimilarity = Math.max(0, 1 - weightedSimilarity);
 
               const snippet = bestChunk.content.substring(0, 200) + "...";
               const highlighted = highlightMatches(snippet, query);
@@ -220,24 +390,26 @@ export const searchService = {
                 // Already exists from keyword search, boost the score significantly
                 const existing = results.get(note.id);
                 existing.semantic_match = true;
-                existing.similarity = weightedSimilarity;
-                existing.weighted_score += weightedSimilarity * 3.0; // Strong boost for hybrid matches
+                existing.similarity = normalizedSimilarity;
+                // Hybrid match gets exponential boost (both keyword and semantic)
+                existing.weighted_score += Math.pow(normalizedSimilarity, 0.8) * 5.0;
                 existing.match_count += chunks.length;
                 // Use semantic snippet if it's better (higher similarity)
-                if (weightedSimilarity > 0.7) {
+                if (normalizedSimilarity > 0.7) {
                   existing.snippet = highlighted;
                 }
               } else {
                 // New result from semantic search only
+                const semanticScore = Math.pow(normalizedSimilarity, 0.8) * 3.0;
                 results.set(note.id, {
                   ...note,
                   snippet: highlighted,
                   match_count: chunks.length,
                   keyword_match: false,
                   semantic_match: true,
-                  similarity: weightedSimilarity,
+                  similarity: normalizedSimilarity,
                   unit_number: unitNumber,
-                  weighted_score: weightedSimilarity * 2.0, // Semantic-only results get good score
+                  weighted_score: semanticScore,
                 });
               }
             });
@@ -248,50 +420,85 @@ export const searchService = {
       console.error("Semantic search error:", err);
     }
 
-    // 3. RELEVANCE BOOSTING
+    // 3. ADVANCED RELEVANCE BOOSTING
+    const queryInfo = preprocessQuery(query);
+    const queryLower = query.toLowerCase();
+    
     results.forEach((result, noteId) => {
       let score = result.weighted_score;
 
-      // Strong boost if filename contains exact query
+      // Field-specific boosting with position weighting
       const fileNameLower = (result.file_name || "").toLowerCase();
-      const queryLower = query.toLowerCase();
+      const subjectLower = (result.subject || "").toLowerCase();
       
+      // Exact filename match (extremely strong signal)
       if (fileNameLower === queryLower) {
-        score += 5.0; // Exact filename match is extremely relevant
-      } else if (fileNameLower.includes(queryLower)) {
-        score += 2.0; // Partial filename match
+        score += 8.0;
+      } else if (fileNameLower === queryInfo.processed) {
+        score += 7.0;
+      }
+      
+      // Filename starts with query (very strong signal)
+      if (fileNameLower.startsWith(queryLower)) {
+        score += 4.0;
+      } else if (queryInfo.terms.some(term => fileNameLower.startsWith(term))) {
+        score += 2.5;
+      }
+      
+      // Subject exact or phrase match
+      if (subjectLower === queryLower) {
+        score += 3.0;
+      } else if (subjectLower.includes(queryLower)) {
+        score += 1.8;
       }
 
-      // Boost if subject matches query
-      if (result.subject && result.subject.toLowerCase().includes(queryLower)) {
-        score += 1.5;
-      }
+      // Match count with logarithmic scaling
+      score += Math.log10(result.match_count + 1) * 0.7;
 
-      // Boost by match count (logarithmic to prevent over-boosting)
-      score += Math.log10(result.match_count + 1) * 0.5;
-
-      // Boost if query words match unit number
+      // Unit-specific search boost
       const queryWords = queryLower.split(/\s+/);
       for (const word of queryWords) {
-        if (word.match(/unit|chapter|module/i)) {
+        if (word.match(/unit|chapter|module|lesson/i)) {
           const numMatch = word.match(/\d+/);
           if (numMatch && parseInt(numMatch[0]) === result.unit_number) {
-            score += 2.0; // User is searching for specific unit
+            score += 3.0; // Specific unit search gets strong boost
           }
         }
       }
-
-      // Boost recent documents slightly (if created_at exists)
-      if (result.created_at) {
-        const daysSinceCreation = (Date.now() - new Date(result.created_at)) / (1000 * 60 * 60 * 24);
-        if (daysSinceCreation < 30) {
-          score += 0.3; // Recent documents get small boost
-        }
+      
+      // Unit number in filename should match better
+      if (result.unit_number && fileNameLower.includes(`unit ${result.unit_number}`)) {
+        score += 1.5;
       }
 
-      // Penalize very short OCR text (might be low quality)
-      if (result.ocr_text && result.ocr_text.length < 100) {
-        score *= 0.7;
+      // Freshness boost (decaying over time)
+      if (result.created_at) {
+        const daysSinceCreation = (Date.now() - new Date(result.created_at)) / (1000 * 60 * 60 * 24);
+        if (daysSinceCreation < 7) {
+          score += 0.8; // Very recent
+        } else if (daysSinceCreation < 30) {
+          score += 0.4; // Recent
+        } else if (daysSinceCreation < 90) {
+          score += 0.2; // Somewhat recent
+        }
+      }
+      
+      // Quality signals
+      // Penalize very short content (likely incomplete or low quality)
+      if (result.ocr_text) {
+        const contentLength = result.ocr_text.length;
+        if (contentLength < 100) {
+          score *= 0.5; // Strong penalty for very short content
+        } else if (contentLength < 500) {
+          score *= 0.8; // Moderate penalty for short content
+        } else if (contentLength > 5000) {
+          score *= 1.1; // Small boost for comprehensive content
+        }
+      }
+      
+      // Hybrid match bonus (appeared in both keyword and semantic)
+      if (result.keyword_match && result.semantic_match) {
+        score *= 1.3; // 30% multiplicative boost for hybrid matches
       }
 
       result.weighted_score = score;
@@ -333,7 +540,7 @@ export const searchService = {
       }
     }
 
-    return {
+    const response = {
       results: paginatedResults,
       grouped_results: groupedResults,
       total_results: totalResults,
@@ -341,6 +548,13 @@ export const searchService = {
       per_page: perPage,
       next_page: hasNextPage ? page + 1 : null,
     };
+
+    // Cache the response (page 1 only)
+    if (page === 1) {
+      searchCache.set(cacheKey, response);
+    }
+
+    return response;
   },
 
   /**

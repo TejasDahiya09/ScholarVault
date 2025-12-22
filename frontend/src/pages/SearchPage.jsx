@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import client from "../api/client";
 import { Link } from "react-router-dom";
 
@@ -24,11 +24,37 @@ export default function SearchPage() {
   const [totalResults, setTotalResults] = useState(0);
   const [searchState, setSearchState] = useState(SEARCH_STATES.IDLE);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const [sortBy, setSortBy] = useState('relevance'); // relevance, date, name
+  const [filters, setFilters] = useState({ semester: '', unit: '' });
+  const [recentSearches, setRecentSearches] = useState([]);
   
   const debounceRef = useRef(null);
   const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
   const resultsCache = useRef(new Map());
+
+  // Load recent searches from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('recentSearches');
+    if (saved) {
+      try {
+        setRecentSearches(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load recent searches:', e);
+      }
+    }
+  }, []);
+
+  // Save search to recent searches
+  const saveRecentSearch = (searchQuery) => {
+    if (!searchQuery.trim()) return;
+    
+    setRecentSearches(prev => {
+      const updated = [searchQuery, ...prev.filter(s => s !== searchQuery)].slice(0, 10);
+      localStorage.setItem('recentSearches', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   // Click outside handler
   useEffect(() => {
@@ -150,8 +176,10 @@ export default function SearchPage() {
     if (selectedSuggestionIndex >= 0 && suggestions[selectedSuggestionIndex]) {
       const suggestion = suggestions[selectedSuggestionIndex];
       setQuery(suggestion);
+      saveRecentSearch(suggestion);
       performSearch(suggestion, 1, false);
     } else {
+      saveRecentSearch(query);
       performSearch(query, 1, false);
     }
   };
@@ -161,8 +189,38 @@ export default function SearchPage() {
     setQuery(suggestion);
     setShowSuggestions(false);
     setSelectedSuggestionIndex(-1);
+    saveRecentSearch(suggestion);
     performSearch(suggestion, 1, false);
   };
+  
+  // Apply sorting to results
+  const sortResults = useCallback((resultsToSort) => {
+    const sorted = [...resultsToSort];
+    
+    switch (sortBy) {
+      case 'date':
+        sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        break;
+      case 'name':
+        sorted.sort((a, b) => (a.file_name || '').localeCompare(b.file_name || ''));
+        break;
+      case 'relevance':
+      default:
+        // Already sorted by weighted_score from backend
+        break;
+    }
+    
+    return sorted;
+  }, [sortBy]);
+  
+  // Apply filters to results
+  const filterResults = useCallback((resultsToFilter) => {
+    return resultsToFilter.filter(result => {
+      if (filters.semester && result.semester !== parseInt(filters.semester)) return false;
+      if (filters.unit && result.unit_number !== parseInt(filters.unit)) return false;
+      return true;
+    });
+  }, [filters]);
 
   // Handle keyboard navigation with Escape to close
   const handleKeyDown = (e) => {
@@ -219,6 +277,26 @@ export default function SearchPage() {
     hasMore && !loading && query.trim().length >= 2 && results.length >= 10,
     [hasMore, loading, query, results.length]
   );
+  
+  // Processed results with sorting and filtering
+  const processedResults = useMemo(() => {
+    return sortResults(filterResults(results));
+  }, [results, sortBy, filters]);
+  
+  // Update grouped results when processed results change
+  useEffect(() => {
+    if (processedResults.length > 0) {
+      const grouped = {};
+      processedResults.forEach((result) => {
+        const unit = result.unit_number ? `Unit ${result.unit_number}` : "Other";
+        if (!grouped[unit]) {
+          grouped[unit] = [];
+        }
+        grouped[unit].push(result);
+      });
+      setGroupedResults(grouped);
+    }
+  }, [processedResults]);
 
   return (
     <div className="min-h-[calc(100vh-64px)] w-full bg-gradient-to-br from-slate-50 to-blue-50">
@@ -314,6 +392,78 @@ export default function SearchPage() {
           )}
         </div>
 
+        {/* Filters and Sort Controls */}
+        {(searchState === SEARCH_STATES.RESULTS || searchState === SEARCH_STATES.EMPTY) && (
+          <div className="mb-4 flex flex-wrap gap-3 items-center">
+            {/* Sort Dropdown */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-slate-700">Sort:</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="relevance">Relevance</option>
+                <option value="date">Newest First</option>
+                <option value="name">Name (A-Z)</option>
+              </select>
+            </div>
+            
+            {/* Semester Filter */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-slate-700">Semester:</label>
+              <select
+                value={filters.semester}
+                onChange={(e) => setFilters(prev => ({ ...prev, semester: e.target.value }))}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">All</option>
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+                <option value="3">Semester 3</option>
+                <option value="4">Semester 4</option>
+                <option value="5">Semester 5</option>
+                <option value="6">Semester 6</option>
+                <option value="7">Semester 7</option>
+                <option value="8">Semester 8</option>
+              </select>
+            </div>
+            
+            {/* Unit Filter */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-slate-700">Unit:</label>
+              <select
+                value={filters.unit}
+                onChange={(e) => setFilters(prev => ({ ...prev, unit: e.target.value }))}
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">All</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(unit => (
+                  <option key={unit} value={unit}>Unit {unit}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Clear Filters */}
+            {(filters.semester || filters.unit || sortBy !== 'relevance') && (
+              <button
+                onClick={() => {
+                  setFilters({ semester: '', unit: '' });
+                  setSortBy('relevance');
+                }}
+                className="px-3 py-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+              >
+                Clear All
+              </button>
+            )}
+            
+            {/* Results Counter */}
+            <div className="ml-auto text-sm text-slate-600">
+              Showing {processedResults.length} of {totalResults} results
+            </div>
+          </div>
+        )}
+
         {/* Error */}
         {err && (
           <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm">
@@ -336,6 +486,38 @@ export default function SearchPage() {
             </svg>
             <p className="text-slate-600 font-medium">Start typing to search notes</p>
             <p className="text-sm text-slate-500 mt-1">Search across all subjects, units, and materials</p>
+            
+            {/* Recent Searches */}
+            {recentSearches.length > 0 && (
+              <div className="mt-8 max-w-md mx-auto">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-slate-700">Recent Searches</h3>
+                  <button
+                    onClick={() => {
+                      setRecentSearches([]);
+                      localStorage.removeItem('recentSearches');
+                    }}
+                    className="text-xs text-slate-500 hover:text-slate-700"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {recentSearches.map((search, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setQuery(search);
+                        performSearch(search, 1, false);
+                      }}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-sm text-slate-700 transition-colors"
+                    >
+                      {search}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -380,10 +562,13 @@ export default function SearchPage() {
                         </h3>
                         <div className="flex gap-1 flex-shrink-0">
                           {result.keyword_match && (
-                            <span className="px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] sm:text-xs rounded">K</span>
+                            <span className="px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] sm:text-xs rounded" title="Keyword Match">K</span>
                           )}
                           {result.semantic_match && (
-                            <span className="px-1.5 sm:px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] sm:text-xs rounded">S</span>
+                            <span className="px-1.5 sm:px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] sm:text-xs rounded" title="Semantic Match">S</span>
+                          )}
+                          {result.weighted_score >= 10 && (
+                            <span className="px-1.5 sm:px-2 py-0.5 bg-green-100 text-green-700 text-[10px] sm:text-xs rounded font-semibold" title="High Relevance">⭐</span>
                           )}
                         </div>
                       </div>
