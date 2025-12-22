@@ -56,7 +56,6 @@ export default function SubjectsPage() {
 
   // Breadcrumbs
   const crumbs = [
-    { label: "Home", to: "/home" },
     { label: "Subjects" }
   ];
 
