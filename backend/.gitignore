@@ -1,0 +1,67 @@
+# =========================
+# Dependencies
+# =========================
+node_modules/
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+.env.local
+.env.production
+.env.migration
+
+# =========================
+# Cloud credentials (STRICT)
+# =========================
+vertex-key.json
+gcp_credentials.json
+*service-account*.json
+*vertex*.json
+
+# =========================
+# AWS Credentials
+# =========================
+credentials/
+*.csv
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+npm-debug.log*
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDE
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Build outputs
+# =========================
+dist/
+build/
+
+# =========================
+# Test coverage
+# =========================
+coverage/
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+venv/
+*.egg-info/

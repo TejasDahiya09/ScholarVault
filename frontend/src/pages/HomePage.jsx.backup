@@ -1,0 +1,277 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import Breadcrumbs from "../components/Breadcrumbs";
+import client from "../api/client";
+
+/**
+ * HomePage (updated)
+ * - Loads branches and semesters from database
+ * - Fetches subjects from API based on selection
+ * - Navigates to NotesPage when subject selected
+ */
+
+export default function HomePage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [branches, setBranches] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState(null);
+  const [selectedSem, setSelectedSem] = useState(null);
+
+  // Fetch branches and semesters on mount
+  useEffect(() => {
+    async function initializePage() {
+      try {
+        // Get all subjects to extract unique branches and semesters
+        const res = await client.get('/api/subjects');
+        const allSubjects = Array.isArray(res.data) ? res.data : [];
+        
+        // Extract unique branches
+        const uniqueBranches = [...new Set(allSubjects.map(s => s.branch))];
+        setBranches(uniqueBranches.map((name, idx) => ({ id: idx + 1, name })));
+        
+        // Extract unique semesters
+        const uniqueSemesters = [...new Set(allSubjects.map(s => s.semester))];
+        setSemesters(uniqueSemesters.map((name, idx) => ({ id: idx + 1, name })));
+      } catch (err) {
+        console.error("Failed to initialize page:", err);
+      }
+    }
+    initializePage();
+  }, []);
+
+  // Fetch subjects when branch and semester are selected
+  useEffect(() => {
+    async function fetchSubjects() {
+      if (selectedBranch && selectedSem) {
+        try {
+          setLoading(true);
+          const res = await client.get('/api/subjects', {
+            params: {
+              branch: selectedBranch.name,
+              semester: selectedSem.name
+            }
+          });
+          setSubjects(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+          console.error("Failed to fetch subjects:", err);
+          setSubjects([]);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setSubjects([]);
+      }
+    }
+    fetchSubjects();
+  }, [selectedBranch, selectedSem]);
+
+  // When page mounts, hydrate selection from query params (if present)
+  useEffect(() => {
+    const bId = searchParams.get("branchId");
+    const yId = searchParams.get("yearId");
+    const sId = searchParams.get("semId");
+    const subId = searchParams.get("subjectId");
+    const uId = searchParams.get("unitId");
+
+    if (bId) {
+      const b = branches.find((x) => x.id === bId) || { id: bId, name: searchParams.get("branchName") || `Branch ${bId}` };
+      setSelectedBranch(b);
+    }
+    if (yId) {
+      const y = years.find((x) => x.id === yId) || { id: yId, name: searchParams.get("yearName") || `Year ${yId}` };
+      setSelectedYear(y);
+    }
+    if (sId) {
+      const s = semesters.find((x) => x.id === sId) || { id: sId, name: searchParams.get("semName") || `Sem ${sId}` };
+      setSelectedSem(s);
+    }
+    if (subId) {
+      const su = subjects.find((x) => x.id === subId) || { id: subId, name: searchParams.get("subjectName") || `Subject ${subId}` };
+      setSelectedSubject(su);
+    }
+    if (uId) {
+      const u = getUnitsForSubject(subId || "1").find((x) => x.id === uId) || { id: uId, name: searchParams.get("unitName") || `Unit ${uId}` };
+      setSelectedUnit(u);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount
+
+  // Breadcrumb array for top UI (use Breadcrumbs component)
+  const crumbs = [
+    { label: "Branches", onClick: () => resetAll() },
+    selectedBranch && { label: selectedBranch.name, onClick: () => resetTo("branch") },
+    selectedYear && { label: selectedYear.name, onClick: () => resetTo("year") },
+    selectedSem && { label: selectedSem.name, onClick: () => resetTo("sem") },
+    selectedSubject && { label: selectedSubject.name, onClick: () => resetTo("subject") },
+    selectedUnit && { label: selectedUnit.name },
+  ].filter(Boolean);
+
+  function resetAll() {
+    setSelectedBranch(null);
+    setSelectedYear(null);
+    setSelectedSem(null);
+    setSelectedSubject(null);
+    setSelectedUnit(null);
+  }
+
+  function resetTo(level) {
+    if (level === "branches") return resetAll();
+    if (level === "branch") {
+      setSelectedYear(null);
+      setSelectedSem(null);
+      setSelectedSubject(null);
+      setSelectedUnit(null);
+    } else if (level === "year") {
+      setSelectedSem(null);
+      setSelectedSubject(null);
+      setSelectedUnit(null);
+    } else if (level === "sem") {
+      setSelectedSubject(null);
+      setSelectedUnit(null);
+    } else if (level === "subject") {
+      setSelectedUnit(null);
+    }
+  }
+
+  // Determine current list & title
+  let list = branches;
+  let title = "Branches";
+  let isNoteLevel = false;
+  if (selectedBranch && !selectedYear) {
+    list = years;
+    title = "Select Year";
+  }
+  if (selectedYear && !selectedSem) {
+    list = semesters;
+    title = "Select Semester";
+  }
+  if (selectedSem && !selectedSubject) {
+    // Use API subjects if available, map them to match expected format
+    const mappedSubjects = apiSubjects.map(s => ({
+      id: s.id,
+      name: s.name,
+      progress: 0 // We don't have progress data yet
+    }));
+    list = mappedSubjects.length > 0 ? mappedSubjects : subjects;
+    title = loading ? "Loading subjects..." : "Subjects";
+  }
+  if (selectedSubject && !selectedUnit) {
+    list = getUnitsForSubject(selectedSubject.id);
+    title = "Units";
+  }
+  if (selectedUnit) {
+    list = notes;
+    title = "Notes";
+    isNoteLevel = true;
+  }
+
+  // Click handler for items
+  function handleItemClick(item) {
+    if (!selectedBranch) {
+      setSelectedBranch(item);
+      return;
+    }
+    if (!selectedYear) {
+      setSelectedYear(item);
+      return;
+    }
+    if (!selectedSem) {
+      setSelectedSem(item);
+      return;
+    }
+    if (!selectedSubject) {
+      setSelectedSubject(item);
+      return;
+    }
+    if (!selectedUnit) {
+      setSelectedUnit(item);
+
+      // Build query params that represent this navigation path
+      const params = new URLSearchParams({
+        branchId: selectedBranch?.id,
+        branchName: selectedBranch?.name || "",
+        yearId: selectedYear?.id,
+        yearName: selectedYear?.name || "",
+        semId: selectedSem?.id,
+        semName: selectedSem?.name || "",
+        subjectId: selectedSubject?.id,
+        subjectName: selectedSubject?.name || "",
+        unitId: item.id,
+        unitName: item.name,
+      }).toString();
+
+      // Navigate to notes with the current context
+      navigate(`/notes?${params}`);
+      return;
+    }
+    if (isNoteLevel) {
+      navigate(`/notes?unitId=${selectedUnit.id}&noteId=${item.id}&noteTitle=${encodeURIComponent(item.title || "")}`);
+    }
+  }
+
+  // Back button for Home (smaller)
+  function handleBack() {
+    if (selectedUnit) {
+      resetTo("subject");
+      return;
+    }
+    if (selectedSubject) {
+      resetTo("sem");
+      return;
+    }
+    if (selectedSem) {
+      resetTo("year");
+      return;
+    }
+    if (selectedYear) {
+      resetTo("branch");
+      return;
+    }
+    if (selectedBranch) {
+      resetAll();
+      return;
+    }
+    navigate("/dashboard");
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header with breadcrumb only */}
+      <div className="flex items-center justify-between">
+        <Breadcrumbs crumbs={crumbs} />
+
+        <div>
+          <h1 className="text-2xl font-semibold">{title}</h1>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {list.map((item) => (
+          <div key={item.id} className="neumo-card p-6 hover:scale-[1.02] transition cursor-pointer card-hover hover-lift" onClick={() => handleItemClick(item)}>
+            {isNoteLevel ? (
+              <>
+                <p className="font-semibold text-lg">{item.title}</p>
+                <p className="text-muted text-sm mt-2">{item.size}</p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold text-lg mb-2">{item.name}</p>
+                {(selectedSem && !selectedSubject) || (selectedSubject && !selectedUnit) ? (
+                  <>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: `${item.progress ?? 0}%` }} />
+                    </div>
+                    <p className="text-right text-muted text-sm mt-1">{item.progress ?? 0}%</p>
+                  </>
+                ) : null}
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
