@@ -7,9 +7,9 @@ export default function Sidebar({ isOpen = true, onClose }) {
   const navigate = useNavigate();
 
   const items = [
-    { name: "Subjects", to: "/home", icon: "📚" },
+    { name: "Home", to: "/home", icon: "🏠" },
     { name: "Dashboard", to: "/dashboard", icon: "📊" },
-    // Notes removed intentionally — notes open from Subjects via selection
+    // Notes removed intentionally — notes open from Home via unit selection
     { name: "Search", to: "/search", icon: "🔍" },
     { name: "Progress", to: "/progress", icon: "📈" },
     { name: "Profile", to: "/profile", icon: "👤" },

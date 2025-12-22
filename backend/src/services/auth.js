@@ -5,57 +5,6 @@ import config from "../config.js";
 import subjectsDB from "../db/subjects.js";
 import notesDB from "../db/notes.js";
 import progressDB from "../db/progress.js";
-import { getRedisClient, isRedisEnabled } from "../lib/redis.js";
-
-const SESSION_TTL = config.SESSION_TTL_SECONDS;
-const redis = getRedisClient();
-
-const sessionKeyByEmail = (email) => `session:email:${email}`;
-const sessionKeyById = (id) => `session:user:${id}`;
-
-const toSafeUser = (user) => ({
-  id: user.id,
-  email: user.email,
-  name: user.name,
-  selected_year: user.selected_year,
-  email_notifications: user.email_notifications,
-  analytics_sharing: user.analytics_sharing,
-  created_at: user.created_at,
-  updated_at: user.updated_at,
-});
-
-async function cacheUserSession(user) {
-  if (!isRedisEnabled() || !user) return;
-  try {
-    // Store with password_hash to allow login without DB round-trip; limit TTL for safety
-    await Promise.all([
-      redis.set(sessionKeyByEmail(user.email), user, { ex: SESSION_TTL }),
-      redis.set(sessionKeyById(user.id), user, { ex: SESSION_TTL }),
-    ]);
-  } catch (err) {
-    console.error("Redis cacheUserSession error", err);
-  }
-}
-
-async function getCachedUserByEmail(email) {
-  if (!isRedisEnabled()) return null;
-  try {
-    return await redis.get(sessionKeyByEmail(email));
-  } catch (err) {
-    console.error("Redis getCachedUserByEmail error", err);
-    return null;
-  }
-}
-
-async function getCachedUserById(id) {
-  if (!isRedisEnabled()) return null;
-  try {
-    return await redis.get(sessionKeyById(id));
-  } catch (err) {
-    console.error("Redis getCachedUserById error", err);
-    return null;
-  }
-}
 
 /**
  * Authentication Service
@@ -81,9 +30,6 @@ export const authService = {
     // Create user with selected_year
     const user = await userDB.create({ email, password_hash, name, selected_year, email_notifications, analytics_sharing });
 
-    // Prime cache for newly registered user
-    await cacheUserSession({ ...user, password_hash });
-
     // Generate token
     const token = this.generateToken(user);
 
@@ -108,15 +54,7 @@ export const authService = {
       throw new Error("Missing email or password");
     }
 
-    // Attempt cache-first lookup to avoid DB on hot logins
-    let user = await getCachedUserByEmail(email);
-
-    if (!user) {
-      user = await userDB.findByEmail(email);
-      if (user) {
-        await cacheUserSession(user);
-      }
-    }
+    const user = await userDB.findByEmail(email);
     if (!user) {
       throw new Error("Invalid credentials");
     }
@@ -130,14 +68,16 @@ export const authService = {
     // Generate token
     const token = this.generateToken(user);
 
-    const safeUser = toSafeUser(user);
-    if (user) {
-      await cacheUserSession({ ...user, ...safeUser });
-    }
-
     return {
       token,
-      user: safeUser,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        selected_year: user.selected_year,
+        email_notifications: user.email_notifications,
+        analytics_sharing: user.analytics_sharing,
+      },
     };
   },
 
@@ -171,17 +111,10 @@ export const authService = {
    * Get current user by ID
    */
   async getCurrentUser(userId) {
-    const cached = await getCachedUserById(userId);
-    if (cached) {
-      return toSafeUser(cached);
-    }
-
     const user = await userDB.findById(userId);
     if (!user) {
       throw new Error("User not found");
     }
-
-    await cacheUserSession(user);
 
     return {
       id: user.id,

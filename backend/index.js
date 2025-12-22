@@ -1,11 +1,9 @@
-import { cacheApi, noCache } from "./src/middlewares/caching.js";
 import express from "express";
 import morgan from "morgan";
 import config from "./src/config.js";
 import corsMiddleware from "./src/middlewares/cors.js";
 import { errorHandler } from "./src/middlewares/auth.js";
 import { createAuthLimiter } from "./src/middlewares/rateLimiter.js";
-import compression from "compression";
 
 // Route imports
 import authRoutes from "./src/routes/auth.js";
@@ -35,9 +33,6 @@ const morganFormat = config.NODE_ENV === 'production' ? 'combined' : 'dev';
 app.use(morgan(morganFormat, {
   skip: (req) => req.path === '/healthz' // Skip health check logs
 }));
-
-// Gzip/deflate compression to reduce payload sizes
-app.use(compression());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -71,11 +66,11 @@ app.get("/healthz", (req, res) => {
  * API Routes
  * Auth routes have rate limiting
  */
-app.use("/api/auth", authLimiter, noCache, authRoutes);
-app.use("/api/notes", cacheApi, notesRoutes);
-app.use("/api/subjects", cacheApi, subjectsRoutes);
-app.use("/api/search", cacheApi, searchRoutes);
-app.use("/api/files", cacheApi, filesRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/notes", notesRoutes);
+app.use("/api/subjects", subjectsRoutes);
+app.use("/api/search", searchRoutes);
+app.use("/api/files", filesRoutes);
 
 /**
  * 404 Handler

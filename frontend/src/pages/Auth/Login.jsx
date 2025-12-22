@@ -33,7 +33,7 @@ export default function Login() {
     }
     try {
       setLoading(true)
-      const res = await client.post('/api/auth/login', { email, password }, { timeout: 45000 })
+      const res = await client.post('/api/auth/login', { email, password })
       const { token, user } = res.data || {}
       if (!token) throw new Error('Invalid server response')
       
@@ -49,11 +49,7 @@ export default function Login() {
       login(token, user || { email })
       navigate('/home')
     } catch (e) {
-      if (e?.code === 'ECONNABORTED') {
-        setErr('Waking up server… please try again')
-      } else {
-        setErr(e?.response?.data?.error || e?.message || 'Login failed')
-      }
+      setErr(e?.response?.data?.error || e?.message || 'Login failed')
     } finally {
       setLoading(false)
     }
