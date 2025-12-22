@@ -26,11 +26,11 @@ export default function YearSelectionModal({ onYearSelected }) {
         <div className="text-center mb-6 sm:mb-8">
           <div className="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4">🎓</div>
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">Welcome to ScholarVault!</h2>
-          <p className="text-sm sm:text-base text-gray-600">Select your current academic year to get started</p>
+          <p className="text-sm sm:text-base text-gray-600">Select your current semester to get started</p>
         </div>
 
         <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-          {/* 1st Year Option */}
+          {/* 1st Semester Option */}
           <button
             onClick={() => setSelectedYear('1st Year')}
             className={`w-full p-4 sm:p-5 md:p-6 rounded-lg sm:rounded-xl border-2 transition-all duration-200 text-left ${
@@ -41,8 +41,8 @@ export default function YearSelectionModal({ onYearSelected }) {
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">1st Year</h3>
-                <p className="text-xs sm:text-sm text-gray-600 mt-1">Freshman / First Year Student</p>
+                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">1st Semester</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">Semester 1 & 2</p>
               </div>
               <div
                 className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${
@@ -64,7 +64,7 @@ export default function YearSelectionModal({ onYearSelected }) {
             </div>
           </button>
 
-          {/* 2nd Year Option */}
+          {/* 2nd Semester Option */}
           <button
             onClick={() => setSelectedYear('2nd Year')}
             className={`w-full p-4 sm:p-5 md:p-6 rounded-lg sm:rounded-xl border-2 transition-all duration-200 text-left ${
@@ -75,8 +75,8 @@ export default function YearSelectionModal({ onYearSelected }) {
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">2nd Year</h3>
-                <p className="text-xs sm:text-sm text-gray-600 mt-1">Sophomore / Second Year Student</p>
+                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">2nd Semester</h3>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">Semester 3 & 4</p>
               </div>
               <div
                 className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${
