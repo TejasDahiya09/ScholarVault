@@ -18,39 +18,35 @@ export default function SubjectsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const yearToSemesters = {
+    '1st Year': ['1', '2'],
+    '2nd Year': ['3', '4'],
+  };
+
   // Fetch subjects filtered by user's selected semester
   useEffect(() => {
     async function fetchSubjects() {
       try {
         setLoading(true);
-        const res = await client.get('/api/subjects');
+        const res = await client.get('/api/subjects', {
+          params: { year: user?.selected_year },
+        });
         const allSubjects = Array.isArray(res.data) ? res.data : [];
-        
-        // Filter by user's selected semester/year
-        const yearToSemesters = {
-          '1st Year': ['1', '2', '1st year'],
-          '2nd Year': ['3', '4', '2nd year']
-        };
-        
-        const validSemestersNorm = user?.selected_year
-          ? (yearToSemesters[user.selected_year] || []).map(s => String(s).trim().toLowerCase())
-          : [];
-        
-        const filteredSubjects = user?.selected_year 
-          ? allSubjects.filter(s => validSemestersNorm.includes(String(s.semester || '').trim().toLowerCase()))
-          : allSubjects;
 
-        const semesters = Array.from(
-          new Set(
-            filteredSubjects
-              .map((s) => String(s.semester || "").trim())
-              .filter(Boolean)
-          )
-        ).sort((a, b) => Number(a) - Number(b));
+        const allowedSemesters = yearToSemesters[user?.selected_year] || [];
+        const semesters = allowedSemesters.length > 0
+          ? allowedSemesters
+          : Array.from(
+              new Set(
+                allSubjects
+                  .map((s) => String(s.semester || "").trim())
+                  .filter(Boolean)
+              )
+            ).sort((a, b) => Number(a) - Number(b));
 
         setAvailableSemesters(semesters);
         setSelectedSemester("all");
-        setSubjects(filteredSubjects);
+        setSubjects(allSubjects);
         setError(null);
       } catch (err) {
         console.error("Failed to fetch subjects:", err);

@@ -12,6 +12,9 @@ export const subjectsDB = {
 
     if (filters.branch) query = query.eq("branch", filters.branch);
     if (filters.semester) query = query.eq("semester", filters.semester);
+    if (filters.semesters && Array.isArray(filters.semesters) && filters.semesters.length > 0) {
+      query = query.in("semester", filters.semesters);
+    }
 
     const { data, error } = await query;
 

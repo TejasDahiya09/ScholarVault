@@ -4,8 +4,14 @@ import notesDB from "../db/notes.js";
 import progressDB from "../db/progress.js";
 import { authenticate } from "../middlewares/auth.js";
 import { supabase } from "../lib/services.js";
+import userDB from "../db/users.js";
 
 const router = Router();
+
+const yearToSemesters = {
+  "1st Year": ["1", "2"],
+  "2nd Year": ["3", "4"],
+};
 
 /**
  * Get all subjects with optional filters
@@ -16,9 +22,19 @@ router.get("/", authenticate, async (req, res, next) => {
   try {
     const userId = req.user?.id;
     const userOnly = req.query.userOnly === 'true';
+
+    let selectedYear = req.query.year;
+    if (!selectedYear && userId) {
+      const user = await userDB.findById(userId);
+      selectedYear = user?.selected_year;
+    }
+
+    const semesterList = selectedYear ? yearToSemesters[selectedYear] : null;
+
     const filters = {
       branch: req.query.branch,
       semester: req.query.semester,
+      semesters: semesterList,
     };
 
     // Get all subjects based on filters
