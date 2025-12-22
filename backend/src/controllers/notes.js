@@ -115,21 +115,19 @@ export const getFileInline = async (req, res) => {
 
       // Handle stream errors
       response.body.on('error', (streamErr) => {
-        console.error("Stream error:", streamErr);
+        console.error("❌ Stream error:", streamErr);
         if (!res.headersSent) {
           res.status(500).json({ error: "Failed to stream document" });
-        } else {
-          res.end();
         }
+        // If headers already sent, stream is broken - connection will close
       });
 
+      // IMPORTANT: Return here to prevent any code execution after piping
+      return;
+
     } catch (fetchErr) {
-      console.error("Failed to fetch from S3:", fetchErr);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: "Failed to load document" });
-      } else {
-        res.end();
-      }
+      console.error("❌ Failed to fetch from S3:", fetchErr);
+      return res.status(500).json({ error: "Failed to load document" });
     }
 
   } catch (err) {
@@ -480,16 +478,18 @@ export const downloadFile = async (req, res) => {
 
       // Handle stream errors
       response.body.on('error', (streamErr) => {
-        console.error("Download stream error:", streamErr);
+        console.error("❌ Download stream error:", streamErr);
         if (!res.headersSent) {
           res.status(500).json({ error: "Failed to download file" });
-        } else {
-          res.end();
         }
+        // If headers already sent, stream is broken - connection will close
       });
 
+      // IMPORTANT: Return here to prevent any code execution after piping
+      return;
+
     } catch (fetchErr) {
-      console.error("Failed to fetch from S3:", fetchErr);
+      console.error("❌ Failed to fetch from S3:", fetchErr);
       return res.status(500).json({ error: "Failed to download file from S3" });
     }
 
