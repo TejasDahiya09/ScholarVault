@@ -7,9 +7,18 @@ const client = axios.create({
   timeout: 120000, // 2 minutes to handle Render cold starts
 });
 
-// Simple in-memory cache for GET requests
+// Enhanced in-memory cache with better invalidation
 const cache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes for better performance
+
+// Cache invalidation on mutations
+const invalidateCache = (pattern) => {
+  for (const key of cache.keys()) {
+    if (key.includes(pattern)) {
+      cache.delete(key);
+    }
+  }
+};
 
 // Add JWT token automatically and implement caching
 client.interceptors.request.use((config) => {
@@ -19,13 +28,21 @@ client.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Check cache for GET requests
-  if (config.method === 'get') {
+  // Check cache for GET requests only (not auth endpoints)
+  if (config.method === 'get' && !config.url.includes('/auth')) {
     const cacheKey = config.url + JSON.stringify(config.params || {});
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       config.adapter = () => Promise.resolve(cached.data);
     }
+  }
+
+  // Invalidate related caches on mutations
+  if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
+    if (config.url.includes('/bookmarks')) invalidateCache('/bookmarks');
+    if (config.url.includes('/progress')) invalidateCache('/progress');
+    if (config.url.includes('/notes')) invalidateCache('/notes');
+    if (config.url.includes('/subjects')) invalidateCache('/subjects');
   }
 
   return config;
@@ -34,8 +51,8 @@ client.interceptors.request.use((config) => {
 // Response interceptor for error handling and caching
 client.interceptors.response.use(
   (response) => {
-    // Cache successful GET responses
-    if (response.config.method === 'get' && response.status === 200) {
+    // Cache successful GET responses (exclude auth)
+    if (response.config.method === 'get' && response.status === 200 && !response.config.url.includes('/auth')) {
       const cacheKey = response.config.url + JSON.stringify(response.config.params || {});
       cache.set(cacheKey, {
         data: response,
@@ -48,20 +65,12 @@ client.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem("sv_token");
       localStorage.removeItem("sv_user");
+      // Clear all cache on auth failure
+      cache.clear();
       window.location.href = "/login";
     }
     return Promise.reject(error);
   }
 );
 
-// Clear cache on mutations
-['post', 'put', 'patch', 'delete'].forEach(method => {
-  const original = client[method];
-  client[method] = function(...args) {
-    cache.clear(); // Clear cache on any mutation
-    return original.apply(this, args);
-  };
-});
-
 export default client;
-

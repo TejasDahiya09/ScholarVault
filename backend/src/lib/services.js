@@ -2,8 +2,27 @@ import { createClient } from "@supabase/supabase-js";
 import { VertexAI } from "@google-cloud/vertexai";
 import config from "../config.js";
 
-// Initialize Supabase
-export const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_KEY);
+// Initialize Supabase with optimized connection pooling for Render
+export const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_KEY, {
+  db: {
+    schema: 'public',
+  },
+  auth: {
+    persistSession: false, // No session persistence needed for API
+    autoRefreshToken: false,
+  },
+  global: {
+    headers: {
+      'x-application-name': 'scholarvault-api',
+    },
+  },
+  // Connection pooling optimization
+  realtime: {
+    params: {
+      eventsPerSecond: 2,
+    },
+  },
+});
 
 // Initialize Vertex AI
 process.env.GOOGLE_APPLICATION_CREDENTIALS = config.GOOGLE_APPLICATION_CREDENTIALS;

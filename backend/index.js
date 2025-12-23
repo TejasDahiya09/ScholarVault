@@ -150,4 +150,13 @@ Health Check: GET /healthz
   `);
 });
 
+// Self-ping mechanism to keep Render backend warm (runs every 10 minutes)
+if (config.NODE_ENV === 'production') {
+  const PING_INTERVAL = 10 * 60 * 1000; // 10 minutes
+  setInterval(() => {
+    fetch(`http://localhost:${config.PORT}/healthz`)
+      .catch(() => {}); // Silently ignore errors
+  }, PING_INTERVAL);
+}
+
 export default app;
