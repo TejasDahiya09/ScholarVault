@@ -6,7 +6,8 @@ export default function OnboardingModal({ open, onClose }) {
   const { user, login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [year, setYear] = useState(user?.selected_year || '1st Year');
-  const [branch, setBranch] = useState(user?.branch || 'BTech CSE');
+  const [studyGoal, setStudyGoal] = useState(user?.study_goal || 'exam-prep');
+  const [notifications, setNotifications] = useState(user?.notifications_enabled !== false);
   const [error, setError] = useState('');
 
   if (!open) return null;
@@ -19,11 +20,12 @@ export default function OnboardingModal({ open, onClose }) {
       // Save preferences to backend
       await client.put('/api/auth/preferences', {
         selected_year: year,
-        branch: branch,
+        study_goal: studyGoal,
+        notifications_enabled: notifications,
       });
 
       // Update auth store
-      const updatedUser = { ...user, selected_year: year, branch: branch };
+      const updatedUser = { ...user, selected_year: year, study_goal: studyGoal, notifications_enabled: notifications };
       login(localStorage.getItem('sv_token'), updatedUser);
       
       // Close modal
@@ -63,36 +65,10 @@ export default function OnboardingModal({ open, onClose }) {
 
         {/* Content */}
         <div className="space-y-6">
-          {/* Branch Section */}
+          {/* Academic Year Section */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">
-              Your Branch
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {['BTech CSE', 'Other'].map((b) => (
-                <button
-                  key={b}
-                  onClick={() => setBranch(b)}
-                  disabled={loading}
-                  className={`py-3 px-4 rounded-xl border-2 font-medium transition-all duration-200 text-sm ${
-                    branch === b
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-md'
-                      : 'border-gray-200 hover:border-indigo-300 text-gray-700 hover:bg-gray-50'
-                  } disabled:opacity-50`}
-                >
-                  <span className="block text-lg mb-1">
-                    {b === 'BTech CSE' ? '💻' : '📚'}
-                  </span>
-                  {b}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Year Section */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
-              Academic Year
+              Your Year
             </label>
             <div className="grid grid-cols-2 gap-3">
               {['1st Year', '2nd Year', '3rd Year', '4th Year'].map((y) => (
@@ -112,10 +88,71 @@ export default function OnboardingModal({ open, onClose }) {
             </div>
           </div>
 
+          {/* Study Goal Section */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">
+              Your Study Goal
+            </label>
+            <div className="space-y-2">
+              {[
+                { value: 'exam-prep', label: '📚 Exam Preparation', desc: 'Focus on exams & assessments' },
+                { value: 'deep-learning', label: '🔬 Deep Learning', desc: 'Understand concepts thoroughly' },
+                { value: 'revision', label: '⚡ Quick Revision', desc: 'Quick notes & summaries' },
+              ].map((goal) => (
+                <button
+                  key={goal.value}
+                  onClick={() => setStudyGoal(goal.value)}
+                  disabled={loading}
+                  className={`w-full text-left py-3 px-4 rounded-xl border-2 transition-all duration-200 ${
+                    studyGoal === goal.value
+                      ? 'border-indigo-500 bg-indigo-50'
+                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                  } disabled:opacity-50`}
+                >
+                  <div className="font-medium text-sm text-gray-900">{goal.label}</div>
+                  <div className="text-xs text-gray-600 mt-0.5">{goal.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Notifications Section */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">
+              📬 Notifications
+            </label>
+            <div className="space-y-2">
+              <button
+                onClick={() => setNotifications(true)}
+                disabled={loading}
+                className={`w-full text-left py-3 px-4 rounded-xl border-2 transition-all duration-200 ${
+                  notifications
+                    ? 'border-indigo-500 bg-indigo-50'
+                    : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                } disabled:opacity-50`}
+              >
+                <div className="font-medium text-sm text-gray-900">✅ Enable</div>
+                <div className="text-xs text-gray-600 mt-0.5">Get daily reminders & study tips</div>
+              </button>
+              <button
+                onClick={() => setNotifications(false)}
+                disabled={loading}
+                className={`w-full text-left py-3 px-4 rounded-xl border-2 transition-all duration-200 ${
+                  !notifications
+                    ? 'border-indigo-500 bg-indigo-50'
+                    : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                } disabled:opacity-50`}
+              >
+                <div className="font-medium text-sm text-gray-900">🔇 Disable</div>
+                <div className="text-xs text-gray-600 mt-0.5">Study without interruptions</div>
+              </button>
+            </div>
+          </div>
+
           {/* Info Box */}
           <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mt-6">
             <p className="text-xs sm:text-sm text-indigo-900">
-              💡 <span className="font-semibold">Tip:</span> Your selections help us show you relevant subjects and track progress accurately.
+              💡 <span className="font-semibold">Tip:</span> You can always change these settings in your Profile.
             </p>
           </div>
         </div>
@@ -141,7 +178,7 @@ export default function OnboardingModal({ open, onClose }) {
         {/* Current Selection Display */}
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-500 text-center">
-            Selected: <span className="font-semibold text-gray-700">{branch}</span> • <span className="font-semibold text-gray-700">{year}</span>
+            Selected: <span className="font-semibold text-gray-700">{year}</span> • <span className="font-semibold text-gray-700">{studyGoal === 'exam-prep' ? 'Exam Prep' : studyGoal === 'deep-learning' ? 'Deep Learning' : 'Quick Revision'}</span>
           </p>
         </div>
       </div>

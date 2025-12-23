@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import client from '../../api/client'
 import useAuth from '../../store/useAuth'
 import DarkModeToggle from '../../components/DarkModeToggle'
-import OnboardingModal from '../../components/OnboardingModal'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -13,7 +12,6 @@ export default function Register() {
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
-  const [showOnboarding, setShowOnboarding] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -24,13 +22,12 @@ export default function Register() {
     }
     try {
       setLoading(true)
-      // Temporary default year; will be updated in onboarding modal after register
       const res = await client.post('/api/auth/register', { name, email, password, selected_year: '1st Year' })
       const { token, user } = res.data || {}
       if (!token) throw new Error('Invalid server response')
       login(token, user || { email })
-      // Show onboarding modal to collect branch/year
-      setShowOnboarding(true)
+      // Navigate to home - AppShell will show onboarding modal if year not set
+      navigate('/home')
     } catch (e) {
       setErr(e?.response?.data?.error || e?.message || 'Registration failed')
     } finally {
@@ -39,15 +36,7 @@ export default function Register() {
   }
 
   async function handleOnboardingSubmit() {
-    try {
-      setLoading(true)
-      setShowOnboarding(false)
-      navigate('/home')
-    } catch (e) {
-      setErr(e?.response?.data?.error || e?.message || 'Failed to save preferences')
-    } finally {
-      setLoading(false)
-    }
+    // No longer needed - onboarding handled by AppShell component
   }
 
   return (
@@ -205,10 +194,6 @@ export default function Register() {
         </div>
       </div>
     </div>
-    <OnboardingModal
-      open={showOnboarding}
-      onClose={() => { setShowOnboarding(false); navigate('/home'); }}
-    />
     </>
   );
 }
