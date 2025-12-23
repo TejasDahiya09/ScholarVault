@@ -30,6 +30,7 @@ export default function NotesPage() {
 
   // States
   const [notesList, setNotesList] = useState([]);
+  const [pptList, setPptList] = useState([]);
   const [booksList, setBooksList] = useState([]);
   const [pyqList, setPyqList] = useState([]);
   const [syllabusList, setSyllabusList] = useState([]);
@@ -110,7 +111,12 @@ export default function NotesPage() {
           const subject = subjectRes.data;
 
           setSubjectDetails(subject);
-          setNotesList(subject.notes || []);
+          const allNotes = subject.notes || [];
+          const pptItems = allNotes.filter(n => /\.pptx?$/.test((n.file_name || "").toLowerCase()));
+          const regularNotes = allNotes.filter(n => !/\.pptx?$/.test((n.file_name || "").toLowerCase()));
+
+          setNotesList(regularNotes);
+          setPptList(pptItems);
           setBooksList(subject.books || []);
           setPyqList(subject.pyqs || []);
           setSyllabusList(subject.syllabus || []);
@@ -664,6 +670,20 @@ export default function NotesPage() {
             bookmarkedNotes={bookmarkedNotes}
             completedNotes={completedNotes}
             showMarkComplete={true}
+          />
+        )}
+
+        {/* PPT Section */}
+        {pptList.length > 0 && (
+          <Section
+            title="📑 PPTs"
+            items={pptList}
+            onClick={(ppt) => openNoteViewer({ ...ppt, isPpt: true })}
+            onToggleBookmark={handleToggleBookmark}
+            onMarkComplete={handleMarkComplete}
+            bookmarkedNotes={bookmarkedNotes}
+            completedNotes={completedNotes}
+            showMarkComplete={false}
           />
         )}
 
