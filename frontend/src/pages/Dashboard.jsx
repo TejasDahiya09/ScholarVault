@@ -182,14 +182,14 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen py-6 sm:py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-4 xs:py-6 sm:py-8 safe-top safe-bottom">
+      <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8">
         {/* Error Display */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-            <div className="flex items-center justify-between">
-              <p>{error}</p>
-              <button onClick={fetchDashboardData} className="ml-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+          <div className="mb-4 xs:mb-6 p-3 xs:p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3">
+              <p className="text-sm xs:text-base">{error}</p>
+              <button onClick={fetchDashboardData} className="min-h-touch min-w-touch px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap shrink-0">
                 Retry
               </button>
             </div>
@@ -197,47 +197,47 @@ export default function Dashboard() {
         )}
         
         {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-1 sm:mb-2">Dashboard</h1>
-          <p className="text-gray-600 text-xs sm:text-sm">Welcome back! Here's your learning overview</p>
+        <div className="mb-4 xs:mb-6 sm:mb-8">
+          <h1 className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 mb-1 xs:mb-2">Dashboard</h1>
+          <p className="text-gray-600 text-fluid-xs xs:text-fluid-sm">Welcome back! Here's your learning overview</p>
         </div>
 
         {/* Top Summary Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 xs:gap-4 lg:gap-6 mb-4 xs:mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200 min-h-touch touch:active:scale-95 transition-transform">
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Study Time</p>
-                <p className="text-2xl sm:text-3xl font-semibold text-gray-900">{stats.totalTime}m</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-fluid-xs text-gray-500 mb-1 uppercase tracking-wide truncate">Study Time</p>
+                <p className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 truncate">{stats.totalTime}m</p>
               </div>
-              <div className="text-2xl">⏱️</div>
+              <div className="text-fluid-xl sm:text-fluid-2xl shrink-0">⏱️</div>
             </div>
           </div>
-          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
+          <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200 min-h-touch touch:active:scale-95 transition-transform">
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Units Completed</p>
-                <p className="text-2xl sm:text-3xl font-semibold text-gray-900">{stats.unitsCompleted}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-fluid-xs text-gray-500 mb-1 uppercase tracking-wide truncate">Units Completed</p>
+                <p className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 truncate">{stats.unitsCompleted}</p>
               </div>
-              <div className="text-2xl">✅</div>
+              <div className="text-fluid-xl sm:text-fluid-2xl shrink-0">✅</div>
             </div>
           </div>
-          <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
+          <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200 min-h-touch xs:col-span-2 md:col-span-1 touch:active:scale-95 transition-transform">
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">Study Streak</p>
-                <p className="text-2xl sm:text-3xl font-semibold text-gray-900">{stats.longestStreak} days</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-fluid-xs text-gray-500 mb-1 uppercase tracking-wide truncate">Study Streak</p>
+                <p className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 truncate">{stats.longestStreak} days</p>
               </div>
-              <div className="text-2xl">🔥</div>
+              <div className="text-fluid-xl sm:text-fluid-2xl shrink-0">🔥</div>
             </div>
           </div>
         </div>
 
         {/* Bookmarked for Learning - PAGINATED */}
         {bookmarkedNotes.length > 0 && (
-          <div className="bg-linear-to-r from-amber-50 to-orange-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8 border border-amber-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">📚 Saved for Learning</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 border border-amber-200">
+            <h3 className="text-fluid-base sm:text-fluid-lg font-semibold text-gray-900 mb-3 xs:mb-4 truncate">📚 Saved for Learning</h3>
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 xs:gap-3 mb-3 xs:mb-4">
               {paginatedBookmarks.map((bookmark) => (
                 <button
                   key={bookmark.note_id}
@@ -245,28 +245,28 @@ export default function Dashboard() {
                     const note = bookmark.notes;
                     navigate(`/notes?subjectId=${note.subject_id}&noteId=${note.id}`);
                   }}
-                  className="text-left p-3 bg-white rounded-lg hover:shadow-md transition-all border border-amber-100"
+                  className="text-left p-3 xs:p-4 bg-white rounded-lg hover:shadow-md transition-all border border-amber-100 min-h-touch active:scale-98"
                 >
-                  <p className="font-medium text-sm text-gray-900 truncate">{bookmark.notes?.file_name}</p>
-                  <p className="text-xs text-gray-500 mt-1">{bookmark.notes?.subject}</p>
+                  <p className="font-medium text-fluid-sm text-gray-900 truncate">{bookmark.notes?.file_name}</p>
+                  <p className="text-fluid-xs text-gray-500 mt-1 truncate">{bookmark.notes?.subject}</p>
                 </button>
               ))}
             </div>
             {bookmarkedNotes.length > BOOKMARKS_PER_PAGE && (
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-amber-700">Page {bookmarksPage + 1} of {Math.ceil(bookmarkedNotes.length / BOOKMARKS_PER_PAGE)}</span>
-                <div className="flex gap-2">
+              <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-3 text-fluid-xs">
+                <span className="text-amber-700 whitespace-nowrap">Page {bookmarksPage + 1} of {Math.ceil(bookmarkedNotes.length / BOOKMARKS_PER_PAGE)}</span>
+                <div className="flex gap-2 w-full xs:w-auto">
                   <button
                     onClick={() => setBookmarksPage(Math.max(0, bookmarksPage - 1))}
                     disabled={bookmarksPage === 0}
-                    className="px-3 py-1 bg-amber-100 text-amber-700 rounded disabled:opacity-50"
+                    className="min-h-touch flex-1 xs:flex-none px-3 xs:px-4 py-2 bg-amber-100 text-amber-700 rounded disabled:opacity-50 hover:bg-amber-200 transition-colors whitespace-nowrap"
                   >
                     ← Prev
                   </button>
                   <button
                     onClick={() => setBookmarksPage(Math.min(Math.ceil(bookmarkedNotes.length / BOOKMARKS_PER_PAGE) - 1, bookmarksPage + 1))}
                     disabled={bookmarksPage >= Math.ceil(bookmarkedNotes.length / BOOKMARKS_PER_PAGE) - 1}
-                    className="px-3 py-1 bg-amber-100 text-amber-700 rounded disabled:opacity-50"
+                    className="min-h-touch flex-1 xs:flex-none px-3 xs:px-4 py-2 bg-amber-100 text-amber-700 rounded disabled:opacity-50 hover:bg-amber-200 transition-colors whitespace-nowrap"
                   >
                     Next →
                   </button>
@@ -278,43 +278,43 @@ export default function Dashboard() {
 
         {/* Continue Studying */}
         {nextUnit && (
-          <div className="bg-linear-to-r from-gray-900 to-gray-800 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8 text-white">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <p className="text-xs text-gray-300 mb-2 uppercase">Continue Studying</p>
-                <h3 className="text-lg font-semibold">{nextUnit.subject}</h3>
-                <p className="text-sm text-gray-300">{nextUnit.unit}</p>
+          <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 text-white">
+            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
+              <div className="flex-1 min-w-0 w-full xs:w-auto">
+                <p className="text-fluid-xs text-gray-300 mb-2 uppercase tracking-wide">Continue Studying</p>
+                <h3 className="text-fluid-base sm:text-fluid-lg font-semibold truncate">{nextUnit.subject}</h3>
+                <p className="text-fluid-sm text-gray-300 truncate">{nextUnit.unit}</p>
               </div>
-              <button onClick={() => navigate(`/home`)} className="px-6 py-3 bg-white text-gray-900 rounded-lg font-medium hover:bg-gray-100">
+              <button onClick={() => navigate(`/home`)} className="min-h-touch w-full xs:w-auto px-6 py-3 bg-white text-gray-900 rounded-lg font-medium hover:bg-gray-100 active:scale-98 transition-transform whitespace-nowrap">
                 Continue →
               </button>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 xs:gap-6 sm:gap-8">
           {/* Subjects Progress - PAGINATED */}
-          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
-            <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">My Subjects</h2>
+          <div className="lg:col-span-2 space-y-4 xs:space-y-6 sm:space-y-8">
+            <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200">
+              <h2 className="text-fluid-base sm:text-fluid-lg font-semibold text-gray-900 mb-3 xs:mb-4 truncate">My Subjects</h2>
               {subjects.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 text-sm">No subjects enrolled yet</p>
+                <div className="text-center py-8 xs:py-12">
+                  <p className="text-gray-500 text-fluid-sm">No subjects enrolled yet</p>
                 </div>
               ) : (
                 <>
-                  <div className="space-y-3 mb-4">
+                  <div className="space-y-3 xs:space-y-4 mb-3 xs:mb-4">
                     {paginatedSubjects.map((subject) => (
-                      <div key={subject.id}>
+                      <div key={subject.id} className="min-h-touch flex flex-col justify-center">
                         <div className="flex items-center justify-between mb-2 gap-2">
-                          <h3 className="font-medium text-xs sm:text-sm text-gray-900 truncate">{subject.name}</h3>
-                          <span className="text-xs font-semibold text-gray-900">
+                          <h3 className="font-medium text-fluid-xs xs:text-fluid-sm text-gray-900 truncate flex-1 min-w-0">{subject.name}</h3>
+                          <span className="text-fluid-xs font-semibold text-gray-900 whitespace-nowrap shrink-0">
                             {subject.progress >= 0 ? `${Math.round(subject.progress)}%` : '...'}
                           </span>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="w-full bg-gray-200 rounded-full h-2 xs:h-2.5">
                           <div
-                            className="bg-indigo-600 h-2 rounded-full transition-all"
+                            className="bg-indigo-600 h-2 xs:h-2.5 rounded-full transition-all duration-300"
                             style={{ width: subject.progress >= 0 ? `${subject.progress}%` : '30%', opacity: subject.progress >= 0 ? 1 : 0.5 }}
                           />
                         </div>
@@ -322,11 +322,11 @@ export default function Dashboard() {
                     ))}
                   </div>
                   {subjects.length > SUBJECTS_PER_PAGE && (
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-gray-500">Page {subjectsPage + 1} of {Math.ceil(subjects.length / SUBJECTS_PER_PAGE)}</span>
-                      <div className="flex gap-2">
-                        <button onClick={() => setSubjectsPage(Math.max(0, subjectsPage - 1))} disabled={subjectsPage === 0} className="px-3 py-1 bg-gray-100 rounded disabled:opacity-50">← Prev</button>
-                        <button onClick={() => setSubjectsPage(Math.min(Math.ceil(subjects.length / SUBJECTS_PER_PAGE) - 1, subjectsPage + 1))} disabled={subjectsPage >= Math.ceil(subjects.length / SUBJECTS_PER_PAGE) - 1} className="px-3 py-1 bg-gray-100 rounded disabled:opacity-50">Next →</button>
+                    <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-2 xs:gap-3 text-fluid-xs">
+                      <span className="text-gray-500 whitespace-nowrap">Page {subjectsPage + 1} of {Math.ceil(subjects.length / SUBJECTS_PER_PAGE)}</span>
+                      <div className="flex gap-2 w-full xs:w-auto">
+                        <button onClick={() => setSubjectsPage(Math.max(0, subjectsPage - 1))} disabled={subjectsPage === 0} className="min-h-touch flex-1 xs:flex-none px-3 xs:px-4 py-2 bg-gray-100 rounded disabled:opacity-50 hover:bg-gray-200 transition-colors whitespace-nowrap">← Prev</button>
+                        <button onClick={() => setSubjectsPage(Math.min(Math.ceil(subjects.length / SUBJECTS_PER_PAGE) - 1, subjectsPage + 1))} disabled={subjectsPage >= Math.ceil(subjects.length / SUBJECTS_PER_PAGE) - 1} className="min-h-touch flex-1 xs:flex-none px-3 xs:px-4 py-2 bg-gray-100 rounded disabled:opacity-50 hover:bg-gray-200 transition-colors whitespace-nowrap">Next →</button>
                       </div>
                     </div>
                   )}
@@ -336,19 +336,19 @@ export default function Dashboard() {
           </div>
 
           {/* Right Column - Needs Attention */}
-          <div className="space-y-6">
+          <div className="space-y-4 xs:space-y-6">
             {needsAttention.length > 0 && (
-              <div className="bg-amber-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-amber-200">
-                <h2 className="text-base font-semibold text-gray-900 mb-3">⚠️ Needs Attention</h2>
-                <div className="space-y-2">
+              <div className="bg-amber-50 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-amber-200">
+                <h2 className="text-fluid-base font-semibold text-gray-900 mb-3 truncate">⚠️ Needs Attention</h2>
+                <div className="space-y-2 xs:space-y-3">
                   {needsAttention.map((subject) => (
                     <button
                       key={subject.id}
                       onClick={() => navigate(`/notes?subjectId=${subject.id}&subjectName=${encodeURIComponent(subject.name || "")}&branch=${encodeURIComponent(subject.branch || "")}&semester=${encodeURIComponent(subject.semester || "")}`)}
-                      className="w-full text-left p-3 bg-white border border-amber-200 rounded-lg hover:border-amber-300 hover:shadow-sm transition"
+                      className="min-h-touch w-full text-left p-3 xs:p-4 bg-white border border-amber-200 rounded-lg hover:border-amber-300 hover:shadow-sm transition active:scale-98"
                     >
-                      <h3 className="font-semibold text-xs sm:text-sm text-gray-900">{subject.name}</h3>
-                      <p className="text-xs text-amber-700 mt-1">{Math.round(subject.progress)}% complete</p>
+                      <h3 className="font-semibold text-fluid-xs xs:text-fluid-sm text-gray-900 truncate">{subject.name}</h3>
+                      <p className="text-fluid-xs text-amber-700 mt-1">{Math.round(subject.progress)}% complete</p>
                     </button>
                   ))}
                 </div>

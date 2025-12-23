@@ -23,24 +23,60 @@
   --text: #1E1E1E;
   --muted: #6B7280;
 
-  --radius-card: 24px;
-  --radius-btn: 16px;
-  --radius-input: 16px;
+  --radius-card: clamp(12px, 3vw, 24px);
+  --radius-btn: clamp(8px, 2vw, 16px);
+  --radius-input: clamp(8px, 2vw, 16px);
+  
+  /* Safe areas for notched devices */
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-left: env(safe-area-inset-left);
+  --safe-right: env(safe-area-inset-right);
+  
+  /* Fluid spacing */
+  --spacing-xs: clamp(0.25rem, 0.5vw, 0.5rem);
+  --spacing-sm: clamp(0.5rem, 1vw, 1rem);
+  --spacing-md: clamp(1rem, 2vw, 1.5rem);
+  --spacing-lg: clamp(1.5rem, 3vw, 2rem);
+  --spacing-xl: clamp(2rem, 4vw, 3rem);
 }
 
 /* ================================
    📱 Global Page Defaults
 ================================= */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: clamp(14px, 1.5vw, 16px);
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html, body, #root {
   height: 100%;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
 }
 
 body {
   background: var(--background);
   color: var(--text);
-  font-family: "Inter", sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  touch-action: manipulation;
+  /* iOS safe area support */
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
 }
 
 /* ================================
@@ -162,24 +198,46 @@ body {
   --hover-raise-translate: -6px;
 }
 
+/* Default transitions - smooth for all devices */
 * {
   transition: background-color 180ms ease, transform 220ms ease, box-shadow 220ms ease, opacity 160ms ease, border-color 180ms ease, color 180ms ease;
 }
 
-/* Hover animations for buttons */
-.btn-gradient:hover, .btn-signin:hover, button:not(:disabled):hover {
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 12px 28px rgba(59,130,246,0.15);
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .float,
+  .fade-in {
+    animation: none !important;
+  }
 }
 
-.btn-gradient:active, .btn-signin:active {
+/* Hover animations for buttons - only on hover-capable devices */
+@media (hover: hover) and (pointer: fine) {
+  .btn-gradient:hover, .btn-signin:hover, button:not(:disabled):hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 28px rgba(59,130,246,0.15);
+  }
+}
+
+.btn-gradient:active, .btn-signin:active, button:not(:disabled):active {
   transform: translateY(-1px) scale(0.99);
 }
 
-/* Hover animations for input fields */
-input:hover:not(:disabled), textarea:hover:not(:disabled), select:hover:not(:disabled) {
-  border-color: rgba(59,130,246,0.4);
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
+/* Hover animations for input fields - only on hover-capable devices */
+@media (hover: hover) and (pointer: fine) {
+  input:hover:not(:disabled), textarea:hover:not(:disabled), select:hover:not(:disabled) {
+    border-color: rgba(59,130,246,0.4);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
+  }
 }
 
 input:focus:not(:disabled), textarea:focus:not(:disabled), select:focus:not(:disabled) {
@@ -188,24 +246,28 @@ input:focus:not(:disabled), textarea:focus:not(:disabled), select:focus:not(:dis
   transform: translateY(-1px);
 }
 
-/* Card hover effects */
-.card-hover:hover, .neumo-card.card-hover:hover, .feature-card:hover, .auth-card:hover {
-  transform: translateY(var(--hover-raise-translate)) scale(1.01);
-  box-shadow: 18px 18px 40px rgba(14,20,33,0.10), -8px -8px 24px rgba(255,255,255,0.9);
+/* Card hover effects - only on hover-capable devices */
+@media (hover: hover) and (pointer: fine) {
+  .card-hover:hover, .neumo-card.card-hover:hover, .feature-card:hover, .auth-card:hover {
+    transform: translateY(var(--hover-raise-translate)) scale(1.01);
+    box-shadow: 18px 18px 40px rgba(14,20,33,0.10), -8px -8px 24px rgba(255,255,255,0.9);
+  }
 }
 
-/* Link hover animations */
-a:not(.nav-link):not([role="button"]):hover {
-  color: var(--primary);
-  text-decoration: underline;
-  text-decoration-color: var(--primary);
-  text-underline-offset: 4px;
-}
+/* Link hover animations - only on hover-capable devices */
+@media (hover: hover) and (pointer: fine) {
+  a:not(.nav-link):not([role="button"]):hover {
+    color: var(--primary);
+    text-decoration: underline;
+    text-decoration-color: var(--primary);
+    text-underline-offset: 4px;
+  }
 
-/* Navigation link hover */
-.nav-link:hover {
-  color: var(--primary);
-  transform: translateX(4px);
+  /* Navigation link hover */
+  .nav-link:hover {
+    color: var(--primary);
+    transform: translateX(4px);
+  }
 }
 
 .nav-link.active {
@@ -213,25 +275,24 @@ a:not(.nav-link):not([role="button"]):hover {
   font-weight: 600;
 }
 
-/* Generic hover-scale utility */
-.hover-scale:hover {
-  transform: scale(1.05);
-}
+/* Generic hover utilities - only on hover-capable devices */
+@media (hover: hover) and (pointer: fine) {
+  .hover-scale:hover {
+    transform: scale(1.05);
+  }
 
-/* Generic hover-lift utility */
-.hover-lift:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.1);
-}
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+  }
 
-/* Generic hover-glow utility */
-.hover-glow:hover {
-  box-shadow: 0 0 20px rgba(59,130,246,0.3);
-}
+  .hover-glow:hover {
+    box-shadow: 0 0 20px rgba(59,130,246,0.3);
+  }
 
-/* Generic hover-brighten utility */
-.hover-brighten:hover {
-  opacity: 0.85;
+  .hover-brighten:hover {
+    opacity: 0.85;
+  }
 }
 
 .feature-card {
@@ -244,9 +305,12 @@ a:not(.nav-link):not([role="button"]):hover {
   border: 1px solid rgba(59,130,246,0.18);
   background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.6));
 }
-.btn-signin:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(59,130,246,0.12);
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-signin:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(59,130,246,0.12);
+  }
 }
 
 /* ripple effect for CTAs */
@@ -272,12 +336,23 @@ a:not(.nav-link):not([role="button"]):hover {
   transition: transform 200ms ease, opacity 400ms ease;
 }
 
-/* tilt on hover */
-.tilt-hover:hover { transform: perspective(800px) rotateX(2deg) rotateY(-3deg) translateY(-6px); }
+/* tilt on hover - only on hover-capable devices */
+@media (hover: hover) and (pointer: fine) {
+  .tilt-hover:hover { 
+    transform: perspective(800px) rotateX(2deg) rotateY(-3deg) translateY(-6px); 
+  }
 
-/* chevron animation */
-.chev { display:inline-block; transform: translateX(0); transition: transform 220ms ease; }
-.feature-card:hover .chev { transform: translateX(6px); }
+  /* chevron animation */
+  .feature-card:hover .chev { 
+    transform: translateX(6px); 
+  }
+}
+
+.chev { 
+  display:inline-block; 
+  transform: translateX(0); 
+  transition: transform 220ms ease; 
+}
 
 /* feature card appearance matching screenshot */
 .feature-grid { gap: 1.25rem; }

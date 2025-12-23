@@ -4,28 +4,28 @@ import DarkModeToggle from "../DarkModeToggle";
 
 export default function NavBar() {
   return (
-    <nav className="w-full bg-white/70 backdrop-blur-xl shadow-sm border-b border-gray-200/60 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-3 sm:py-4 lg:py-5 flex items-center justify-between gap-2 sm:gap-4">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="text-xl sm:text-2xl">
+    <nav className="w-full bg-white/70 backdrop-blur-xl shadow-sm border-b border-gray-200/60 sticky top-0 z-50 safe-top">
+      <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-12 py-2.5 xs:py-3 sm:py-4 lg:py-5 flex items-center justify-between gap-2 xs:gap-3 sm:gap-4">
+        <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 shrink-0">
+          <div className="text-lg xs:text-xl sm:text-2xl">
             ⚡
           </div>
-          <span className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900">
+          <span className="text-sm xs:text-base sm:text-lg lg:text-xl font-semibold text-gray-900 truncate">
             ScholarVault
           </span>
         </div>
 
-        <div className="flex items-center justify-between gap-2 sm:gap-4 lg:gap-8 flex-1 ml-2 sm:ml-4 lg:ml-8">
-          <div className="hidden sm:flex items-center gap-2 sm:gap-3 lg:gap-4 ml-auto">
+        <div className="flex items-center justify-between gap-2 xs:gap-3 sm:gap-4 lg:gap-8 flex-1 ml-2 xs:ml-3 sm:ml-4 lg:ml-8 min-w-0">
+          <div className="hidden sm:flex items-center gap-2 sm:gap-3 lg:gap-4 ml-auto shrink-0">
             <Link 
               to="/login" 
-              className="px-3 sm:px-4 lg:px-5 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm lg:text-base font-medium text-slate-700 hover:text-indigo-600 transition-all duration-200 rounded-lg hover:bg-slate-50"
+              className="px-3 sm:px-4 lg:px-5 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm lg:text-base font-medium text-slate-700 hover:text-indigo-600 transition-all duration-200 rounded-lg hover:bg-slate-50 whitespace-nowrap min-h-touch min-w-touch touch:p-3"
             >
               Sign in
             </Link>
             <Link 
               to="/register" 
-              className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm lg:text-base bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-500 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
+              className="px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm lg:text-base bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-500 hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap min-h-touch min-w-touch touch:p-3"
             >
               Get Started
             </Link>
@@ -33,7 +33,7 @@ export default function NavBar() {
           {/* Mobile: Show only Get Started button */}
           <Link 
             to="/register" 
-            className="sm:hidden ml-auto px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-500 transition-all duration-200 shadow-md"
+            className="sm:hidden ml-auto px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-500 transition-all duration-200 shadow-md whitespace-nowrap min-h-touch min-w-touch"
           >
             Get Started
           </Link>
