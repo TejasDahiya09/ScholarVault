@@ -36,7 +36,7 @@ export default function HomePage() {
   }, []);
 
   // Filter subjects by user's selected year
-  const subjectsByYear = useMemo(() => {
+  const filteredSubjects = useMemo(() => {
     if (!user?.selected_year) return [];
     
     const yearToSemesters = {
@@ -51,46 +51,6 @@ export default function HomePage() {
       validSemesters.includes(String(s.semester || '').trim().toLowerCase())
     );
   }, [allSubjects, user?.selected_year]);
-
-  // Group subjects by semester and normalize semester names for display
-  const subjectsBySemester = useMemo(() => {
-    const grouped = {};
-    
-    subjectsByYear.forEach(subject => {
-      const sem = String(subject.semester || 'Unknown').trim().toLowerCase();
-      
-      // Normalize semester display name
-      let displaySem = 'Unknown';
-      if (['1', '1st year'].includes(sem)) {
-        displaySem = '1';
-      } else if (['2', '2nd year'].includes(sem)) {
-        displaySem = '2';
-      } else if (['3'].includes(sem)) {
-        displaySem = '3';
-      } else if (['4'].includes(sem)) {
-        displaySem = '4';
-      }
-      
-      if (!grouped[displaySem]) {
-        grouped[displaySem] = [];
-      }
-      grouped[displaySem].push(subject);
-    });
-    
-    // Sort semesters numerically
-    const sorted = {};
-    Object.keys(grouped)
-      .sort((a, b) => {
-        const aNum = parseInt(a) || 999;
-        const bNum = parseInt(b) || 999;
-        return aNum - bNum;
-      })
-      .forEach(sem => {
-        sorted[sem] = grouped[sem];
-      });
-    
-    return sorted;
-  }, [subjectsByYear]);
 
   // Breadcrumbs
   const crumbs = [
@@ -137,7 +97,7 @@ export default function HomePage() {
             Subjects
           </h1>
           <p className="text-gray-600">
-            {user?.selected_year} • {subjectsByYear.length} subjects available
+            {user?.selected_year} • {filteredSubjects.length} subjects available
           </p>
         </div>
 
@@ -162,7 +122,7 @@ export default function HomePage() {
               <p className="text-gray-600">Loading subjects...</p>
             </div>
           </div>
-        ) : Object.keys(subjectsBySemester).length === 0 ? (
+        ) : Object.keys(filteredSubjects).length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl shadow-lg px-4">
             <div className="text-6xl mb-4">📚</div>
             <p className="text-xl font-semibold text-gray-900 mb-2">No subjects found</p>
@@ -171,72 +131,58 @@ export default function HomePage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-8">
-            {Object.entries(subjectsBySemester).map(([semester, subjects]) => (
-              <div key={semester}>
-                {/* Semester Header */}
-                <div className="mb-6 pb-4 border-b-2 border-indigo-200">
-                  <h2 className="text-2xl font-semibold text-gray-900">
-                    Semester {semester}
-                  </h2>
-                </div>
-
-                {/* Subjects Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8 pb-8 border-b border-gray-200">
-                  {subjects.map((subject) => (
-                    <button
-                      key={subject.id}
-                      onClick={() => handleSubjectClick(subject)}
-                      className="group relative bg-white rounded-lg shadow-sm hover:shadow-md p-5 md:p-6 text-left transition-all duration-200 border border-gray-200 hover:border-indigo-300 hover:scale-105"
-                    >
-                      <div className="relative z-10">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center text-2xl shrink-0">
-                            📖
-                          </div>
-                          {subject.progress !== undefined && (
-                            <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">
-                              {subject.progress}%
-                            </div>
-                          )}
-                        </div>
-
-                        <h3 className="font-semibold text-base mb-2 text-gray-900 line-clamp-2">
-                          {subject.name}
-                        </h3>
-                        
-                        <div className="space-y-1 mb-4">
-                          {subject.code && (
-                            <p className="text-sm text-gray-600">Code: {subject.code}</p>
-                          )}
-                          {subject.branch && (
-                            <p className="text-sm text-gray-500">{subject.branch}</p>
-                          )}
-                          {subject.description && (
-                            <p className="text-sm text-gray-500 line-clamp-2">{subject.description}</p>
-                          )}
-                        </div>
-
-                        {subject.progress !== undefined && (
-                          <div className="mt-4">
-                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                              <div
-                                className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                                style={{ width: `${subject.progress}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Arrow indicator */}
-                        <div className="flex items-center text-indigo-600 font-medium text-sm mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <span>View →</span>
-                        </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {filteredSubjects.map((subject) => (
+              <button
+                key={subject.id}
+                onClick={() => handleSubjectClick(subject)}
+                className="group relative bg-white rounded-lg shadow-sm hover:shadow-md p-5 md:p-6 text-left transition-all duration-200 border border-gray-200 hover:border-indigo-300 hover:scale-105"
+              >
+                <div className="relative z-10">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center text-2xl shrink-0">
+                      📖
+                    </div>
+                    {subject.progress !== undefined && (
+                      <div className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">
+                        {subject.progress}%
                       </div>
-                    </button>
-                  ))}
+                    )}
+                  </div>
+
+                  <h3 className="font-semibold text-base mb-2 text-gray-900 line-clamp-2">
+                    {subject.name}
+                  </h3>
+                  
+                  <div className="space-y-1 mb-4">
+                    {subject.code && (
+                      <p className="text-sm text-gray-600">Code: {subject.code}</p>
+                    )}
+                    {subject.branch && (
+                      <p className="text-sm text-gray-500">{subject.branch}</p>
+                    )}
+                    {subject.description && (
+                      <p className="text-sm text-gray-500 line-clamp-2">{subject.description}</p>
+                    )}
+                  </div>
+
+                  {subject.progress !== undefined && (
+                    <div className="mt-4">
+                      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${subject.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Arrow indicator */}
+                  <div className="flex items-center text-indigo-600 font-medium text-sm mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span>View →</span>
+                  </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
