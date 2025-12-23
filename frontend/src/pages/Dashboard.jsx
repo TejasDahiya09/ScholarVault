@@ -81,16 +81,24 @@ export default function Dashboard() {
         yearFilteredSubjects.forEach(async (subject) => {
           try {
             const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
-            setSubjects(prev => prev.map(s => 
-              s.id === subject.id 
-                ? {
-                    ...s,
-                    progress: completionRes.data?.progress_percent || 0,
-                    completed: completionRes.data?.completed_units || 0,
-                    total: completionRes.data?.total_units || 0
-                  }
-                : s
-            ));
+            setSubjects(prev => {
+              const updated = prev.map(s => 
+                s.id === subject.id 
+                  ? {
+                      ...s,
+                      progress: completionRes.data?.progress_percent || 0,
+                      completed: completionRes.data?.completed_units || 0,
+                      total: completionRes.data?.total_units || 0
+                    }
+                  : s
+              );
+              
+              // Update total completed units in stats
+              const totalCompleted = updated.reduce((sum, s) => sum + (s.completed || 0), 0);
+              setStats(prev => ({ ...prev, unitsCompleted: totalCompleted }));
+              
+              return updated;
+            });
           } catch (err) {
             console.error(`Error fetching progress for ${subject.id}:`, err);
           }
@@ -100,16 +108,37 @@ export default function Dashboard() {
         setError("Failed to load subjects. Please try refreshing.");
       }
 
-      // Weekly activity
-      const today = new Date().getDay();
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      setWeeklyActivity(
-        days.map((day, index) => ({
-          day,
-          minutes: 0,
-          isToday: index === today
-        }))
-      );
+      // Fetch analytics (time, streaks, weekly activity)
+      try {
+        const analyticsRes = await client.get('/api/progress/analytics');
+        const a = analyticsRes.data || {};
+        
+        // Calculate total completed units from subjects
+        const totalCompleted = yearFilteredSubjects.reduce((sum, s) => {
+          // Will be updated when individual subject progress loads
+          return sum;
+        }, 0);
+        
+        setStats({
+          totalTime: a.stats?.totalTimeHours || 0,
+          unitsCompleted: totalCompleted,
+          longestStreak: a.stats?.longestStreak || 0
+        });
+        
+        setWeeklyActivity(Array.isArray(a.weekly) ? a.weekly : []);
+      } catch (err) {
+        console.error("Failed to fetch analytics:", err);
+        // Set empty weekly activity as fallback
+        const today = new Date().getDay();
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        setWeeklyActivity(
+          days.map((day, index) => ({
+            day,
+            minutes: 0,
+            isToday: index === today
+          }))
+        );
+      }
 
       // Recent activity
       const recent = JSON.parse(localStorage.getItem("sv_last_note") || "null");
@@ -205,7 +234,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-fluid-xs text-gray-500 mb-1 uppercase tracking-wide truncate">Study Time</p>
-                <p className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 truncate">{stats.totalTime}m</p>
+                <p className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 truncate">{stats.totalTime}h</p>
               </div>
               <div className="text-fluid-xl sm:text-fluid-2xl shrink-0">⏱️</div>
             </div>
