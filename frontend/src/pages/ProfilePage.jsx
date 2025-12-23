@@ -198,6 +198,18 @@ export default function ProfilePage() {
     }
   };
 
+  const handleYearChange = async (year) => {
+    try {
+      await client.put('/api/auth/preferences', { selected_year: year });
+      setCurrentYear(year);
+      const updatedUser = { ...user, selected_year: year };
+      login(localStorage.getItem('sv_token'), updatedUser);
+    } catch (err) {
+      console.error('Failed to update year:', err);
+      alert('Failed to update year. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -347,45 +359,23 @@ export default function ProfilePage() {
                 <p className="font-medium text-sm sm:text-base text-slate-900">Academic Year</p>
                 <p className="text-slate-600 text-xs sm:text-sm mt-1">Select your current year to filter relevant subjects</p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4">
-                <button
-                  onClick={async () => {
-                    try {
-                      await client.put('/api/auth/year', { year: '1st Year' });
-                      const updatedUser = { ...user, selected_year: '1st Year' };
-                      login(localStorage.getItem('sv_token'), updatedUser);
-                      setCurrentYear('1st Year');
-                    } catch (err) {
-                      alert('Failed to update year');
-                    }
-                  }}
-                  className={`flex-1 py-3 px-4 rounded-lg border-2 font-medium transition-all ${
-                    currentYear === '1st Year'
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-slate-200 hover:border-indigo-300 text-slate-700'
-                  }`}
-                >
-                  1st Year
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      await client.put('/api/auth/year', { year: '2nd Year' });
-                      const updatedUser = { ...user, selected_year: '2nd Year' };
-                      login(localStorage.getItem('sv_token'), updatedUser);
-                      setCurrentYear('2nd Year');
-                    } catch (err) {
-                      alert('Failed to update year');
-                    }
-                  }}
-                  className={`flex-1 py-3 px-4 rounded-lg border-2 font-medium transition-all ${
-                    currentYear === '2nd Year'
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                      : 'border-slate-200 hover:border-indigo-300 text-slate-700'
-                  }`}
-                >
-                  2nd Year
-                </button>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+                  {["1st Year", "2nd Year", "3rd Year", "4th Year"].map((yearOption) => (
+                    <button
+                      key={yearOption}
+                      onClick={() => handleYearChange(yearOption)}
+                      className={`py-3 px-4 rounded-lg border-2 font-medium transition-all ${
+                        currentYear === yearOption
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          : 'border-slate-200 hover:border-indigo-300 text-slate-700'
+                      }`}
+                    >
+                      {yearOption}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-slate-600 text-xs sm:text-sm">Current selection: {currentYear || 'Not set'}</p>
               </div>
             </div>
 

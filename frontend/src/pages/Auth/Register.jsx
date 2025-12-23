@@ -10,9 +10,11 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
-  const [selectedYear, setSelectedYear] = useState('')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [onboardingYear, setOnboardingYear] = useState('1st Year')
+  const [onboardingBranch, setOnboardingBranch] = useState('BTech CSE')
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -21,19 +23,38 @@ export default function Register() {
       setErr('Please fill all fields')
       return
     }
-    if (!selectedYear) {
-      setErr('Please select your academic year')
-      return
-    }
     try {
       setLoading(true)
-      const res = await client.post('/api/auth/register', { name, email, password, selected_year: selectedYear })
+      // Temporary default year; will be updated in onboarding modal after register
+      const res = await client.post('/api/auth/register', { name, email, password, selected_year: '1st Year' })
       const { token, user } = res.data || {}
       if (!token) throw new Error('Invalid server response')
       login(token, user || { email })
-      navigate('/home')
+      // Show onboarding modal to collect branch/year
+      setShowOnboarding(true)
     } catch (e) {
       setErr(e?.response?.data?.error || e?.message || 'Registration failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleOnboardingSubmit() {
+    try {
+      setLoading(true)
+      // Persist selection
+      await client.put('/api/auth/preferences', {
+        selected_year: onboardingYear,
+        branch: onboardingBranch,
+      })
+      // Update auth store user object
+      const user = JSON.parse(localStorage.getItem('sv_user') || 'null') || {}
+      const updatedUser = { ...user, selected_year: onboardingYear, branch: onboardingBranch }
+      login(localStorage.getItem('sv_token'), updatedUser)
+      setShowOnboarding(false)
+      navigate('/home')
+    } catch (e) {
+      setErr(e?.response?.data?.error || e?.message || 'Failed to save preferences')
     } finally {
       setLoading(false)
     }
@@ -155,36 +176,6 @@ export default function Register() {
                   <p className="text-xs mt-1" style={{ color: '#6B7280' }}>At least 8 characters recommended</p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold mb-1.5">Academic Year</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedYear('1st Year')}
-                      disabled={loading}
-                      className={`py-2.5 px-4 rounded-lg border-2 font-medium transition-all ${
-                        selectedYear === '1st Year'
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                          : 'border-gray-200 hover:border-indigo-300 text-slate-700'
-                      }`}
-                    >
-                      1st Year
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedYear('2nd Year')}
-                      disabled={loading}
-                      className={`py-2.5 px-4 rounded-lg border-2 font-medium transition-all ${
-                        selectedYear === '2nd Year'
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                          : 'border-gray-200 hover:border-indigo-300 text-slate-700'
-                      }`}
-                    >
-                      2nd Year
-                    </button>
-                  </div>
-                </div>
-
                 <label className="flex items-start gap-3 cursor-pointer hover-scale">
                   <input type="checkbox" className="w-4 h-4 rounded border-gray-300 mt-0.5" />
                   <span className="text-xs">
@@ -198,20 +189,15 @@ export default function Register() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn-gradient w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="btn-gradient w-full py-3 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
                 >
-                  {loading ? 'Creating account...' : 'Get Started Free'}
+                  {loading ? 'Creating account...' : 'Create free account'}
                 </button>
-              </form>
 
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
-                </div>
                 <div className="relative flex justify-center text-sm">
                   <span className="px-2 bg-white text-muted">Or sign up with</span>
                 </div>
-              </div>
+              </form>
 
               <button type="button" className="w-full py-2.5 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 hover-lift transition flex items-center justify-center gap-2">
                 <span>🔷</span> Google
@@ -228,5 +214,87 @@ export default function Register() {
         </div>
       </div>
     </div>
+    <OnboardingModal
+      open={showOnboarding}
+      onClose={() => { setShowOnboarding(false); navigate('/home'); }}
+      onSave={handleOnboardingSubmit}
+      year={onboardingYear}
+      setYear={setOnboardingYear}
+      branch={onboardingBranch}
+      setBranch={setOnboardingBranch}
+      loading={loading}
+    />
   )
+}
+
+// Onboarding modal overlay
+function OnboardingModal({ open, onClose, onSave, year, setYear, branch, setBranch, loading }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg z-50 border border-gray-200">
+        <h3 className="text-xl font-semibold mb-1">Finish setup</h3>
+        <p className="text-sm text-gray-600 mb-4">Select your branch and year to personalize your subjects.</p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2">Branch</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                className={`py-2.5 px-4 rounded-lg border-2 font-medium transition-all ${branch === 'BTech CSE' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-indigo-300 text-slate-700'}`}
+                onClick={() => setBranch('BTech CSE')}
+                disabled={loading}
+              >
+                BTech CSE
+              </button>
+              <button
+                type="button"
+                className={`py-2.5 px-4 rounded-lg border-2 font-medium transition-all ${branch === 'Other' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-indigo-300 text-slate-700'}`}
+                onClick={() => setBranch('Other')}
+                disabled={loading}
+              >
+                Other
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2">Year</label>
+            <div className="grid grid-cols-2 gap-3">
+              {['1st Year','2nd Year','3rd Year','4th Year'].map((y) => (
+                <button
+                  key={y}
+                  type="button"
+                  className={`py-2.5 px-4 rounded-lg border-2 font-medium transition-all ${year === y ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-indigo-300 text-slate-700'}`}
+                  onClick={() => setYear(y)}
+                  disabled={loading}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
+            disabled={loading}
+          >
+            Skip for now
+          </button>
+          <button
+            onClick={onSave}
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-500 disabled:opacity-50"
+            disabled={loading}
+          >
+            {loading ? 'Saving...' : 'Continue'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

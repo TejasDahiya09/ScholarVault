@@ -47,7 +47,7 @@ export default function Login() {
       }
       
       login(token, user || { email })
-      navigate('/home')
+      navigate('/dashboard')
     } catch (e) {
       setErr(e?.response?.data?.error || e?.message || 'Login failed')
     } finally {

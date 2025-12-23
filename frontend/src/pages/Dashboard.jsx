@@ -23,6 +23,13 @@ export default function Dashboard() {
     fetchDashboardData();
   }, [user?.selected_year]);
 
+  // Redirect to subjects if no bookmarks available
+  useEffect(() => {
+    if (!loading && !error && bookmarkedNotes.length === 0) {
+      navigate('/home');
+    }
+  }, [loading, error, bookmarkedNotes.length, navigate]);
+
   // Helper to filter subjects by selected year
   const filterSubjectsByYear = (subjects) => {
     if (!user?.selected_year) return subjects;
@@ -30,7 +37,9 @@ export default function Dashboard() {
     // Map year to semesters: handle numeric and "1st Year" labels
     const yearToSemesters = {
       '1st Year': ['1', '2', '1st year'],
-      '2nd Year': ['3', '4', '2nd year']
+      '2nd Year': ['3', '4', '2nd year'],
+      '3rd Year': ['5', '6', '3rd year'],
+      '4th Year': ['7', '8', '4th year']
     };
     
     const validSemestersNorm = (yearToSemesters[user.selected_year] || [])

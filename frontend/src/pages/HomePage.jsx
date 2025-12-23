@@ -15,6 +15,8 @@ export default function HomePage() {
   const [allSubjects, setAllSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showTips, setShowTips] = useState(false);
+  const [pendingSubject, setPendingSubject] = useState(null);
 
   // Fetch all subjects on mount
   useEffect(() => {
@@ -41,7 +43,9 @@ export default function HomePage() {
     
     const yearToSemesters = {
       '1st Year': ['1', '2', '1st year'],
-      '2nd Year': ['3', '4', '2nd year']
+      '2nd Year': ['3', '4', '2nd year'],
+      '3rd Year': ['5', '6', '3rd year'],
+      '4th Year': ['7', '8', '4th year']
     };
     
     const validSemesters = (yearToSemesters[user.selected_year] || [])
@@ -59,6 +63,12 @@ export default function HomePage() {
 
   // Handle subject click
   const handleSubjectClick = (subject) => {
+    const seen = localStorage.getItem('sv_subject_tips_seen') === '1';
+    if (!seen) {
+      setPendingSubject(subject);
+      setShowTips(true);
+      return;
+    }
     navigate(`/notes?subjectId=${subject.id}&subjectName=${encodeURIComponent(subject.name)}&branch=${encodeURIComponent(subject.branch || '')}&semester=${encodeURIComponent(subject.semester || '')}`);
   };
 
@@ -188,5 +198,42 @@ export default function HomePage() {
         )}
       </div>
     </div>
+
+    {/* Subject tips modal */}
+    {showTips && (
+      <div className="fixed inset-0 z-40 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowTips(false)} />
+        <div className="relative z-50 bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full border border-gray-200">
+          <h3 className="text-xl font-semibold mb-2">Quick tips</h3>
+          <p className="text-sm text-gray-600 mb-4">Use bookmarks to resume faster and mark complete to track progress.</p>
+          <ul className="space-y-2 text-sm text-gray-700 mb-4 list-disc list-inside">
+            <li>⭐ Bookmark notes to continue from Dashboard.</li>
+            <li>✅ Mark as complete to track your study progress.</li>
+            <li>AI summary and Q&A available inside each note.</li>
+          </ul>
+          <div className="flex justify-end gap-3">
+            <button
+              className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
+              onClick={() => setShowTips(false)}
+            >
+              Close
+            </button>
+            <button
+              className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-500"
+              onClick={() => {
+                localStorage.setItem('sv_subject_tips_seen', '1');
+                setShowTips(false);
+                if (pendingSubject) {
+                  navigate(`/notes?subjectId=${pendingSubject.id}&subjectName=${encodeURIComponent(pendingSubject.name)}&branch=${encodeURIComponent(pendingSubject.branch || '')}&semester=${encodeURIComponent(pendingSubject.semester || '')}`);
+                  setPendingSubject(null);
+                }
+              }}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   );
 }
