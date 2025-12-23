@@ -15,7 +15,6 @@ export default function ProfilePage() {
   
   // Preferences state
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [analyticsSharing, setAnalyticsSharing] = useState(false);
   
   // Password change modal
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -55,7 +54,6 @@ export default function ProfilePage() {
         setEditName(profileRes.data.name || "Student");
         setCurrentYear(profileRes.data.selected_year || '');
         setEmailNotifications(profileRes.data.email_notifications ?? true);
-        setAnalyticsSharing(profileRes.data.analytics_sharing ?? false);
         
         // Calculate stats from subjects, filtered by selected year
         const subjects = filterSubjectsByYear(subjectsRes.data || []);
@@ -418,26 +416,7 @@ export default function ProfilePage() {
               </label>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-base text-slate-900">Analytics Sharing</p>
-                <p className="text-slate-600 text-sm mt-1">Help us improve by sharing usage data</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="sr-only peer" 
-                  checked={analyticsSharing}
-                  onChange={(e) => {
-                    const next = e.target.checked;
-                    setAnalyticsSharing(next);
-                    updatePreferences({ analytics_sharing: next });
-                  }}
-                />
-                <div className="w-14 h-7 bg-slate-300 rounded-full peer peer-checked:bg-indigo-600 transition-colors"></div>
-                <div className="absolute left-1 top-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform peer-checked:translate-x-7"></div>
-              </label>
-            </div>
+            {/* Analytics sharing toggle removed intentionally */}
           </div>
         </div>
 
