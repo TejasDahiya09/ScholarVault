@@ -13,6 +13,10 @@ const useAuth = create((set) => ({
   logout: () => {
     localStorage.removeItem("sv_token");
     localStorage.removeItem("sv_user");
+    
+    // Clear all session storage (summaries, temp data)
+    sessionStorage.clear();
+    
     set({ token: null, user: null });
   },
 }));

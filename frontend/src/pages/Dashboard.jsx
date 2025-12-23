@@ -42,6 +42,14 @@ export default function Dashboard() {
     try {
       setLoading(true);
       
+      // Fetch bookmarked notes with details
+      try {
+        const bookmarksRes = await client.get('/api/bookmarks/details');
+        setBookmarkedNotes(bookmarksRes.data?.bookmarks || []);
+      } catch (err) {
+        console.error("Failed to fetch bookmarks:", err);
+      }
+      
       // Fetch only user's subjects (subjects they've interacted with)
       const subjectsRes = await client.get('/api/subjects', {
         params: { userOnly: 'true' }
@@ -202,6 +210,39 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* 2️⃣ Bookmarked for Learning */}
+        {bookmarkedNotes.length > 0 && (
+          <div className="bg-linear-to-r from-amber-50 to-orange-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8 border border-amber-200">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-2xl">📚</span>
+              <h3 className="text-lg font-semibold text-gray-900\">Saved for Learning</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {bookmarkedNotes.slice(0, 4).map((bookmark) => (
+                <button
+                  key={bookmark.note_id}
+                  onClick={() => {
+                    const note = bookmark.notes;
+                    navigate(`/notes?subjectId=${note.subject_id}&noteId=${note.id}`);
+                  }}
+                  className="text-left p-3 bg-white rounded-lg hover:shadow-md hover:border-amber-300 transition-all border border-amber-100"
+                >
+                  <p className="font-medium text-sm text-gray-900 truncate">{bookmark.notes?.file_name}</p>
+                  <p className="text-xs text-gray-500 mt-1">{bookmark.notes?.subject}</p>
+                </button>
+              ))}
+            </div>
+            {bookmarkedNotes.length > 4 && (
+              <button
+                onClick={() => navigate('/notes')}
+                className="mt-3 text-sm font-medium text-amber-600 hover:text-amber-700"
+              >
+                View all {bookmarkedNotes.length} saved notes →
+              </button>
+            )}
+          </div>
+        )}
 
         {/* 2️⃣ Continue Studying */}
         {nextUnit ? (

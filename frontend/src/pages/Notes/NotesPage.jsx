@@ -39,6 +39,7 @@ export default function NotesPage() {
   const [bookmarkedNotes, setBookmarkedNotes] = useState(new Set());
   const [completedNotes, setCompletedNotes] = useState(new Set());
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [bookmarkPopup, setBookmarkPopup] = useState({ show: false, noteId: null });
 
   // Viewer
   const [selectedNote, setSelectedNote] = useState(null);
@@ -56,6 +57,9 @@ export default function NotesPage() {
   
   // Use refs for immediate updates without React batching
   const responseRef = useRef("");
+  
+  // Session storage key for summaries (per note)
+  const getSummaryCacheKey = (noteId) => `sv_summary_${noteId}`;
   
   // Drag state refs for reliable slider functionality
   const isDraggingRef = useRef(false);
@@ -79,6 +83,20 @@ export default function NotesPage() {
   const isBook = selectedNote?.isBook;
   const isPyQ = selectedNote?.isPyQ;
   const isSyllabus = selectedNote?.isSyllabus;
+
+  // Fetch user bookmarks on mount
+  useEffect(() => {
+    async function fetchBookmarks() {
+      try {
+        const res = await client.get('/api/bookmarks');
+        const bookmarkIds = res.data?.bookmarks || [];
+        setBookmarkedNotes(new Set(bookmarkIds));
+      } catch (err) {
+        console.error("Failed to fetch bookmarks:", err);
+      }
+    }
+    fetchBookmarks();
+  }, []);
 
   // Fetch subject data
   useEffect(() => {
@@ -115,9 +133,35 @@ export default function NotesPage() {
     load();
   }, [subjectId, noteId]);
 
+  // Load cached summary when note changes or AI mode switches
+  useEffect(() => {
+    if (selectedNote?.id && aiMode === "summary") {
+      const cachedSummary = sessionStorage.getItem(getSummaryCacheKey(selectedNote.id));
+      if (cachedSummary) {
+        setAiResponse(cachedSummary);
+        responseRef.current = cachedSummary;
+      } else {
+        setAiResponse("");
+        responseRef.current = "";
+      }
+    } else if (aiMode === "ask") {
+      // Don't clear Q&A responses when switching modes
+      // Keep the last answer visible
+    }
+  }, [selectedNote?.id, aiMode]);
+
   // AI Summary
   const handleSummarize = async () => {
     if (!selectedNote?.id) return;
+    
+    // Check cache first
+    const cachedSummary = sessionStorage.getItem(getSummaryCacheKey(selectedNote.id));
+    if (cachedSummary) {
+      setAiResponse(cachedSummary);
+      responseRef.current = cachedSummary;
+      return;
+    }
+    
     try {
       setAiLoading(true);
       setAiResponse("");
@@ -186,6 +230,12 @@ export default function NotesPage() {
         } catch (e) {
           console.error('Final buffer parse error:', e);
         }
+      }
+      
+      // Save to session storage for this session
+      if (responseRef.current && selectedNote?.id) {
+        sessionStorage.setItem(getSummaryCacheKey(selectedNote.id), responseRef.current);
+        console.log("Summary cached for note:", selectedNote.id);
       }
     } catch (err) {
       console.error("Summary error:", err);
@@ -289,7 +339,10 @@ export default function NotesPage() {
     setActiveTab("viewer");
     setZoom(1);
     setAiMode("summary");
-    setAiResponse("");
+    // Load cached summary if available
+    const cachedSummary = sessionStorage.getItem(getSummaryCacheKey(note.id));
+    setAiResponse(cachedSummary || "");
+    responseRef.current = cachedSummary || "";
     setQuestion("");
     setRagEnabled(false);
     setShowResizeHint(true); // Show resize hint when opening document
@@ -513,18 +566,25 @@ export default function NotesPage() {
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
     try {
+      const isBookmarked = bookmarkedNotes.has(noteId);
       await client.post(`/api/notes/${noteId}/bookmark`);
       
       const newBookmarked = new Set(bookmarkedNotes);
-      if (newBookmarked.has(noteId)) {
+      if (isBookmarked) {
         newBookmarked.delete(noteId);
+        setToast({ show: true, message: "Bookmark removed", type: "info" });
       } else {
         newBookmarked.add(noteId);
+        // Show bookmark popup for new bookmarks
+        setBookmarkPopup({ show: true, noteId });
+        setTimeout(() => setBookmarkPopup({ show: false, noteId: null }), 3000);
       }
       setBookmarkedNotes(newBookmarked);
+      setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     } catch (err) {
       console.error("Failed to toggle bookmark:", err);
-      alert("Failed to update bookmark");
+      setToast({ show: true, message: "Failed to update bookmark", type: "error" });
+      setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     }
   };
 
@@ -537,7 +597,20 @@ export default function NotesPage() {
 
   return (
     <>
-      {/* Toast Notification */}
+      {/* Bookmark Saved Popup */}
+      {bookmarkPopup.show && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div className="animate-in fade-in zoom-in duration-300 pointer-events-auto">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 text-center max-w-sm border border-gray-200">
+              <div className="text-5xl mb-4">⭐</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Saved!</h2>
+              <p className="text-gray-600">This note has been saved for future learning</p>
+              <p className="text-sm text-gray-500 mt-3">You can access it anytime from your bookmarks</p>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Toast Notification */}}
       {toast.show && (
         <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className={`px-6 py-3 rounded-lg shadow-lg font-medium text-white ${
@@ -686,6 +759,19 @@ export default function NotesPage() {
                   >
                     <span className="hidden sm:inline">⬇ Download</span>
                     <span className="sm:hidden">⬇</span>
+                  </button>
+
+                  <button
+                    onClick={(e) => handleMarkComplete(e, selectedNote?.id)}
+                    className={`px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm whitespace-nowrap font-medium transition-all ${
+                      completedNotes.has(selectedNote?.id)
+                        ? "bg-green-600 hover:bg-green-700 text-white"
+                        : "bg-amber-500 hover:bg-amber-600 text-white"
+                    }`}
+                    title="Mark as complete"
+                  >
+                    <span className="hidden sm:inline">{completedNotes.has(selectedNote?.id) ? "✓ Completed" : "Mark Complete"}</span>
+                    <span className="sm:hidden">{completedNotes.has(selectedNote?.id) ? "✓" : "Done"}</span>
                   </button>
 
                   <button
