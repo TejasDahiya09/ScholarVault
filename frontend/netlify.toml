@@ -10,10 +10,6 @@
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
 
-# Enable faster builds with caching
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
 # Redirect rules for SPA
 [[redirects]]
   from = "/*"
