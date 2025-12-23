@@ -100,31 +100,13 @@ export const getSummary = async (req, res) => {
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
       'Access-Control-Allow-Origin': '*',
+      'X-Accel-Buffering': 'no',
     });
 
-    // Send initial SSE comment
+    if (res.flushHeaders) res.flushHeaders();
     res.write(':streaming-start\n\n');
 
-    // Get AI summary
-    const summary = await aiService.generateSummary(textToSummarize);
-    
-    // Split summary into sentences for line-by-line streaming
-    const sentences = summary.match(/[^.!?]+[.!?]+/g) || [summary];
-    
-    // Stream each sentence with a slight delay
-    for (let i = 0; i < sentences.length; i++) {
-      const sentence = sentences[i].trim();
-      
-      // Send as SSE data event
-      res.write(`data: ${JSON.stringify({ chunk: sentence + ' ', index: i, total: sentences.length })}\n\n`);
-      
-      // Small delay between sentences for streaming effect
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    
-    // Send completion marker
-    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-    res.end();
+    await aiService.generateSummaryStream(textToSummarize, res);
   } catch (err) {
     console.error('Summary error:', err);
     res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
@@ -153,6 +135,9 @@ export const askQuestion = async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    if (res.flushHeaders) res.flushHeaders();
+    res.write(':streaming-start\n\n');
 
     // Use streaming from AI service
     await aiService.askQuestionStream(note.ocr_text, question, useRag || false, res);
