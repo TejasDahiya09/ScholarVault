@@ -138,9 +138,7 @@ export const getSummary = async (req, res) => {
 export const askQuestion = async (req, res) => {
   try {
     const { id } = req.params;
-    const question = req.body?.question ?? req.query?.question;
-    const useRagRaw = req.body?.useRag ?? req.query?.useRag;
-    const useRag = useRagRaw === true || useRagRaw === "true";
+    const { question, useRag } = req.body;
     
     if (!question) {
       return res.status(400).json({ error: "Question is required" });
@@ -157,7 +155,7 @@ export const askQuestion = async (req, res) => {
     res.setHeader('Connection', 'keep-alive');
 
     // Use streaming from AI service
-    await aiService.askQuestionStream(note.ocr_text, question, useRag, res);
+    await aiService.askQuestionStream(note.ocr_text, question, useRag || false, res);
     
   } catch (err) {
     console.error("Ask question error:", err);
@@ -172,18 +170,7 @@ export const askQuestion = async (req, res) => {
  */
 export const getProgress = async (req, res) => {
   try {
-    const { id } = req.params;
-    const userId = req.user?.userId;
-
-    if (!userId) {
-      return res.status(401).json({ error: "User not authenticated" });
-    }
-
-    const isCompleted = await progressDB.isNoteCompleted(userId, id);
-    res.json({
-      completed: isCompleted,
-      progress: isCompleted ? 100 : 0,
-    });
+    res.json({ progress: 0, completed: false });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

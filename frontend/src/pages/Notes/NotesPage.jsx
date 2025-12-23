@@ -98,27 +98,6 @@ export default function NotesPage() {
     fetchBookmarks();
   }, []);
 
-  // Fetch completed notes for this subject so toggle reflects prior progress
-  useEffect(() => {
-    if (!subjectId) return;
-
-    let isActive = true;
-    async function fetchCompletedNotes() {
-      try {
-        const res = await client.get(`/api/subjects/${subjectId}/progress`);
-        const completedIds = res.data?.completed_note_ids || [];
-        if (isActive) {
-          setCompletedNotes(new Set(completedIds));
-        }
-      } catch (err) {
-        console.error("Failed to fetch completed notes:", err);
-      }
-    }
-
-    fetchCompletedNotes();
-    return () => { isActive = false; };
-  }, [subjectId]);
-
   // Fetch subject data
   useEffect(() => {
     async function load() {
@@ -1171,14 +1150,32 @@ function Section({ title, items, onClick, onToggleBookmark, onMarkComplete, book
             key={item.id}
             className="bg-white rounded-lg sm:rounded-xl border border-slate-200 p-4 sm:p-5 text-left hover:shadow-lg hover:border-indigo-200 transition cursor-pointer group relative"
           >
-            {/* Star Bookmark Button */}
-            <button
-              onClick={(e) => onToggleBookmark(e, item.id)}
-              className="absolute top-2 sm:top-3 right-2 sm:right-3 text-xl sm:text-2xl opacity-60 hover:opacity-100 transition-opacity z-10"
-              title={bookmarkedNotes?.has(item.id) ? "Remove bookmark" : "Add bookmark"}
-            >
-              {bookmarkedNotes?.has(item.id) ? "⭐" : "☆"}
-            </button>
+            {/* Quick actions */}
+            <div className="absolute top-2 sm:top-3 right-2 sm:right-3 flex items-center gap-1.5 sm:gap-2 z-10">
+              {/* Bookmark toggle */}
+              <button
+                onClick={(e) => onToggleBookmark(e, item.id)}
+                className="text-xl sm:text-2xl opacity-70 hover:opacity-100 transition-opacity"
+                title={bookmarkedNotes?.has(item.id) ? "Remove bookmark" : "Add bookmark"}
+              >
+                {bookmarkedNotes?.has(item.id) ? "⭐" : "☆"}
+              </button>
+
+              {/* Mark complete toggle */}
+              {showMarkComplete && (
+                <button
+                  onClick={(e) => onMarkComplete(e, item.id)}
+                  className={`text-lg sm:text-xl px-1.5 py-1 rounded-full border transition-all duration-200 shadow-sm ${
+                    completedNotes?.has(item.id)
+                      ? "bg-green-100 text-green-700 border-green-300 hover:bg-green-200"
+                      : "bg-white text-gray-500 border-gray-300 hover:bg-indigo-50 hover:text-indigo-700"
+                  }`}
+                  title={completedNotes?.has(item.id) ? "Mark as incomplete" : "Mark as complete"}
+                >
+                  {completedNotes?.has(item.id) ? "✅" : "☐"}
+                </button>
+              )}
+            </div>
 
             {/* Main Content */}
             <button
@@ -1194,18 +1191,19 @@ function Section({ title, items, onClick, onToggleBookmark, onMarkComplete, book
               <div className="text-indigo-600 text-xs sm:text-sm">Click to view →</div>
             </button>
 
-            {/* Mark Complete Button - Only show for actual notes */}
+            {/* Completion status hint */}
             {showMarkComplete && (
-              <button
-                onClick={(e) => onMarkComplete(e, item.id)}
-                className={`w-full mt-3 sm:mt-4 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg font-medium text-xs sm:text-sm transition-all duration-200 ${
-                  completedNotes?.has(item.id)
-                    ? "bg-green-100 text-green-700 border border-green-300 hover:bg-green-200"
-                    : "bg-gray-100 text-gray-700 border border-gray-300 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700"
-                }`}
-              >
-                {completedNotes?.has(item.id) ? "✓ Completed" : "Mark as Complete"}
-              </button>
+              <div className="mt-3 sm:mt-4">
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                    completedNotes?.has(item.id)
+                      ? "bg-green-50 text-green-700 border-green-200"
+                      : "bg-gray-50 text-gray-600 border-gray-200"
+                  }`}
+                >
+                  {completedNotes?.has(item.id) ? "✓ Completed" : "Mark when done"}
+                </span>
+              </div>
             )}
           </div>
         ))}

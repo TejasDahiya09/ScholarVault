@@ -48,16 +48,10 @@ app.use(morgan(morganFormat, {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Cache control for GET requests: only cache unauthenticated public GETs
+// Cache control for GET requests
 app.use((req, res, next) => {
-  const isAuthenticated = !!req.headers.authorization;
-  const isGet = req.method === 'GET';
-  const isAuthRoute = req.path.startsWith('/api/auth');
-
-  if (isGet && !isAuthRoute && !isAuthenticated) {
-    res.set('Cache-Control', 'public, max-age=300'); // 5 minutes for public assets
-  } else {
-    res.set('Cache-Control', 'no-store'); // Prevent caching of user-specific responses
+  if (req.method === 'GET' && !req.path.includes('/api/auth')) {
+    res.set('Cache-Control', 'public, max-age=300'); // 5 minutes
   }
   next();
 });
@@ -67,15 +61,11 @@ app.use((req, res, next) => {
  * Prevents hanging requests; returns 503 after 15 seconds
  */
 app.use((req, res, next) => {
-  const isStreaming = req.path.includes('/summary') || req.path.includes('/ask');
-
-  if (!isStreaming) {
-    res.setTimeout(15000, () => {
-      if (!res.headersSent) {
-        res.status(503).json({ error: 'Request timeout. Please try again.' });
-      }
-    });
-  }
+  res.setTimeout(15000, () => {
+    if (!res.headersSent) {
+      res.status(503).json({ error: 'Request timeout. Please try again.' });
+    }
+  });
   next();
 });
 

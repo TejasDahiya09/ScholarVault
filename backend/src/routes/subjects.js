@@ -14,7 +14,7 @@ const router = Router();
  */
 router.get("/", authenticate, async (req, res, next) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     const userOnly = req.query.userOnly === 'true';
     const filters = {
       branch: req.query.branch,
@@ -96,13 +96,11 @@ router.get("/:id/progress", authenticate, async (req, res, next) => {
 
     // Get completion status
     const status = await progressDB.getSubjectCompletionStatus(userId, subjectId);
-    const completedNoteIds = await progressDB.getCompletedNotes(userId, subjectId);
 
     res.json({
       total_units: status.total_notes,
       completed_units: status.completed_notes,
       progress_percent: status.percentage,
-      completed_note_ids: completedNoteIds,
     });
   } catch (err) {
     next(err);
