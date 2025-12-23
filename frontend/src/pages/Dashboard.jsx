@@ -29,12 +29,9 @@ export default function Dashboard() {
     fetchDashboardData();
   }, [user?.selected_year]);
 
-  // Redirect to subjects if no bookmarks available
-  useEffect(() => {
-    if (!loading && !error && bookmarkedNotes.length === 0) {
-      navigate('/home');
-    }
-  }, [loading, error, bookmarkedNotes.length, navigate]);
+  // Stay on Dashboard even if there are no bookmarks
+  // Previously redirected to "/home" which prevented accessing Dashboard.
+  // Now we show an empty state inside the Dashboard instead.
 
   // Memoized filter function
   const filterSubjectsByYear = useCallback((subjects) => {
@@ -233,48 +230,70 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Bookmarked for Learning - PAGINATED */}
-        {bookmarkedNotes.length > 0 && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 border border-amber-200">
-            <h3 className="text-fluid-base sm:text-fluid-lg font-semibold text-gray-900 mb-3 xs:mb-4 truncate">📚 Saved for Learning</h3>
-            <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 xs:gap-3 mb-3 xs:mb-4">
-              {paginatedBookmarks.map((bookmark) => (
+        {/* Bookmarked for Learning - Always shown with empty state */}
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 border border-amber-200">
+          <h3 className="text-fluid-base sm:text-fluid-lg font-semibold text-gray-900 mb-3 xs:mb-4 truncate">📚 Saved for Learning</h3>
+
+          {bookmarkedNotes.length === 0 ? (
+            <div className="p-3 xs:p-4 bg-white rounded-lg border border-amber-100">
+              <p className="text-fluid-sm text-gray-700">No bookmarks yet.</p>
+              <p className="text-fluid-xs text-gray-500 mt-1">Bookmark notes while studying to find them quickly here.</p>
+              <div className="mt-3 xs:mt-4 flex flex-col xs:flex-row gap-2 xs:gap-3">
                 <button
-                  key={bookmark.note_id}
-                  onClick={() => {
-                    const note = bookmark.notes;
-                    navigate(`/notes?subjectId=${note.subject_id}&noteId=${note.id}`);
-                  }}
-                  className="text-left p-3 xs:p-4 bg-white rounded-lg hover:shadow-md transition-all border border-amber-100 min-h-touch active:scale-98"
+                  onClick={() => navigate('/home')}
+                  className="min-h-touch w-full xs:w-auto px-4 py-2 bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition-colors"
                 >
-                  <p className="font-medium text-fluid-sm text-gray-900 truncate">{bookmark.notes?.file_name}</p>
-                  <p className="text-fluid-xs text-gray-500 mt-1 truncate">{bookmark.notes?.subject}</p>
+                  Browse Subjects
                 </button>
-              ))}
-            </div>
-            {bookmarkedNotes.length > BOOKMARKS_PER_PAGE && (
-              <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-3 text-fluid-xs">
-                <span className="text-amber-700 whitespace-nowrap">Page {bookmarksPage + 1} of {Math.ceil(bookmarkedNotes.length / BOOKMARKS_PER_PAGE)}</span>
-                <div className="flex gap-2 w-full xs:w-auto">
-                  <button
-                    onClick={() => setBookmarksPage(Math.max(0, bookmarksPage - 1))}
-                    disabled={bookmarksPage === 0}
-                    className="min-h-touch flex-1 xs:flex-none px-3 xs:px-4 py-2 bg-amber-100 text-amber-700 rounded disabled:opacity-50 hover:bg-amber-200 transition-colors whitespace-nowrap"
-                  >
-                    ← Prev
-                  </button>
-                  <button
-                    onClick={() => setBookmarksPage(Math.min(Math.ceil(bookmarkedNotes.length / BOOKMARKS_PER_PAGE) - 1, bookmarksPage + 1))}
-                    disabled={bookmarksPage >= Math.ceil(bookmarkedNotes.length / BOOKMARKS_PER_PAGE) - 1}
-                    className="min-h-touch flex-1 xs:flex-none px-3 xs:px-4 py-2 bg-amber-100 text-amber-700 rounded disabled:opacity-50 hover:bg-amber-200 transition-colors whitespace-nowrap"
-                  >
-                    Next →
-                  </button>
-                </div>
+                <button
+                  onClick={() => navigate('/search')}
+                  className="min-h-touch w-full xs:w-auto px-4 py-2 bg-amber-100 text-amber-800 rounded hover:bg-amber-200 transition-colors"
+                >
+                  Search Notes
+                </button>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 xs:gap-3 mb-3 xs:mb-4">
+                {paginatedBookmarks.map((bookmark) => (
+                  <button
+                    key={bookmark.note_id}
+                    onClick={() => {
+                      const note = bookmark.notes;
+                      navigate(`/notes?subjectId=${note.subject_id}&noteId=${note.id}`);
+                    }}
+                    className="text-left p-3 xs:p-4 bg-white rounded-lg hover:shadow-md transition-all border border-amber-100 min-h-touch active:scale-98"
+                  >
+                    <p className="font-medium text-fluid-sm text-gray-900 truncate">{bookmark.notes?.file_name}</p>
+                    <p className="text-fluid-xs text-gray-500 mt-1 truncate">{bookmark.notes?.subject}</p>
+                  </button>
+                ))}
+              </div>
+              {bookmarkedNotes.length > BOOKMARKS_PER_PAGE && (
+                <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-3 text-fluid-xs">
+                  <span className="text-amber-700 whitespace-nowrap">Page {bookmarksPage + 1} of {Math.ceil(bookmarkedNotes.length / BOOKMARKS_PER_PAGE)}</span>
+                  <div className="flex gap-2 w-full xs:w-auto">
+                    <button
+                      onClick={() => setBookmarksPage(Math.max(0, bookmarksPage - 1))}
+                      disabled={bookmarksPage === 0}
+                      className="min-h-touch flex-1 xs:flex-none px-3 xs:px-4 py-2 bg-amber-100 text-amber-700 rounded disabled:opacity-50 hover:bg-amber-200 transition-colors whitespace-nowrap"
+                    >
+                      ← Prev
+                    </button>
+                    <button
+                      onClick={() => setBookmarksPage(Math.min(Math.ceil(bookmarkedNotes.length / BOOKMARKS_PER_PAGE) - 1, bookmarksPage + 1))}
+                      disabled={bookmarksPage >= Math.ceil(bookmarkedNotes.length / BOOKMARKS_PER_PAGE) - 1}
+                      className="min-h-touch flex-1 xs:flex-none px-3 xs:px-4 py-2 bg-amber-100 text-amber-700 rounded disabled:opacity-50 hover:bg-amber-200 transition-colors whitespace-nowrap"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Continue Studying */}
         {nextUnit && (
