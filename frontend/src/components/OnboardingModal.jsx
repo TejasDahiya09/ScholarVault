@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import client from '../api/client';
 import useAuth from '../store/useAuth';
+import useDarkMode from '../store/useDarkMode';
 
 export default function OnboardingModal({ open, onClose }) {
   const { user, login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [year, setYear] = useState(user?.selected_year || '1st Year');
-  const [studyGoal, setStudyGoal] = useState(user?.study_goal || 'exam-prep');
-  const [notifications, setNotifications] = useState(user?.notifications_enabled !== false);
+  const { darkMode, setDarkMode } = useDarkMode();
   const [error, setError] = useState('');
 
   if (!open) return null;
@@ -20,12 +20,10 @@ export default function OnboardingModal({ open, onClose }) {
       // Save preferences to backend
       await client.put('/api/auth/preferences', {
         selected_year: year,
-        study_goal: studyGoal,
-        notifications_enabled: notifications,
       });
 
       // Update auth store
-      const updatedUser = { ...user, selected_year: year, study_goal: studyGoal, notifications_enabled: notifications };
+      const updatedUser = { ...user, selected_year: year };
       login(localStorage.getItem('sv_token'), updatedUser);
       
       // Close modal
@@ -75,66 +73,32 @@ export default function OnboardingModal({ open, onClose }) {
                 <button
                   key={y}
                   onClick={() => setYear(y)}
-                  disabled={loading}
-                  className={`py-3 px-4 rounded-xl border-2 font-medium transition-all duration-200 text-sm ${
-                    year === y
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-md'
-                      : 'border-gray-200 hover:border-indigo-300 text-gray-700 hover:bg-gray-50'
-                  } disabled:opacity-50`}
-                >
-                  {y}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Study Goal Section */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
-              Your Study Goal
-            </label>
-            <div className="space-y-2">
-              {[
-                { value: 'exam-prep', label: '📚 Exam Preparation', desc: 'Focus on exams & assessments' },
-                { value: 'deep-learning', label: '🔬 Deep Learning', desc: 'Understand concepts thoroughly' },
-                { value: 'revision', label: '⚡ Quick Revision', desc: 'Quick notes & summaries' },
-              ].map((goal) => (
-                <button
-                  key={goal.value}
-                  onClick={() => setStudyGoal(goal.value)}
-                  disabled={loading}
-                  className={`w-full text-left py-3 px-4 rounded-xl border-2 transition-all duration-200 ${
-                    studyGoal === goal.value
-                      ? 'border-indigo-500 bg-indigo-50'
-                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                  } disabled:opacity-50`}
-                >
-                  <div className="font-medium text-sm text-gray-900">{goal.label}</div>
-                  <div className="text-xs text-gray-600 mt-0.5">{goal.desc}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Notifications Section */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
-              📬 Notifications
-            </label>
-            <div className="space-y-2">
-              <button
-                onClick={() => setNotifications(true)}
-                disabled={loading}
-                className={`w-full text-left py-3 px-4 rounded-xl border-2 transition-all duration-200 ${
-                  notifications
-                    ? 'border-indigo-500 bg-indigo-50'
-                    : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
-                } disabled:opacity-50`}
-              >
-                <div className="font-medium text-sm text-gray-900">✅ Enable</div>
-                <div className="text-xs text-gray-600 mt-0.5">Get daily reminders & study tips</div>
-              </button>
-              <button
+                  {/* Theme Section */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-3">
+                      Theme
+                    </label>
+                    <div className="flex items-center justify-between rounded-xl border-2 border-gray-200 px-4 py-3 bg-white/60">
+                      <div>
+                        <div className="font-medium text-sm text-gray-900">{darkMode ? 'Dark Mode' : 'Light Mode'}</div>
+                        <div className="text-xs text-gray-600 mt-0.5">Toggle the app theme</div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => setDarkMode(!darkMode)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
+                          darkMode ? 'bg-indigo-600' : 'bg-gray-300'
+                        } disabled:opacity-50`}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                            darkMode ? 'translate-x-5' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
                 onClick={() => setNotifications(false)}
                 disabled={loading}
                 className={`w-full text-left py-3 px-4 rounded-xl border-2 transition-all duration-200 ${
@@ -178,7 +142,7 @@ export default function OnboardingModal({ open, onClose }) {
         {/* Current Selection Display */}
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-500 text-center">
-            Selected: <span className="font-semibold text-gray-700">{year}</span> • <span className="font-semibold text-gray-700">{studyGoal === 'exam-prep' ? 'Exam Prep' : studyGoal === 'deep-learning' ? 'Deep Learning' : 'Quick Revision'}</span>
+            Selected: <span className="font-semibold text-gray-700">{year}</span> • <span className="font-semibold text-gray-700">{darkMode ? 'Dark' : 'Light'} Theme</span>
           </p>
         </div>
       </div>
