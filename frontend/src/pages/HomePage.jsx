@@ -40,8 +40,8 @@ export default function HomePage() {
     if (!user?.selected_year) return [];
     
     const yearToSemesters = {
-      '1st Year': ['1', '2', '1st year'],
-      '2nd Year': ['3', '4', '2nd year']
+      '1st Year': ['1', '2'],
+      '2nd Year': ['3', '4']
     };
     
     const validSemesters = (yearToSemesters[user.selected_year] || [])
