@@ -14,7 +14,7 @@ const router = Router();
  */
 router.get("/", authenticate, async (req, res, next) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId;
     const userOnly = req.query.userOnly === 'true';
     const filters = {
       branch: req.query.branch,
