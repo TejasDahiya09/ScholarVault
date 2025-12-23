@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS public.user_bookmarks (
     bookmarked_at timestamp without time zone DEFAULT now(),
     created_at timestamp without time zone DEFAULT now(),
     UNIQUE(user_id, note_id),
-    CONSTRAINT fk_user_bookmarks_user_id FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_bookmarks_user_id FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE,
     CONSTRAINT fk_user_bookmarks_note_id FOREIGN KEY (note_id) REFERENCES public.notes(id) ON DELETE CASCADE
 );
 
