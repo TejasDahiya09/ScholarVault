@@ -13,10 +13,13 @@ export default function ProgressPage() {
     totalUnits: 0,
     completedUnits: 0,
     longestStreak: 0,
-    currentStreak: 0
+    currentStreak: 0,
+    peakStudyTime: 'morning'
   });
   const [weeklyData, setWeeklyData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
+  const [subjectTime, setSubjectTime] = useState([]);
+  const [velocity, setVelocity] = useState([]);
 
   useEffect(() => {
     fetchProgressData();
@@ -74,7 +77,7 @@ export default function ProgressPage() {
       const totalCompleted = subjectsWithProgress.reduce((sum, s) => sum + (s.completed || 0), 0);
       const totalUnits = subjectsWithProgress.reduce((sum, s) => sum + (s.total || 0), 0);
       
-      // Fetch analytics (time, streaks, weekly, monthly)
+      // Fetch analytics (time, streaks, weekly, monthly, subject time, velocity)
       try {
         const analyticsRes = await client.get('/api/progress/analytics');
         const a = analyticsRes.data || {};
@@ -84,13 +87,18 @@ export default function ProgressPage() {
           completedUnits: totalCompleted,
           longestStreak: a.stats?.longestStreak || 0,
           currentStreak: a.stats?.currentStreak || 0,
+          peakStudyTime: a.stats?.peakStudyTime || 'morning',
         });
         setWeeklyData(Array.isArray(a.weekly) ? a.weekly : []);
         setMonthlyData(Array.isArray(a.monthly) ? a.monthly : []);
+        setSubjectTime(Array.isArray(a.subjectTime) ? a.subjectTime : []);
+        setVelocity(Array.isArray(a.velocity) ? a.velocity : []);
       } catch (err) {
         // Fallback to zeroed analytics
         setWeeklyData([]);
         setMonthlyData([]);
+        setSubjectTime([]);
+        setVelocity([]);
       }
 
     } catch (error) {
@@ -279,10 +287,83 @@ export default function ProgressPage() {
                 </div>
               )}
             </div>
+
+            {/* Study Velocity Chart */}
+            {velocity.length > 0 && (
+              <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Study Velocity</h2>
+                <p className="text-xs text-gray-500 mb-4">Notes completed per week (last 8 weeks)</p>
+                <div className="flex items-end justify-between gap-2 h-32 sm:h-40">
+                  {velocity.map((week, index) => (
+                    <div key={index} className="flex-1 flex flex-col items-center gap-2">
+                      <div className="w-full bg-gray-100 rounded-t relative" style={{ height: '100%' }}>
+                        <div
+                          className="absolute bottom-0 w-full rounded-t bg-gradient-to-t from-purple-600 to-purple-400 transition-all duration-300"
+                          style={{ height: `${Math.min((week.count / Math.max(...velocity.map(v => v.count), 1)) * 100, 100)}%` }}
+                          title={`${week.week}: ${week.count} notes`}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 truncate w-full text-center">{week.week}</span>
+                      <span className="text-xs font-medium text-gray-700">{week.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Subject Time Breakdown */}
+            {subjectTime.length > 0 && (
+              <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Time Per Subject</h2>
+                <div className="space-y-3">
+                  {subjectTime.slice(0, 5).map((subject, index) => (
+                    <div key={subject.subject_id} className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-700 text-xs shrink-0">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-xs sm:text-sm text-gray-900 truncate">{subject.subject_name}</h3>
+                        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                          <div
+                            className="bg-indigo-600 h-1.5 rounded-full"
+                            style={{ width: `${(subject.hours / Math.max(...subjectTime.map(s => s.hours), 1)) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                      <span className="text-xs sm:text-sm font-semibold text-indigo-700 shrink-0">{subject.hours}h</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Column - Stats */}
           <div className="space-y-6 sm:space-y-8">
+            {/* Peak Study Time */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-blue-200">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="text-xl">☀️</span>
+                Peak Study Time
+              </h2>
+              <div className="text-center py-4">
+                <div className="text-3xl sm:text-4xl mb-2">
+                  {stats.peakStudyTime === 'morning' && '🌅'}
+                  {stats.peakStudyTime === 'afternoon' && '☀️'}
+                  {stats.peakStudyTime === 'evening' && '🌆'}
+                  {stats.peakStudyTime === 'night' && '🌙'}
+                </div>
+                <p className="text-lg sm:text-xl font-bold text-indigo-700 capitalize">{stats.peakStudyTime}</p>
+                <p className="text-xs text-gray-600 mt-2">
+                  {stats.peakStudyTime === 'morning' && '5 AM - 12 PM'}
+                  {stats.peakStudyTime === 'afternoon' && '12 PM - 5 PM'}
+                  {stats.peakStudyTime === 'evening' && '5 PM - 9 PM'}
+                  {stats.peakStudyTime === 'night' && '9 PM - 5 AM'}
+                </p>
+              </div>
+              <p className="text-xs text-gray-500 text-center mt-2">Your most productive study time</p>
+            </div>
+
             {/* Top Performing Subjects */}
             {strongestSubjects.length > 0 && (
               <div className="bg-linear-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-green-200">

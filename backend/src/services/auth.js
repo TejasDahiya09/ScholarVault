@@ -235,26 +235,27 @@ export const authService = {
     // Get user's subjects
     const userSubjects = await subjectsDB.getAll();
     
-    // Get user's notes and progress
+    // Get user's notes and study progress (note-level)
     let userNotes = [];
-    let userProgress = [];
-    
+    let studyProgressBySubject = {};
+    let totalNotes = 0;
+    let completedNotes = 0;
+
     if (userSubjects.length > 0) {
-      // Get all notes for user's subjects
+      // Aggregate notes per subject
       for (const subject of userSubjects) {
         const subjectNotes = await notesDB.getAllBySubjectId(subject.id);
         userNotes = userNotes.concat(subjectNotes);
+
+        // For each subject, compute completion using note-level progress
+        const status = await progressDB.getSubjectCompletionStatus(userId, subject.id);
+        studyProgressBySubject[subject.id] = status;
+        totalNotes += status.total_notes || 0;
+        completedNotes += status.completed_notes || 0;
       }
-      
-      // Get overall progress
-      const progress = await progressDB.getUserOverallProgress(userId);
-      userProgress = progress.items || [];
     }
 
-    // Calculate study statistics
-    const completedUnits = userProgress.filter(p => p.completed).length;
-    const totalUnits = userProgress.length;
-    const completionPercentage = totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0;
+    const completionPercentage = totalNotes > 0 ? Math.round((completedNotes / totalNotes) * 100) : 0;
 
     return {
       profile: {
@@ -266,9 +267,9 @@ export const authService = {
       },
       statistics: {
         total_subjects: userSubjects.length,
-        total_notes: userNotes.length,
-        total_units: totalUnits,
-        completed_units: completedUnits,
+        total_notes: totalNotes,
+        total_units: totalNotes, // deprecated: units mapped to notes
+        completed_units: completedNotes,
         completion_percentage: completionPercentage,
       },
       subjects: userSubjects.map(s => ({
@@ -285,10 +286,11 @@ export const authService = {
         content_preview: n.content ? n.content.substring(0, 100) : '',
         created_at: n.created_at,
       })),
-      progress: userProgress.map(p => ({
-        unit_id: p.unit_id,
-        completed: p.completed,
-        completed_at: p.completed_at,
+      progress: Object.entries(studyProgressBySubject).map(([subjectId, status]) => ({
+        subject_id: subjectId,
+        total_notes: status.total_notes,
+        completed_notes: status.completed_notes,
+        percentage: status.percentage,
       })),
       export_metadata: {
         exported_at: new Date().toISOString(),

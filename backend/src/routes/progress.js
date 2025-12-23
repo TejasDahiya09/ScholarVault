@@ -46,7 +46,6 @@ router.get("/analytics", authenticate, async (req, res, next) => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const todayIdx = new Date().getDay();
     const weekly = days.map((label, idx) => {
-      // Compute the date string for this weekday within the last 7 days
       const date = new Date();
       const diff = ((todayIdx - idx + 7) % 7);
       date.setDate(date.getDate() - diff);
@@ -70,20 +69,88 @@ router.get("/analytics", authenticate, async (req, res, next) => {
       });
     }
 
+    // Subject time aggregation
+    const { data: subjectTimeData } = await supabase
+      .from("user_study_progress")
+      .select("subject_id, total_time_spent, subjects(name)")
+      .eq("user_id", userId);
+    
+    const subjectTimeMap = new Map();
+    for (const row of subjectTimeData || []) {
+      if (!row.subject_id) continue;
+      const current = subjectTimeMap.get(row.subject_id) || { seconds: 0, name: row.subjects?.name || 'Unknown' };
+      current.seconds += (row.total_time_spent || 0);
+      subjectTimeMap.set(row.subject_id, current);
+    }
+    
+    const subjectTime = Array.from(subjectTimeMap.entries())
+      .map(([id, data]) => ({
+        subject_id: id,
+        subject_name: data.name,
+        hours: Math.round(data.seconds / 3600 * 10) / 10, // 1 decimal
+      }))
+      .sort((a, b) => b.hours - a.hours);
+
+    // Peak study times analysis
+    const { data: sessions } = await supabase
+      .from("user_study_sessions")
+      .select("session_start")
+      .eq("user_id", userId);
+    
+    const timeBlocks = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+    for (const s of sessions || []) {
+      const hour = new Date(s.session_start).getHours();
+      if (hour >= 5 && hour < 12) timeBlocks.morning++;
+      else if (hour >= 12 && hour < 17) timeBlocks.afternoon++;
+      else if (hour >= 17 && hour < 21) timeBlocks.evening++;
+      else timeBlocks.night++;
+    }
+    
+    const peakTime = Object.entries(timeBlocks)
+      .sort((a, b) => b[1] - a[1])[0]?.[0] || 'morning';
+
+    // Study velocity (notes completed per week, last 8 weeks)
+    const velocity = [];
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = new Date();
+      weekStart.setDate(weekStart.getDate() - (i * 7));
+      weekStart.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+      
+      const { data: completed } = await supabase
+        .from("user_study_progress")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("is_completed", true)
+        .gte("updated_at", weekStart.toISOString())
+        .lte("updated_at", weekEnd.toISOString());
+      
+      velocity.push({
+        week: `Week ${8 - i}`,
+        count: completed?.length || 0,
+      });
+    }
+
     res.json({
       stats: {
         totalTimeHours: totalHours,
         currentStreak,
         longestStreak,
+        peakStudyTime: peakTime,
       },
       weekly,
       monthly: month,
+      subjectTime,
+      velocity,
     });
   } catch (err) { next(err); }
 });
 
 /**
  * Start tracking time for a specific note (invisible to user)
+ * Also increments revisit_count if note is already completed
  */
 router.post("/note/:noteId/start", authenticate, async (req, res, next) => {
   try {
@@ -91,8 +158,22 @@ router.post("/note/:noteId/start", authenticate, async (req, res, next) => {
     const noteId = req.params.noteId;
     const startedAt = req.body?.startedAt || new Date().toISOString();
     
-    // Store in temporary session storage (could use Redis in production)
-    // For now, just return OK - frontend will send duration on end
+    // Check if note is completed, if so increment revisit_count
+    const { data: progress } = await supabase
+      .from("user_study_progress")
+      .select("id, is_completed, revisit_count")
+      .eq("user_id", userId)
+      .eq("note_id", noteId)
+      .single();
+    
+    if (progress && progress.is_completed) {
+      // Increment revisit count for completed notes
+      await supabase
+        .from("user_study_progress")
+        .update({ revisit_count: (progress.revisit_count || 0) + 1 })
+        .eq("id", progress.id);
+    }
+    
     res.json({ ok: true, noteId, startedAt });
   } catch (err) { next(err); }
 });
