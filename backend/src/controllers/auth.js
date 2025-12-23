@@ -114,12 +114,12 @@ export const authController = {
   },
 
   /**
-   * Update user preferences (email notifications, analytics sharing)
+   * Update user preferences (email notifications, analytics sharing, study goal, notifications)
    */
   async updatePreferences(req, res, next) {
     try {
-      const { email_notifications, analytics_sharing } = req.body;
-      const user = await authService.updatePreferences(req.user.userId, { email_notifications, analytics_sharing });
+      const { email_notifications, analytics_sharing, selected_year, study_goal, notifications_enabled } = req.body;
+      const user = await authService.updatePreferences(req.user.userId, { email_notifications, analytics_sharing, selected_year, study_goal, notifications_enabled });
       res.json(user);
     } catch (err) {
       next(err);

@@ -13,7 +13,7 @@ export const authService = {
   /**
    * Register new user
    */
-  async register({ email, password, name, selected_year, email_notifications = true, analytics_sharing = false }) {
+  async register({ email, password, name, selected_year, email_notifications = true, analytics_sharing = false, study_goal = 'exam-prep', notifications_enabled = true }) {
     if (!email || !password || !name) {
       throw new Error("Missing required fields: email, password, name");
     }
@@ -27,8 +27,8 @@ export const authService = {
     // Hash password (using 5 rounds for faster registration)
     const password_hash = await bcrypt.hash(password, 5);
 
-    // Create user with selected_year
-    const user = await userDB.create({ email, password_hash, name, selected_year, email_notifications, analytics_sharing });
+    // Create user with preferences
+    const user = await userDB.create({ email, password_hash, name, selected_year, email_notifications, analytics_sharing, study_goal, notifications_enabled });
 
     // Generate token
     const token = this.generateToken(user);
@@ -42,6 +42,8 @@ export const authService = {
         selected_year: user.selected_year,
         email_notifications: user.email_notifications,
         analytics_sharing: user.analytics_sharing,
+        study_goal: user.study_goal,
+        notifications_enabled: user.notifications_enabled,
       },
     };
   },
@@ -77,6 +79,8 @@ export const authService = {
         selected_year: user.selected_year,
         email_notifications: user.email_notifications,
         analytics_sharing: user.analytics_sharing,
+        study_goal: user.study_goal,
+        notifications_enabled: user.notifications_enabled,
       },
     };
   },
@@ -123,6 +127,8 @@ export const authService = {
       selected_year: user.selected_year,
       email_notifications: user.email_notifications,
       analytics_sharing: user.analytics_sharing,
+      study_goal: user.study_goal,
+      notifications_enabled: user.notifications_enabled,
       created_at: user.created_at,
     };
   },
@@ -139,17 +145,22 @@ export const authService = {
       email_notifications: user.email_notifications,
       analytics_sharing: user.analytics_sharing,
       selected_year: user.selected_year,
+      study_goal: user.study_goal,
+      notifications_enabled: user.notifications_enabled,
       created_at: user.created_at,
     };
   },
 
   /**
-   * Update preferences (email notifications, analytics sharing)
+   * Update preferences (email notifications, analytics sharing, study goal, notifications)
    */
-  async updatePreferences(userId, { email_notifications, analytics_sharing }) {
+  async updatePreferences(userId, { email_notifications, analytics_sharing, selected_year, study_goal, notifications_enabled }) {
     const updates = {};
     if (email_notifications !== undefined) updates.email_notifications = email_notifications;
     if (analytics_sharing !== undefined) updates.analytics_sharing = analytics_sharing;
+    if (selected_year !== undefined) updates.selected_year = selected_year;
+    if (study_goal !== undefined) updates.study_goal = study_goal;
+    if (notifications_enabled !== undefined) updates.notifications_enabled = notifications_enabled;
     const user = await userDB.update(userId, updates);
     return {
       id: user.id,
@@ -158,6 +169,8 @@ export const authService = {
       selected_year: user.selected_year,
       email_notifications: user.email_notifications,
       analytics_sharing: user.analytics_sharing,
+      study_goal: user.study_goal,
+      notifications_enabled: user.notifications_enabled,
       created_at: user.created_at,
     };
   },

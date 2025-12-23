@@ -41,7 +41,7 @@ export const userDB = {
   /**
    * Create new user
    */
-  async create({ email, password_hash, name, selected_year, email_notifications, analytics_sharing }) {
+  async create({ email, password_hash, name, selected_year, email_notifications, analytics_sharing, study_goal, notifications_enabled }) {
     const userData = {
       email,
       password_hash,
@@ -49,6 +49,8 @@ export const userDB = {
       selected_year,
       email_notifications,
       analytics_sharing,
+      study_goal,
+      notifications_enabled,
     };
     
     const { data, error } = await supabase
