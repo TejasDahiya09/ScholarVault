@@ -30,7 +30,7 @@ export default function YearSelectionModal({ onYearSelected }) {
         </div>
 
         <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-          {/* 1st Semester Option */}
+          {/* 1st Year Option */}
           <button
             onClick={() => setSelectedYear('1st Year')}
             className={`w-full p-4 sm:p-5 md:p-6 rounded-lg sm:rounded-xl border-2 transition-all duration-200 text-left ${
@@ -41,7 +41,7 @@ export default function YearSelectionModal({ onYearSelected }) {
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">1st Semester</h3>
+                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">1st Year</h3>
                 <p className="text-xs sm:text-sm text-gray-600 mt-1">Semester 1 & 2</p>
               </div>
               <div
@@ -64,7 +64,7 @@ export default function YearSelectionModal({ onYearSelected }) {
             </div>
           </button>
 
-          {/* 2nd Semester Option */}
+          {/* 2nd Year Option */}
           <button
             onClick={() => setSelectedYear('2nd Year')}
             className={`w-full p-4 sm:p-5 md:p-6 rounded-lg sm:rounded-xl border-2 transition-all duration-200 text-left ${
@@ -75,7 +75,7 @@ export default function YearSelectionModal({ onYearSelected }) {
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">2nd Semester</h3>
+                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900">2nd Year</h3>
                 <p className="text-xs sm:text-sm text-gray-600 mt-1">Semester 3 & 4</p>
               </div>
               <div
@@ -97,6 +97,17 @@ export default function YearSelectionModal({ onYearSelected }) {
               </div>
             </div>
           </button>
+
+          {/* Coming Soon Banner for Year 3 & 4 */}
+          <div className="p-4 sm:p-5 rounded-lg sm:rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl sm:text-3xl">🚀</span>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-amber-900 mb-1">Year 3 & 4 Coming Soon!</h3>
+                <p className="text-xs sm:text-sm text-amber-700">We're working on adding content for 3rd and 4th year. Stay tuned!</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <button

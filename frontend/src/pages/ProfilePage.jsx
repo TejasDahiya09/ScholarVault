@@ -361,7 +361,7 @@ export default function ProfilePage() {
               </div>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-                  {["1st Year", "2nd Year", "3rd Year", "4th Year"].map((yearOption) => (
+                  {["1st Year", "2nd Year"].map((yearOption) => (
                     <button
                       key={yearOption}
                       onClick={() => handleYearChange(yearOption)}
@@ -374,8 +374,26 @@ export default function ProfilePage() {
                       {yearOption}
                     </button>
                   ))}
+                  {/* Coming Soon buttons for Year 3 & 4 */}
+                  {["3rd Year", "4th Year"].map((yearOption) => (
+                    <div
+                      key={yearOption}
+                      className="relative py-3 px-4 rounded-lg border-2 border-slate-200 bg-slate-50 text-slate-400 font-medium cursor-not-allowed opacity-60"
+                    >
+                      <span className="block truncate">{yearOption}</span>
+                      <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-md">Soon</span>
+                    </div>
+                  ))}
                 </div>
                 <p className="text-slate-600 text-xs sm:text-sm">Current selection: {currentYear || 'Not set'}</p>
+                <div className="mt-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg">🚀</span>
+                    <p className="text-xs sm:text-sm text-amber-800">
+                      <span className="font-semibold">Year 3 & 4 coming soon!</span> We're actively working on adding content for these years.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 

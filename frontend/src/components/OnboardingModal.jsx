@@ -53,7 +53,7 @@ export default function OnboardingModal({ open, onClose }) {
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">Your Year</label>
             <div className="grid grid-cols-2 gap-3">
-              {['1st Year', '2nd Year', '3rd Year', '4th Year'].map((y) => (
+              {['1st Year', '2nd Year'].map((y) => (
                 <button
                   key={y}
                   onClick={() => setYear(y)}
@@ -67,8 +67,28 @@ export default function OnboardingModal({ open, onClose }) {
                   {y}
                 </button>
               ))}
+              {/* Coming Soon buttons for Year 3 & 4 */}
+              {['3rd Year', '4th Year'].map((y) => (
+                <div
+                  key={y}
+                  className="relative py-3 px-4 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-400 font-medium text-sm cursor-not-allowed opacity-60"
+                >
+                  <span className="block">{y}</span>
+                  <span className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-md">Soon</span>
+                </div>
+              ))}
             </div>
             <p className="mt-2 text-xs text-gray-600">You can change your year anytime from Profile &gt; Preferences.</p>
+            
+            {/* Coming Soon Banner */}
+            <div className="mt-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <span className="text-base">🚀</span>
+                <p className="text-xs text-amber-800">
+                  <span className="font-semibold">Year 3 & 4 coming soon!</span> We're working on adding content for these years.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div>
