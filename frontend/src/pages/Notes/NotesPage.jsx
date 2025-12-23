@@ -614,7 +614,7 @@ export default function NotesPage() {
           </div>
         </div>
       )}
-      {/* Toast Notification */}}
+      {/* Toast Notification */}
       {toast.show && (
         <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className={`px-6 py-3 rounded-lg shadow-lg font-medium text-white ${
