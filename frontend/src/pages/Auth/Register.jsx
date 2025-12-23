@@ -61,6 +61,7 @@ export default function Register() {
   }
 
   return (
+    <>
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #F0F4FF 0%, #F7F9FC 100%)' }}>
       {/* Back to Landing Button */}
       <Link 
@@ -224,6 +225,7 @@ export default function Register() {
       setBranch={setOnboardingBranch}
       loading={loading}
     />
+    </>
   );
 }
 
