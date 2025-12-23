@@ -16,17 +16,12 @@ export default function OnboardingModal({ open, onClose }) {
     try {
       setLoading(true);
       setError('');
-      
-      // Save preferences to backend
-      await client.put('/api/auth/preferences', {
-        selected_year: year,
-      });
 
-      // Update auth store
+      await client.put('/api/auth/preferences', { selected_year: year });
+
       const updatedUser = { ...user, selected_year: year };
       login(localStorage.getItem('sv_token'), updatedUser);
-      
-      // Close modal
+
       onClose?.();
     } catch (err) {
       setError(err?.response?.data?.error || 'Failed to save preferences');
@@ -37,15 +32,9 @@ export default function OnboardingModal({ open, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
-        onClick={onClose}
-      />
-      
-      {/* Modal */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+
       <div className="relative z-50 bg-gradient-to-br from-white via-indigo-50 to-white rounded-3xl shadow-2xl p-8 w-full max-w-lg border border-indigo-100 overflow-y-auto max-h-screen">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 mb-4">
             <span className="text-3xl">🎓</span>
@@ -54,66 +43,57 @@ export default function OnboardingModal({ open, onClose }) {
           <p className="text-gray-600">Let's personalize your learning journey</p>
         </div>
 
-        {/* Error Display */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm font-medium">
             {error}
           </div>
         )}
 
-        {/* Content */}
         <div className="space-y-6">
-          {/* Academic Year Section */}
           <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
-              Your Year
-            </label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Your Year</label>
             <div className="grid grid-cols-2 gap-3">
               {['1st Year', '2nd Year', '3rd Year', '4th Year'].map((y) => (
                 <button
                   key={y}
                   onClick={() => setYear(y)}
-                  {/* Theme Section */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-3">
-                      Theme
-                    </label>
-                    <div className="flex items-center justify-between rounded-xl border-2 border-gray-200 px-4 py-3 bg-white/60">
-                      <div>
-                        <div className="font-medium text-sm text-gray-900">{darkMode ? 'Dark Mode' : 'Light Mode'}</div>
-                        <div className="text-xs text-gray-600 mt-0.5">Toggle the app theme</div>
-                      </div>
-                      <button
-                        type="button"
-                        disabled={loading}
-                        onClick={() => setDarkMode(!darkMode)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                          darkMode ? 'bg-indigo-600' : 'bg-gray-300'
-                        } disabled:opacity-50`}
-                      >
-                        <span
-                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${
-                            darkMode ? 'translate-x-5' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                onClick={() => setNotifications(false)}
+                  disabled={loading}
+                  className={`py-3 px-4 rounded-xl border-2 font-medium transition-all duration-200 text-sm ${
+                    year === y
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-md'
+                      : 'border-gray-200 hover:border-indigo-300 text-gray-700 hover:bg-gray-50'
+                  } disabled:opacity-50`}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Theme</label>
+            <div className="flex items-center justify-between rounded-xl border-2 border-gray-200 px-4 py-3 bg-white/60">
+              <div>
+                <div className="font-medium text-sm text-gray-900">{darkMode ? 'Dark Mode' : 'Light Mode'}</div>
+                <div className="text-xs text-gray-600 mt-0.5">Toggle the app theme</div>
+              </div>
+              <button
+                type="button"
                 disabled={loading}
-                className={`w-full text-left py-3 px-4 rounded-xl border-2 transition-all duration-200 ${
-                  !notifications
-                    ? 'border-indigo-500 bg-indigo-50'
-                    : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'
+                onClick={() => setDarkMode(!darkMode)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
+                  darkMode ? 'bg-indigo-600' : 'bg-gray-300'
                 } disabled:opacity-50`}
               >
-                <div className="font-medium text-sm text-gray-900">🔇 Disable</div>
-                <div className="text-xs text-gray-600 mt-0.5">Study without interruptions</div>
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                    darkMode ? 'translate-x-5' : 'translate-x-1'
+                  }`}
+                />
               </button>
             </div>
           </div>
 
-          {/* Info Box */}
           <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mt-6">
             <p className="text-xs sm:text-sm text-indigo-900">
               💡 <span className="font-semibold">Tip:</span> You can always change these settings in your Profile.
@@ -121,7 +101,6 @@ export default function OnboardingModal({ open, onClose }) {
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-3 mt-8">
           <button
             onClick={onClose}
@@ -139,7 +118,6 @@ export default function OnboardingModal({ open, onClose }) {
           </button>
         </div>
 
-        {/* Current Selection Display */}
         <div className="mt-6 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-500 text-center">
             Selected: <span className="font-semibold text-gray-700">{year}</span> • <span className="font-semibold text-gray-700">{darkMode ? 'Dark' : 'Light'} Theme</span>
