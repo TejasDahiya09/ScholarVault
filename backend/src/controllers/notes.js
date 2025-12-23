@@ -106,7 +106,7 @@ export const getSummary = async (req, res) => {
     res.write(':streaming-start\n\n');
 
     // Get AI summary
-    const summary = await aiService.summarizeText(textToSummarize);
+    const summary = await aiService.generateSummary(textToSummarize);
     
     // Split summary into sentences for line-by-line streaming
     const sentences = summary.match(/[^.!?]+[.!?]+/g) || [summary];
