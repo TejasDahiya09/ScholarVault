@@ -96,11 +96,13 @@ router.get("/:id/progress", authenticate, async (req, res, next) => {
 
     // Get completion status
     const status = await progressDB.getSubjectCompletionStatus(userId, subjectId);
+    const completedNoteIds = await progressDB.getCompletedNotes(userId, subjectId);
 
     res.json({
       total_units: status.total_notes,
       completed_units: status.completed_notes,
       progress_percent: status.percentage,
+      completed_note_ids: completedNoteIds,
     });
   } catch (err) {
     next(err);

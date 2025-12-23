@@ -98,6 +98,27 @@ export default function NotesPage() {
     fetchBookmarks();
   }, []);
 
+  // Fetch completed notes for this subject so toggle reflects prior progress
+  useEffect(() => {
+    if (!subjectId) return;
+
+    let isActive = true;
+    async function fetchCompletedNotes() {
+      try {
+        const res = await client.get(`/api/subjects/${subjectId}/progress`);
+        const completedIds = res.data?.completed_note_ids || [];
+        if (isActive) {
+          setCompletedNotes(new Set(completedIds));
+        }
+      } catch (err) {
+        console.error("Failed to fetch completed notes:", err);
+      }
+    }
+
+    fetchCompletedNotes();
+    return () => { isActive = false; };
+  }, [subjectId]);
+
   // Fetch subject data
   useEffect(() => {
     async function load() {
