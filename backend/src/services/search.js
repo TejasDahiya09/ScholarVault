@@ -640,15 +640,24 @@ export const searchService = {
       didYouMean = await getDidYouMeanSuggestions(query);
     }
 
-    // 7. LOG ANALYTICS (optional)
+    // 7. LOG ANALYTICS (respect user preference)
     if (userId) {
       try {
-        await supabase.from("search_analytics").insert({
-          user_id: userId,
-          query: query.trim(),
-          subject_id: subjectId,
-          results_count: totalResults,
-        });
+        // Check if user has opted in to analytics sharing
+        const { data: pref, error: prefError } = await supabase
+          .from("users")
+          .select("analytics_sharing")
+          .eq("id", userId)
+          .single();
+
+        if (!prefError && pref?.analytics_sharing) {
+          await supabase.from("search_analytics").insert({
+            user_id: userId,
+            query: query.trim(),
+            subject_id: subjectId,
+            results_count: totalResults,
+          });
+        }
       } catch (err) {
         console.error("Analytics logging error:", err);
       }
@@ -853,15 +862,28 @@ export const searchService = {
     if (!events || events.length === 0) return;
 
     try {
-      const records = events.map(event => ({
-        user_id: userId,
-        query: event.query?.trim() || '',
-        results_count: event.result_count || 0,
-        clicked_item: event.clicked_item || null,
-        created_at: event.timestamp || new Date().toISOString()
-      }));
+      // Respect user preference: only log if analytics_sharing is true
+      let canLog = true;
+      if (userId) {
+        const { data: pref, error: prefError } = await supabase
+          .from("users")
+          .select("analytics_sharing")
+          .eq("id", userId)
+          .single();
+        canLog = !prefError && !!pref?.analytics_sharing;
+      }
 
-      await supabase.from("search_analytics").insert(records);
+      if (canLog) {
+        const records = events.map(event => ({
+          user_id: userId,
+          query: event.query?.trim() || '',
+          results_count: event.result_count || 0,
+          clicked_item: event.clicked_item || null,
+          created_at: event.timestamp || new Date().toISOString()
+        }));
+
+        await supabase.from("search_analytics").insert(records);
+      }
     } catch (err) {
       console.error("Batch analytics error:", err);
     }
