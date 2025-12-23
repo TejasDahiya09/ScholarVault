@@ -342,10 +342,14 @@ export default function Dashboard() {
                 <h2 className="text-base font-semibold text-gray-900 mb-3">⚠️ Needs Attention</h2>
                 <div className="space-y-2">
                   {needsAttention.map((subject) => (
-                    <div key={subject.id} className="p-3 bg-white border border-amber-200 rounded-lg">
+                    <button
+                      key={subject.id}
+                      onClick={() => navigate(`/notes?subjectId=${subject.id}&subjectName=${encodeURIComponent(subject.name || "")}&branch=${encodeURIComponent(subject.branch || "")}&semester=${encodeURIComponent(subject.semester || "")}`)}
+                      className="w-full text-left p-3 bg-white border border-amber-200 rounded-lg hover:border-amber-300 hover:shadow-sm transition"
+                    >
                       <h3 className="font-semibold text-xs sm:text-sm text-gray-900">{subject.name}</h3>
                       <p className="text-xs text-amber-700 mt-1">{Math.round(subject.progress)}% complete</p>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
