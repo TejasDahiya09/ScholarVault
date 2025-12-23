@@ -1041,8 +1041,8 @@ export default function NotesPage() {
                 </>
               )}
 
-              {/* AI PANEL (NOTES ONLY) */}
-              {isPDF && isNote && (
+              {/* AI PANEL (NOTES & PPT) */}
+              {selectedNote && isNote && (
                 <div style={{ width: `${100 - viewerWidth}%` }} className="border-l bg-white flex flex-col overflow-hidden">
                   {/* Tabs */}
                   <div className="flex border-b">
