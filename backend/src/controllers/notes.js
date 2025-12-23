@@ -132,17 +132,6 @@ export const getSummary = async (req, res) => {
   }
 };
 
-    // Use streaming from AI service
-    await aiService.generateSummaryStream(textToSummarize, res);
-    
-  } catch (err) {
-    console.error("Summary error:", err);
-    if (!res.headersSent) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-};
-
 /**
  * AI Ask Question
  */
