@@ -40,8 +40,8 @@ export default function HomePage() {
     if (!user?.selected_year) return [];
     
     const yearToSemesters = {
-      '1st Year': ['1', '2'],
-      '2nd Year': ['3', '4']
+      '1st Year': ['1', '2', '1st year'],
+      '2nd Year': ['3', '4', '2nd year']
     };
     
     const validSemesters = (yearToSemesters[user.selected_year] || [])
@@ -52,16 +52,29 @@ export default function HomePage() {
     );
   }, [allSubjects, user?.selected_year]);
 
-  // Group subjects by semester
+  // Group subjects by semester and normalize semester names for display
   const subjectsBySemester = useMemo(() => {
     const grouped = {};
     
     subjectsByYear.forEach(subject => {
-      const sem = subject.semester || 'Unknown';
-      if (!grouped[sem]) {
-        grouped[sem] = [];
+      const sem = String(subject.semester || 'Unknown').trim().toLowerCase();
+      
+      // Normalize semester display name
+      let displaySem = 'Unknown';
+      if (['1', '1st year'].includes(sem)) {
+        displaySem = '1';
+      } else if (['2', '2nd year'].includes(sem)) {
+        displaySem = '2';
+      } else if (['3'].includes(sem)) {
+        displaySem = '3';
+      } else if (['4'].includes(sem)) {
+        displaySem = '4';
       }
-      grouped[sem].push(subject);
+      
+      if (!grouped[displaySem]) {
+        grouped[displaySem] = [];
+      }
+      grouped[displaySem].push(subject);
     });
     
     // Sort semesters numerically
