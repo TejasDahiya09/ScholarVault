@@ -54,7 +54,7 @@ export default function HomePage() {
 
   // Breadcrumbs
   const crumbs = [
-    { label: "Home" }
+    { label: "Subjects" }
   ];
 
   // Handle subject click
