@@ -116,9 +116,8 @@ export default function NotesPage() {
           const isPptFile = (item) => {
             const name = (item.file_name || "").toLowerCase();
             const url = (item.s3_url || "").toLowerCase();
-            const hasPpt = name.includes('.ppt') || url.includes('.ppt');
-            const isPdf = name.endsWith('.pdf') || url.includes('.pdf');
-            return hasPpt && !isPdf;
+            // Check if file has .ppt or .pptx in the name (even with .pdf extension)
+            return name.includes('.ppt') || url.includes('.ppt');
           };
 
           const pptItems = allNotes.filter(isPptFile);
