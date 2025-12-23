@@ -68,6 +68,7 @@ export default function OnboardingModal({ open, onClose }) {
                 </button>
               ))}
             </div>
+            <p className="mt-2 text-xs text-gray-600">You can change your year anytime from Profile &gt; Preferences.</p>
           </div>
 
           <div>
