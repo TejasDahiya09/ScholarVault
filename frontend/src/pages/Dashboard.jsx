@@ -7,6 +7,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     totalTime: 0,
     unitsCompleted: 0,
@@ -16,6 +17,7 @@ export default function Dashboard() {
   const [weeklyActivity, setWeeklyActivity] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [nextUnit, setNextUnit] = useState(null);
+  const [bookmarkedNotes, setBookmarkedNotes] = useState([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -41,6 +43,7 @@ export default function Dashboard() {
   async function fetchDashboardData() {
     try {
       setLoading(true);
+      setError(null);
       
       // Fetch bookmarked notes with details
       try {
@@ -48,16 +51,23 @@ export default function Dashboard() {
         setBookmarkedNotes(bookmarksRes.data?.bookmarks || []);
       } catch (err) {
         console.error("Failed to fetch bookmarks:", err);
+        setBookmarkedNotes([]);
       }
       
       // Fetch only user's subjects (subjects they've interacted with)
-      const subjectsRes = await client.get('/api/subjects', {
-        params: { userOnly: 'true' }
-      });
-      const allSubjects = subjectsRes.data || [];
-      
-      // Filter by selected year
-      const yearFilteredSubjects = filterSubjectsByYear(allSubjects);
+      let yearFilteredSubjects = [];
+      try {
+        const subjectsRes = await client.get('/api/subjects', {
+          params: { userOnly: 'true' }
+        });
+        const allSubjects = subjectsRes.data || [];
+        
+        // Filter by selected year
+        yearFilteredSubjects = filterSubjectsByYear(allSubjects);
+      } catch (err) {
+        console.error("Failed to fetch subjects:", err);
+        setError("Failed to load subjects. Please try refreshing.");
+      }
       
       // Fetch progress for each subject with actual completion data
       const subjectsWithProgress = await Promise.all(
@@ -140,6 +150,7 @@ export default function Dashboard() {
 
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
+      setError("Failed to load dashboard. Please try refreshing.");
     } finally {
       setLoading(false);
     }
@@ -164,6 +175,21 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen py-6 sm:py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <div className="flex items-center justify-between">
+              <p>{error}</p>
+              <button 
+                onClick={fetchDashboardData}
+                className="ml-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-1 sm:mb-2">

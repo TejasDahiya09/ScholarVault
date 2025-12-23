@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // Lazy load all pages for better performance
 const Landing = lazy(() => import("./pages/Landing"));
@@ -26,23 +27,24 @@ const LoadingFallback = () => (
 
 export default function App() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <Routes>
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
 
-        {/* Public routes */}
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+          {/* Public routes */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-        {/* AppShell protected routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <AppShell>
-              <Dashboard />
-            </AppShell>
-          }
-        />
+          {/* AppShell protected routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <AppShell>
+                <Dashboard />
+              </AppShell>
+            }
+          />
 
         <Route
           path="/home"
@@ -100,5 +102,6 @@ export default function App() {
 
       </Routes>
     </Suspense>
+    </ErrorBoundary>
   );
 }
