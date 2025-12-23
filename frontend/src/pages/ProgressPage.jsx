@@ -74,37 +74,24 @@ export default function ProgressPage() {
       const totalCompleted = subjectsWithProgress.reduce((sum, s) => sum + (s.completed || 0), 0);
       const totalUnits = subjectsWithProgress.reduce((sum, s) => sum + (s.total || 0), 0);
       
-      setStats({
-        totalTime: 0, // Placeholder
-        totalUnits,
-        completedUnits: totalCompleted,
-        longestStreak: 0, // Placeholder
-        currentStreak: 0 // Placeholder
-      });
-
-      // Generate mock weekly data (last 7 days)
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const today = new Date().getDay();
-      setWeeklyData(
-        days.map((day, index) => ({
-          day,
-          minutes: Math.floor(Math.random() * 120), // Mock data
-          isToday: index === today
-        }))
-      );
-
-      // Generate mock monthly data (last 30 days)
-      const monthData = [];
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        monthData.push({
-          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          minutes: Math.floor(Math.random() * 120),
-          completed: Math.floor(Math.random() * 5)
+      // Fetch analytics (time, streaks, weekly, monthly)
+      try {
+        const analyticsRes = await client.get('/api/progress/analytics');
+        const a = analyticsRes.data || {};
+        setStats({
+          totalTime: a.stats?.totalTimeHours || 0,
+          totalUnits,
+          completedUnits: totalCompleted,
+          longestStreak: a.stats?.longestStreak || 0,
+          currentStreak: a.stats?.currentStreak || 0,
         });
+        setWeeklyData(Array.isArray(a.weekly) ? a.weekly : []);
+        setMonthlyData(Array.isArray(a.monthly) ? a.monthly : []);
+      } catch (err) {
+        // Fallback to zeroed analytics
+        setWeeklyData([]);
+        setMonthlyData([]);
       }
-      setMonthlyData(monthData);
 
     } catch (error) {
       console.error("Error fetching progress data:", error);

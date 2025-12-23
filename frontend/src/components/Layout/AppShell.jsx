@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Sidebar from "./Sidebar";
 import OnboardingModal from "../OnboardingModal";
 import useAuth from "../../store/useAuth";
@@ -6,8 +6,46 @@ import { useState } from "react";
 
 export default function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(!user?.selected_year);
+
+  // Session lifecycle: start when app mounts, end on unload
+  useEffect(() => {
+    const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+    const start = async () => {
+      if (!token) return;
+      try {
+        await fetch(`${API_BASE}/api/progress/session/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ startedAt: new Date().toISOString() }),
+        });
+      } catch {}
+    };
+
+    const end = async () => {
+      const tk = localStorage.getItem('sv_token');
+      if (!tk) return;
+      try {
+        await fetch(`${API_BASE}/api/progress/session/end`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tk}` },
+          body: JSON.stringify({ endedAt: new Date().toISOString() }),
+        });
+      } catch {}
+    };
+
+    start();
+    const onUnload = () => { end(); };
+    window.addEventListener('beforeunload', onUnload);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') end();
+    });
+    return () => {
+      window.removeEventListener('beforeunload', onUnload);
+    };
+  }, [token]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
