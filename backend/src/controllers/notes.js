@@ -80,7 +80,7 @@ export const getNotesByUnit = async (req, res) => {
 };
 
 /**
- * AI Summary
+ * AI Summary - Streaming Response
  */
 export const getSummary = async (req, res) => {
   try {
@@ -94,10 +94,43 @@ export const getSummary = async (req, res) => {
     // Use OCR text if available, otherwise use a placeholder
     const textToSummarize = note.ocr_text || `Document: ${note.file_name}. This is a study material from ${new Date(note.created_at).getFullYear()}.`;
 
-    // Set streaming headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    // Set streaming headers for SSE (Server-Sent Events)
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+    });
+
+    // Send initial SSE comment
+    res.write(':streaming-start\n\n');
+
+    // Get AI summary
+    const summary = await aiService.summarizeText(textToSummarize);
+    
+    // Split summary into sentences for line-by-line streaming
+    const sentences = summary.match(/[^.!?]+[.!?]+/g) || [summary];
+    
+    // Stream each sentence with a slight delay
+    for (let i = 0; i < sentences.length; i++) {
+      const sentence = sentences[i].trim();
+      
+      // Send as SSE data event
+      res.write(`data: ${JSON.stringify({\n        chunk: sentence + ' ',\n        index: i,\n        total: sentences.length\n      })}\n\n`);
+      
+      // Small delay between sentences for streaming effect
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    
+    // Send completion marker
+    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    res.end();
+  } catch (err) {
+    console.error('Summary error:', err);
+    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+    res.end();
+  }
+};
 
     // Use streaming from AI service
     await aiService.generateSummaryStream(textToSummarize, res);
@@ -192,8 +225,16 @@ export const markAsCompleted = async (req, res, next) => {
  */
 export const toggleBookmark = async (req, res, next) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
     const { id: noteId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    if (!noteId) {
+      return res.status(400).json({ error: "Note ID is required" });
+    }
 
     // Check if already bookmarked
     const isBookmarked = await bookmarksDB.isBookmarked(userId, noteId);
@@ -211,6 +252,7 @@ export const toggleBookmark = async (req, res, next) => {
       message: !isBookmarked ? "Bookmarked" : "Bookmark removed",
     });
   } catch (err) {
+    console.error("Bookmark error:", err);
     next(err);
   }
 };

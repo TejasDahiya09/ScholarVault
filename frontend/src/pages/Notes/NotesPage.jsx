@@ -198,17 +198,19 @@ export default function NotesPage() {
         // Process complete lines
         for (let i = 0; i < lines.length - 1; i++) {
           const line = lines[i].trim();
+          if (!line) continue;
           if (line.startsWith('data: ')) {
             try {
               const jsonStr = line.slice(6);
               const data = JSON.parse(jsonStr);
-              if (data.chunk) {
+              if (data.done) {
+                console.log("Summary stream finished");
+              } else if (data.error) {
+                throw new Error(data.error);
+              } else if (data.chunk) {
                 responseRef.current += data.chunk;
                 setAiResponse(responseRef.current);
-                console.log("Chunk received, total:", responseRef.current.length);
-              }
-              if (data.error) {
-                throw new Error(data.error);
+                console.log("Chunk received:", data.chunk.substring(0, 30));
               }
             } catch (e) {
               console.error('JSON parse error:', e);
@@ -290,17 +292,19 @@ export default function NotesPage() {
         // Process complete lines
         for (let i = 0; i < lines.length - 1; i++) {
           const line = lines[i].trim();
+          if (!line) continue;
           if (line.startsWith('data: ')) {
             try {
               const jsonStr = line.slice(6);
               const data = JSON.parse(jsonStr);
-              if (data.chunk) {
+              if (data.done) {
+                console.log("Question stream finished");
+              } else if (data.error) {
+                throw new Error(data.error);
+              } else if (data.chunk) {
                 responseRef.current += data.chunk;
                 setAiResponse(responseRef.current);
-                console.log("Chunk received, total:", responseRef.current.length);
-              }
-              if (data.error) {
-                throw new Error(data.error);
+                console.log("Chunk received:", data.chunk.substring(0, 30));
               }
             } catch (e) {
               console.error('JSON parse error:', e);
