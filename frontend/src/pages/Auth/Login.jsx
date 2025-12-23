@@ -1,8 +1,18 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import client from '../../api/client'
 import useAuth from '../../store/useAuth'
 import DarkModeToggle from '../../components/DarkModeToggle'
+
+// Debounce utility
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(handler)
+  }, [value, delay])
+  return debouncedValue
+}
 
 export default function Login() {
   const navigate = useNavigate()
@@ -12,6 +22,8 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false)
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
+  const [emailError, setEmailError] = useState('')
+  const debouncedEmail = useDebounce(email, 300)
 
   // Load saved credentials on mount
   useEffect(() => {
