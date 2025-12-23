@@ -20,19 +20,22 @@ export const aiService = {
         throw new Error("Vertex AI not configured. Please add VERTEX_PROJECT to .env file");
       }
 
-      const prompt = `You are a study assistant helping students understand key concepts.
+      const prompt = `Create a concise study summary.
 
-Content to summarize:
+Rules:
+- Plain text only (no bullets/markdown symbols like *, -, #)
+- Keep it tight: 3-6 short points
+- Use simple language
+- Order from most important to supporting details
+- End with a one-line takeaway
+
+Content:
 ${text}
 
-Provide a clear summary following these rules:
-- Use simple, easy-to-understand language
-- Organize ideas in logical order
-- Include key points and important details
-- Avoid technical jargon where possible
-- Make it easy for a student to learn and remember
-
-Summary:`;
+Return format:
+Overview: one sentence
+Key Points: numbered short lines
+Takeaway: one sentence`; 
 
       const request = {
         contents: [
@@ -136,22 +139,19 @@ Answer:`;
     }
 
     try {
-      const prompt = `Create a student-friendly summary. Be quick and concise.
+      const prompt = `Stream a concise study summary in plain text.
 
-CRITICAL RULES:
-- NO asterisks (*)
-- NO hyphens or dashes in formatting
-- NO hash symbols (#)
-- NO special markdown characters
-- NO bold or italic formatting
-- Use ONLY plain text
-- Use line breaks to separate ideas
-- Number points if needed: 1. 2. 3.
+    Rules (strict):
+    - Plain text only (no *, -, #, bullets, markdown)
+    - Short lines; stream as you write
+    - Prefer numbered key points: 1) 2) 3)
+    - Include: Overview, Key Points, Takeaway
+    - Keep it under 120 words total
 
-Content:
-${text}
+    Content:
+    ${text}
 
-Summary:`;
+    Start with "Overview:" then stream Key Points and Takeaway.`;
 
       const request = {
         contents: [
@@ -160,46 +160,41 @@ Summary:`;
             parts: [
               {
                 text: prompt,
-              },
-            ],
-          },
-        ],
-      };
+              let prompt;
 
-      const stream = await vertexModel.generateContentStream(request);
-      
-      for await (const chunk of stream.stream) {
-        const text = chunk.candidates[0]?.content?.parts[0]?.text || "";
-        if (text) {
-          const data = `data: ${JSON.stringify({ chunk: text })}\n\n`;
-          res.write(data);
-        }
-      }
-      
-      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-      res.end();
-    } catch (err) {
-      console.error("Summary streaming error:", err);
-      res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
-      res.end();
-    }
-  },
+              if (useRag) {
+                // RAG mode: use context + knowledge
+                prompt = `Provide a crisp, helpful answer using the provided context first.
 
-  /**
-   * Ask question with streaming - web knowledge enabled
-   * Mode 1 (RAG ON): Uses study material context + web knowledge for comprehensive answers
-   * Mode 2 (RAG OFF): Uses web knowledge only for general questions
-   * Output: Clear, practical answers with helpful explanations
-   */
-  async askQuestionStream(text, question, useRag = false, res) {
-    if (!text || !question) {
-      res.write(`data: ${JSON.stringify({ error: "Missing text or question" })}\n\n`);
-      res.end();
-      return;
-    }
+        Rules:
+        - Plain text only (no bullets/markdown symbols)
+        - Stream short lines as you think
+        - Structure:
+          Answer: one concise sentence
+          Evidence: 2-4 numbered context-backed points
+          Tip: one practical next step
 
-    try {
-      let prompt;
+        Context:
+        ${text}
+
+        Question: ${question}
+
+        Start now.`;
+              } else {
+                prompt = `Provide a crisp, helpful answer.
+
+        Rules:
+        - Plain text only (no bullets/markdown symbols)
+        - Stream short lines as you think
+        - Structure:
+          Answer: one concise sentence
+          Key Points: 2-4 numbered supporting points
+          Tip: one practical next step
+
+        Question: ${question}
+
+        Start now.`;
+              }
 
       if (useRag) {
         // RAG mode: use chunks + web knowledge for fast, comprehensive answers
