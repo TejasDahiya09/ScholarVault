@@ -22,7 +22,7 @@ export default function Register() {
     }
     try {
       setLoading(true)
-      const res = await client.post('/api/auth/register', { name, email, password, selected_year: '1st Year' })
+      const res = await client.post('/api/auth/register', { name, email, password })
       const { token, user } = res.data || {}
       if (!token) throw new Error('Invalid server response')
       login(token, user || { email })
