@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import client from '../../api/client'
 import useAuth from '../../store/useAuth'
 import DarkModeToggle from '../../components/DarkModeToggle'
+import OnboardingModal from '../../components/OnboardingModal'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -13,8 +14,6 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [onboardingYear, setOnboardingYear] = useState('1st Year')
-  const [onboardingBranch, setOnboardingBranch] = useState('BTech CSE')
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -42,15 +41,6 @@ export default function Register() {
   async function handleOnboardingSubmit() {
     try {
       setLoading(true)
-      // Persist selection
-      await client.put('/api/auth/preferences', {
-        selected_year: onboardingYear,
-        branch: onboardingBranch,
-      })
-      // Update auth store user object
-      const user = JSON.parse(localStorage.getItem('sv_user') || 'null') || {}
-      const updatedUser = { ...user, selected_year: onboardingYear, branch: onboardingBranch }
-      login(localStorage.getItem('sv_token'), updatedUser)
       setShowOnboarding(false)
       navigate('/home')
     } catch (e) {
@@ -218,85 +208,7 @@ export default function Register() {
     <OnboardingModal
       open={showOnboarding}
       onClose={() => { setShowOnboarding(false); navigate('/home'); }}
-      onSave={handleOnboardingSubmit}
-      year={onboardingYear}
-      setYear={setOnboardingYear}
-      branch={onboardingBranch}
-      setBranch={setOnboardingBranch}
-      loading={loading}
     />
     </>
-  );
-}
-
-// Onboarding modal overlay
-function OnboardingModal({ open, onClose, onSave, year, setYear, branch, setBranch, loading }) {
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg z-50 border border-gray-200">
-        <h3 className="text-xl font-semibold mb-1">Finish setup</h3>
-        <p className="text-sm text-gray-600 mb-4">Select your branch and year to personalize your subjects.</p>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold mb-2">Branch</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                className={`py-2.5 px-4 rounded-lg border-2 font-medium transition-all ${branch === 'BTech CSE' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-indigo-300 text-slate-700'}`}
-                onClick={() => setBranch('BTech CSE')}
-                disabled={loading}
-              >
-                BTech CSE
-              </button>
-              <button
-                type="button"
-                className={`py-2.5 px-4 rounded-lg border-2 font-medium transition-all ${branch === 'Other' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-indigo-300 text-slate-700'}`}
-                onClick={() => setBranch('Other')}
-                disabled={loading}
-              >
-                Other
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-2">Year</label>
-            <div className="grid grid-cols-2 gap-3">
-              {['1st Year','2nd Year','3rd Year','4th Year'].map((y) => (
-                <button
-                  key={y}
-                  type="button"
-                  className={`py-2.5 px-4 rounded-lg border-2 font-medium transition-all ${year === y ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 hover:border-indigo-300 text-slate-700'}`}
-                  onClick={() => setYear(y)}
-                  disabled={loading}
-                >
-                  {y}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50"
-            disabled={loading}
-          >
-            Skip for now
-          </button>
-          <button
-            onClick={onSave}
-            className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-500 disabled:opacity-50"
-            disabled={loading}
-          >
-            {loading ? 'Saving...' : 'Continue'}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }

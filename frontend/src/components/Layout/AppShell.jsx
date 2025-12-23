@@ -1,12 +1,22 @@
 import React from "react";
 import Sidebar from "./Sidebar";
+import OnboardingModal from "../OnboardingModal";
+import useAuth from "../../store/useAuth";
 import { useState } from "react";
 
 export default function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState(!user?.selected_year);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
+      {/* Onboarding Modal */}
+      <OnboardingModal 
+        open={showOnboarding} 
+        onClose={() => setShowOnboarding(false)} 
+      />
+
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
