@@ -5,6 +5,9 @@ import { authenticate } from "../middlewares/auth.js";
 
 const router = Router();
 
+// Protect all note routes; notes are user data
+router.use(authenticate);
+
 /**
  * Notes Routes
  */
@@ -12,16 +15,16 @@ router.get("/", notesController.getAllNotes);
 router.get("/metadata", notesController.getNotesMetadata); // Metadata for client-side search
 
 // Specific routes must come before parameterized routes
-router.get("/subjects/:subjectId", authenticate, notesController.getNotesBySubject);
-router.get("/subjects/:subjectId/units/:unitNumber", authenticate, notesController.getNotesByUnit);
+router.get("/subjects/:subjectId", notesController.getNotesBySubject);
+router.get("/subjects/:subjectId/units/:unitNumber", notesController.getNotesByUnit);
 
 // Note-specific routes (must come before /:id to avoid conflicts)
-router.get("/:id/summary", authenticate, notesController.getSummary);
-router.get("/:id/ask", authenticate, notesController.askQuestion);
-router.post("/:id/ask", authenticate, notesController.askQuestion);
-router.post("/:id/complete", authenticate, notesController.markAsCompleted);
-router.get("/:id/progress", authenticate, notesController.getProgress);
-router.post("/:id/bookmark", authenticate, notesController.toggleBookmark);
+router.get(":id/summary", notesController.getSummary);
+router.get(":id/ask", notesController.askQuestion);
+router.post(":id/ask", notesController.askQuestion);
+router.post(":id/complete", notesController.markAsCompleted);
+router.get(":id/progress", notesController.getProgress);
+router.post(":id/bookmark", notesController.toggleBookmark);
 router.get("/:id/search", searchController.searchInNote); // Search inside PDF
 
 // Generic get by ID (must come last)

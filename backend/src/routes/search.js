@@ -4,6 +4,9 @@ import { authenticate } from "../middlewares/auth.js";
 
 const router = Router();
 
+// Require authentication for all search endpoints to protect user data and costs
+router.use(authenticate);
+
 /**
  * Search Routes
  * 
@@ -15,7 +18,7 @@ const router = Router();
 
 // Specific routes first
 router.get("/suggest", searchController.suggest);
-router.get("/analytics", authenticate, searchController.analytics);
+router.get("/analytics", searchController.analytics);
 router.post("/analytics/batch", searchController.batchAnalytics);
 
 // Main search endpoint
