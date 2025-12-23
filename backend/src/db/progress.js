@@ -1,100 +1,14 @@
 import { supabase } from "../lib/services.js";
 
 /**
- * Unit/Progress Database Operations
+ * Progress Database Operations
+ * Uses user_study_progress table for note-level completion tracking
  */
 export const progressDB = {
-  /**
-   * Get user progress for a unit
-   */
-  async getUserProgress(userId, unitId) {
-    const { data, error } = await supabase
-      .from("user_progress")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("unit_id", unitId)
-      .single();
-
-    if (error && error.code !== "PGRST116") {
-      throw new Error(`Database error: ${error.message}`);
-    }
-
-    return data || null;
-  },
 
   /**
-   * Mark unit as completed
-   */
-  async markUnitComplete(userId, unitId) {
-    const { data, error } = await supabase
-      .from("user_progress")
-      .upsert([
-        {
-          user_id: userId,
-          unit_id: unitId,
-          completed: true,
-          completed_at: new Date().toISOString(),
-        },
-      ])
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to update progress: ${error.message}`);
-    }
-
-    return data;
-  },
-
-  /**
-   * Reset unit progress
-   */
-  async resetUnitProgress(userId, unitId) {
-    const { data, error } = await supabase
-      .from("user_progress")
-      .update({
-        completed: false,
-        completed_at: null,
-      })
-      .eq("user_id", userId)
-      .eq("unit_id", unitId)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to reset progress: ${error.message}`);
-    }
-
-    return data;
-  },
-
-  /**
-   * Get user's overall progress
-   */
-  async getUserOverallProgress(userId) {
-    const { data, error } = await supabase
-      .from("user_progress")
-      .select("*")
-      .eq("user_id", userId);
-
-    if (error) {
-      throw new Error(`Failed to fetch progress: ${error.message}`);
-    }
-
-    const items = data || [];
-    const completed = items.filter(p => p.completed).length;
-    const total = items.length;
-
-    return {
-      total,
-      completed,
-      percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
-      items,
-    };
-  },
-
-  /**
-   * Mark a note as completed (adds/updates study progress)
+   * Mark a note as completed
+   * Updates user_study_progress with completion status
    */
   async markNoteComplete(userId, noteId, subjectId) {
     // First, try to find existing record
@@ -219,8 +133,9 @@ export const progressDB = {
   },
 
   /**
-   * Get subject completion status
-   * Only counts actual notes (not books, PYQs, or syllabus)
+   * Get subject completion percentage
+   * Counts completed notes from user_study_progress vs total actual notes
+   * Excludes PYQs, syllabus, and reference materials
    */
   async getSubjectCompletionStatus(userId, subjectId) {
     // Get all notes for the subject
