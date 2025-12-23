@@ -1,116 +1,40 @@
--- ===== SCHOLARVAULT PERFORMANCE INDEXES =====
--- Purpose: Optimize frequent database queries
--- Impact: Dramatically reduces query times (from seconds to milliseconds)
--- Run these on your Supabase database
+-- Performance indexes for ScholarVault database
+-- Run these on your Supabase database to improve query performance
 
--- ===== NOTES TABLE INDEXES =====
--- Most accessed table - needs comprehensive indexing
+-- Subjects table indexes
+CREATE INDEX IF NOT EXISTS idx_subjects_branch ON subjects(branch);
+CREATE INDEX IF NOT EXISTS idx_subjects_semester ON subjects(semester);
+CREATE INDEX IF NOT EXISTS idx_subjects_branch_semester ON subjects(branch, semester);
 
--- Index for subject-based queries (most common)
-CREATE INDEX IF NOT EXISTS idx_notes_subject_id 
-ON notes(subject_id);
+-- Notes table indexes
+CREATE INDEX IF NOT EXISTS idx_notes_subject_id ON notes(subject_id);
+CREATE INDEX IF NOT EXISTS idx_notes_branch ON notes(branch);
+CREATE INDEX IF NOT EXISTS idx_notes_semester ON notes(semester);
+CREATE INDEX IF NOT EXISTS idx_notes_unit_number ON notes(unit_number);
+CREATE INDEX IF NOT EXISTS idx_notes_subject_unit ON notes(subject_id, unit_number);
+CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at DESC);
 
--- Index for subject + unit queries (search/filter)
-CREATE INDEX IF NOT EXISTS idx_notes_subject_unit 
-ON notes(subject_id, unit_number);
+-- Users table indexes
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_selected_year ON users(selected_year);
 
--- Index for semester filtering
-CREATE INDEX IF NOT EXISTS idx_notes_semester 
-ON notes(semester);
+-- User progress table indexes (if exists)
+CREATE INDEX IF NOT EXISTS idx_user_progress_user_id ON user_study_progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_progress_note_id ON user_study_progress(note_id);
+CREATE INDEX IF NOT EXISTS idx_user_progress_user_note ON user_study_progress(user_id, note_id);
 
--- Index for branch filtering
-CREATE INDEX IF NOT EXISTS idx_notes_branch 
-ON notes(branch);
+-- User bookmarks table indexes (if exists)
+CREATE INDEX IF NOT EXISTS idx_bookmarks_user_id ON user_bookmarks(user_id);
+CREATE INDEX IF NOT EXISTS idx_bookmarks_note_id ON user_bookmarks(note_id);
+CREATE INDEX IF NOT EXISTS idx_bookmarks_user_note ON user_bookmarks(user_id, note_id);
 
--- Composite index for common filter combinations
-CREATE INDEX IF NOT EXISTS idx_notes_filters 
-ON notes(subject_id, semester, branch, unit_number);
+-- Search analytics indexes (if exists)
+CREATE INDEX IF NOT EXISTS idx_search_analytics_user_id ON search_analytics(user_id);
+CREATE INDEX IF NOT EXISTS idx_search_analytics_created_at ON search_analytics(created_at DESC);
 
--- Index for date ordering (recent notes first)
-CREATE INDEX IF NOT EXISTS idx_notes_created 
-ON notes(created_at DESC);
-
--- Full-text search on file names (if not already exists)
-CREATE INDEX IF NOT EXISTS idx_notes_filename_search 
-ON notes USING gin(to_tsvector('english', file_name));
-
--- Full-text search on OCR text (for advanced search)
-CREATE INDEX IF NOT EXISTS idx_notes_ocr_search 
-ON notes USING gin(to_tsvector('english', ocr_text));
-
--- ===== SUBJECTS TABLE INDEXES =====
--- Subjects are frequently joined with notes
-
--- Index for branch filtering
-CREATE INDEX IF NOT EXISTS idx_subjects_branch 
-ON subjects(branch);
-
--- Index for semester filtering
-CREATE INDEX IF NOT EXISTS idx_subjects_semester 
-ON subjects(semester);
-
--- Composite index for common subject queries
-CREATE INDEX IF NOT EXISTS idx_subjects_filters 
-ON subjects(branch, semester);
-
--- ===== SEARCH ANALYTICS TABLE INDEXES =====
--- For analytics queries and trending searches
-
--- Index for query lookup
-CREATE INDEX IF NOT EXISTS idx_search_analytics_query 
-ON search_analytics(query);
-
--- Index for timestamp (trending/recent searches)
--- Uses created_at (per migration 003_create_search_analytics.sql)
-CREATE INDEX IF NOT EXISTS idx_search_analytics_timestamp 
-ON search_analytics(created_at DESC);
-
--- Composite index for query popularity analysis
-CREATE INDEX IF NOT EXISTS idx_search_analytics_query_timestamp 
-ON search_analytics(query, created_at DESC);
-
--- ===== USER PROGRESS TABLE INDEXES =====
--- For progress tracking and completion status
-
--- STUDY progress (tracks completion of notes per subject)
-CREATE INDEX IF NOT EXISTS idx_user_study_progress_user_id 
-ON user_study_progress(user_id);
-
-CREATE INDEX IF NOT EXISTS idx_user_study_progress_user_subject 
-ON user_study_progress(user_id, subject_id);
-
-CREATE INDEX IF NOT EXISTS idx_user_study_progress_user_note 
-ON user_study_progress(user_id, note_id);
-
--- UNIT-level tracking within user_study_progress (merged from user_progress)
-CREATE INDEX IF NOT EXISTS idx_user_study_progress_user_unit 
-ON user_study_progress(user_id, unit_id);
-
--- ===== USER BOOKMARKS TABLE INDEXES =====
--- For bookmark lookups
-
--- Index for user-based bookmark queries
-CREATE INDEX IF NOT EXISTS idx_user_bookmarks_user_id 
-ON user_bookmarks(user_id);
-
--- Index for note-based queries
-CREATE INDEX IF NOT EXISTS idx_user_bookmarks_note_id 
-ON user_bookmarks(note_id);
-
--- Composite index for bookmark checks
-CREATE INDEX IF NOT EXISTS idx_user_bookmarks_user_note 
-ON user_bookmarks(user_id, note_id);
-
--- ===== VERIFY INDEXES =====
--- Run this to see all indexes
--- SELECT schemaname, tablename, indexname, indexdef 
--- FROM pg_indexes 
--- WHERE schemaname = 'public' 
--- ORDER BY tablename, indexname;
-
--- ===== INDEX STATISTICS =====
--- Run this to see index usage statistics
--- SELECT schemaname, tablename, indexname, idx_scan, idx_tup_read, idx_tup_fetch
--- FROM pg_stat_user_indexes
--- WHERE schemaname = 'public'
--- ORDER BY idx_scan DESC;
+-- Analyze tables for query optimization
+ANALYZE subjects;
+ANALYZE notes;
+ANALYZE users;
+ANALYZE user_study_progress;
+ANALYZE user_bookmarks;

@@ -1,5 +1,6 @@
 import express from "express";
 import morgan from "morgan";
+import compression from "compression";
 import config from "./src/config.js";
 import corsMiddleware from "./src/middlewares/cors.js";
 import { errorHandler } from "./src/middlewares/auth.js";
@@ -27,6 +28,15 @@ const authLimiter = createAuthLimiter();
 app.use(corsMiddleware);
 app.options("*", corsMiddleware);
 
+// Compression middleware - gzip responses
+app.use(compression({
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  },
+  level: 6,
+}));
+
 // Request logging with morgan
 // Use 'combined' format in production, 'dev' in development
 const morganFormat = config.NODE_ENV === 'production' ? 'combined' : 'dev';
@@ -36,6 +46,14 @@ app.use(morgan(morganFormat, {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Cache control for GET requests
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.includes('/api/auth')) {
+    res.set('Cache-Control', 'public, max-age=300'); // 5 minutes
+  }
+  next();
+});
 
 /**
  * Global Request Timeout Safety

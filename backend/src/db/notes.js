@@ -1,4 +1,5 @@
 import { supabase } from "../lib/services.js";
+import { cacheQuery, invalidateCache } from "../utils/cache.js";
 
 /**
  * Notes Database Operations
@@ -8,37 +9,45 @@ export const notesDB = {
    * Get all notes
    */
   async getAll(filters = {}) {
-    let query = supabase.from("notes").select("*");
+    const cacheKey = `notes:all:${JSON.stringify(filters)}`;
+    
+    return cacheQuery(cacheKey, async () => {
+      let query = supabase.from("notes").select("id, file_name, subject, subject_id, unit_number, semester, branch, s3_url, created_at");
 
-    if (filters.branch) query = query.eq("branch", filters.branch);
-    if (filters.semester) query = query.eq("semester", filters.semester);
-    if (filters.subject) query = query.eq("subject", filters.subject);
-    if (filters.subject_id) query = query.eq("subject_id", filters.subject_id);
+      if (filters.branch) query = query.eq("branch", filters.branch);
+      if (filters.semester) query = query.eq("semester", filters.semester);
+      if (filters.subject) query = query.eq("subject", filters.subject);
+      if (filters.subject_id) query = query.eq("subject_id", filters.subject_id);
 
-    const { data, error } = await query;
+      const { data, error } = await query;
 
-    if (error) {
-      throw new Error(`Failed to fetch notes: ${error.message}`);
-    }
+      if (error) {
+        throw new Error(`Failed to fetch notes: ${error.message}`);
+      }
 
-    return data || [];
+      return data || [];
+    });
   },
 
   /**
    * Get note by ID
    */
   async getById(id) {
-    const { data, error } = await supabase
-      .from("notes")
-      .select("*")
-      .eq("id", id)
-      .single();
+    const cacheKey = `notes:${id}`;
+    
+    return cacheQuery(cacheKey, async () => {
+      const { data, error } = await supabase
+        .from("notes")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    if (error && error.code !== "PGRST116") {
-      throw new Error(`Database error: ${error.message}`);
-    }
+      if (error && error.code !== "PGRST116") {
+        throw new Error(`Database error: ${error.message}`);
+      }
 
-    return data || null;
+      return data || null;
+    });
   },
 
   /**

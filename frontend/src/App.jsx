@@ -1,20 +1,11 @@
 import { Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import ErrorBoundary from "./components/ErrorBoundary";
 
-// ===== PERFORMANCE ARCHITECTURE =====
-// Rule: Public routes load immediately, app routes lazy load
-// Benefits: Fast initial load, code splitting, better caching
-
-// Public routes (immediate load - small bundle)
-import Landing from "./pages/Landing";
-import Login from "./pages/Auth/Login";
-import Register from "./pages/Auth/Register";
-
-// Layout (always loaded - app shell pattern)
-import AppShell from "./components/Layout/AppShell";
-
-// Protected routes (lazy loaded - code splitting)
+// Lazy load all pages for better performance
+const Landing = lazy(() => import("./pages/Landing"));
+const Login = lazy(() => import("./pages/Auth/Login"));
+const Register = lazy(() => import("./pages/Auth/Register"));
+const AppShell = lazy(() => import("./components/Layout/AppShell"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const HomePage = lazy(() => import("./pages/HomePage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
@@ -23,39 +14,32 @@ const ProgressPage = lazy(() => import("./pages/ProgressPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const NotesPage = lazy(() => import("./pages/Notes/NotesPage"));
 
-// Loading fallback component (skeleton UI)
-function PageSkeleton() {
-  return (
-    <div className="animate-pulse p-6 space-y-4">
-      <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-      <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-      <div className="space-y-3 mt-8">
-        <div className="h-20 bg-gray-200 rounded"></div>
-        <div className="h-20 bg-gray-200 rounded"></div>
-        <div className="h-20 bg-gray-200 rounded"></div>
-      </div>
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="text-center">
+      <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <p className="mt-4 text-gray-600">Loading...</p>
     </div>
-  );
-}
+  </div>
+);
 
 export default function App() {
   return (
-    <ErrorBoundary>
+    <Suspense fallback={<LoadingFallback />}>
       <Routes>
-        {/* Public routes - immediate load */}
+
+        {/* Public routes */}
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Protected routes - lazy loaded with suspense */}
+        {/* AppShell protected routes */}
         <Route
           path="/dashboard"
           element={
             <AppShell>
-              <Suspense fallback={<PageSkeleton />}>
-                <Dashboard />
-              </Suspense>
+              <Dashboard />
             </AppShell>
           }
         />
@@ -64,9 +48,7 @@ export default function App() {
           path="/home"
           element={
             <AppShell>
-              <Suspense fallback={<PageSkeleton />}>
-                <HomePage />
-              </Suspense>
+              <HomePage />
             </AppShell>
           }
         />
@@ -75,9 +57,7 @@ export default function App() {
           path="/search"
           element={
             <AppShell>
-              <Suspense fallback={<PageSkeleton />}>
-                <SearchPage />
-              </Suspense>
+              <SearchPage />
             </AppShell>
           }
         />
@@ -86,9 +66,7 @@ export default function App() {
           path="/books"
           element={
             <AppShell>
-              <Suspense fallback={<PageSkeleton />}>
-                <BooksPage />
-              </Suspense>
+              <BooksPage />
             </AppShell>
           }
         />
@@ -97,9 +75,7 @@ export default function App() {
           path="/progress"
           element={
             <AppShell>
-              <Suspense fallback={<PageSkeleton />}>
-                <ProgressPage />
-              </Suspense>
+              <ProgressPage />
             </AppShell>
           }
         />
@@ -108,9 +84,7 @@ export default function App() {
           path="/profile"
           element={
             <AppShell>
-              <Suspense fallback={<PageSkeleton />}>
-                <ProfilePage />
-              </Suspense>
+              <ProfilePage />
             </AppShell>
           }
         />
@@ -119,13 +93,12 @@ export default function App() {
           path="/notes"
           element={
             <AppShell>
-              <Suspense fallback={<PageSkeleton />}>
-                <NotesPage />
-              </Suspense>
+              <NotesPage />
             </AppShell>
           }
         />
+
       </Routes>
-    </ErrorBoundary>
+    </Suspense>
   );
 }

@@ -2,8 +2,6 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import client from "../api/client";
 import { Link, useLocation } from "react-router-dom";
 import Fuse from "fuse.js";
-import SearchErrorBoundary from "../components/SearchErrorBoundary";
-import { useClickOutside } from "../hooks/useClickOutside";
 
 // Add animation styles
 const styles = `
@@ -43,7 +41,7 @@ const SEARCH_STATES = {
   EMPTY: 'empty'
 };
 
-function SearchPageContent() {
+export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [groupedResults, setGroupedResults] = useState({});
@@ -218,18 +216,21 @@ function SearchPageContent() {
     return formatted;
   }, []);
 
-  // Click outside handler (performance optimized with custom hook)
-  useClickOutside(
-    searchContainerRef,
-    () => {
-      setShowSuggestions(false);
-      setSelectedSuggestionIndex(-1);
-      if (!query.trim()) {
-        setSearchState(SEARCH_STATES.IDLE);
+  // Click outside handler
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+        if (!query.trim()) {
+          setSearchState(SEARCH_STATES.IDLE);
+        }
       }
-    },
-    true // Always enabled
-  );
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [query]);
 
   // Autocomplete suggestions with strict validation
   useEffect(() => {
@@ -924,14 +925,5 @@ function SearchPageContent() {
         )}
       </div>
     </div>
-  );
-}
-
-// Export with error boundary for isolation
-export default function SearchPage() {
-  return (
-    <SearchErrorBoundary>
-      <SearchPageContent />
-    </SearchErrorBoundary>
   );
 }

@@ -1,21 +1,18 @@
 import { supabase } from "../lib/services.js";
-import Cache from "../utils/cache.js";
+import { cacheQuery, invalidateCache } from "../utils/cache.js";
 
 /**
  * Subjects Database Operations
- * Performance optimized with caching layer
  */
 export const subjectsDB = {
   /**
-   * Get all subjects (with caching)
+   * Get all subjects
    */
   async getAll(filters = {}) {
-    // Create cache key from filters
     const cacheKey = `subjects:all:${JSON.stringify(filters)}`;
     
-    // Try cache first
-    return Cache.subjects.getOrSet(cacheKey, async () => {
-      let query = supabase.from("subjects").select("*");
+    return cacheQuery(cacheKey, async () => {
+      let query = supabase.from("subjects").select("id, name, branch, semester, code, created_at");
 
       if (filters.branch) query = query.eq("branch", filters.branch);
       if (filters.semester) query = query.eq("semester", filters.semester);
@@ -31,12 +28,12 @@ export const subjectsDB = {
   },
 
   /**
-   * Get subject by ID (with caching)
+   * Get subject by ID
    */
   async getById(id) {
-    const cacheKey = `subject:${id}`;
+    const cacheKey = `subjects:${id}`;
     
-    return Cache.subjects.getOrSet(cacheKey, async () => {
+    return cacheQuery(cacheKey, async () => {
       const { data, error } = await supabase
         .from("subjects")
         .select("*")
@@ -52,7 +49,7 @@ export const subjectsDB = {
   },
 
   /**
-   * Create subject (invalidates cache)
+   * Create subject
    */
   async create(subjectData) {
     const { data, error } = await supabase
@@ -65,14 +62,11 @@ export const subjectsDB = {
       throw new Error(`Failed to create subject: ${error.message}`);
     }
 
-    // Invalidate subjects cache
-    Cache.subjects.invalidateAll();
-
     return data;
   },
 
   /**
-   * Update subject (invalidates cache)
+   * Update subject
    */
   async update(id, updates) {
     const { data, error } = await supabase
@@ -86,9 +80,8 @@ export const subjectsDB = {
       throw new Error(`Failed to update subject: ${error.message}`);
     }
 
-    // Invalidate cache for this subject
-    Cache.subjects.del(`subject:${id}`);
-    Cache.subjects.invalidateAll(); // Also invalidate list caches
+    // Invalidate cache
+    invalidateCache(`subjects:*`);
 
     return data;
   },
@@ -97,21 +90,16 @@ export const subjectsDB = {
    * Get subject with resources (notes, books, pyqs, syllabus)
    * Filters from single notes table by S3 URL path patterns
    * Extracts unit numbers from filenames when not in database
-   * 
-   * Performance: Uses caching for frequently accessed subjects
    */
   async getWithResources(id) {
-    const cacheKey = `subject_resources:${id}`;
-    
-    return Cache.notes.getOrSet(cacheKey, async () => {
-      const subject = await this.getById(id);
-      if (!subject) return null;
+    const subject = await this.getById(id);
+    if (!subject) return null;
 
-      // Fetch all notes for this subject
-      const { data: allNotes } = await supabase
-        .from("notes")
-        .select("*")
-        .eq("subject_id", id)
+    // Fetch all notes for this subject
+    const { data: allNotes } = await supabase
+      .from("notes")
+      .select("*")
+      .eq("subject_id", id)
       .order("created_at", { ascending: false });
 
     // Filter notes into categories based on S3 URL path patterns
@@ -206,7 +194,6 @@ export const subjectsDB = {
       syllabus_text: subject.syllabus_text || null,
       syllabus_json: subject.syllabus_json || null,
     };
-    }); // End of cache wrapper
   },
 };
 

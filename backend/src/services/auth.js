@@ -25,7 +25,7 @@ export const authService = {
     }
 
     // Hash password
-    const password_hash = await bcrypt.hash(password, 10);
+    const password_hash = await bcrypt.hash(password, 8);
 
     // Create user with selected_year
     const user = await userDB.create({ email, password_hash, name, selected_year, email_notifications, analytics_sharing });

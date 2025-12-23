@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Breadcrumbs from "../components/Breadcrumbs";
 import client from "../api/client";
@@ -12,8 +12,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  const [branches, setBranches] = useState([]);
-  const [semesters, setSemesters] = useState([]);
+  const [allSubjects, setAllSubjects] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(false); // subjects fetch
   const [initializing, setInitializing] = useState(true); // initial branches load
@@ -21,32 +20,12 @@ export default function HomePage() {
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [selectedSemester, setSelectedSemester] = useState(null);
 
-  // Fetch branches and semesters on mount
+  // Fetch all subjects once on mount
   useEffect(() => {
     async function initializePage() {
       try {
         const res = await client.get('/api/subjects');
-        const allSubjects = Array.isArray(res.data) ? res.data : [];
-        
-        // Filter by selected year (support both numeric and "1st Year" labels)
-        const yearToSemesters = {
-          '1st Year': ['1', '2', '1st year', '1st year '],
-          '2nd Year': ['3', '4', '2nd year', '2nd year ']
-        };
-        const validSemestersNorm = user?.selected_year
-          ? (yearToSemesters[user.selected_year] || []).map(s => String(s).trim().toLowerCase())
-          : [];
-        const filteredSubjects = user?.selected_year 
-          ? allSubjects.filter(s => validSemestersNorm.includes(String(s.semester || '').trim().toLowerCase()))
-          : allSubjects;
-        
-        // Extract unique branches
-        const uniqueBranches = [...new Set(filteredSubjects.map(s => s.branch).filter(Boolean))];
-        setBranches(uniqueBranches.map((name, idx) => ({ id: String(idx + 1), name })));
-        
-        // Extract unique semesters (filtered by year)
-        const uniqueSemesters = [...new Set(filteredSubjects.map(s => s.semester).filter(Boolean))];
-        setSemesters(uniqueSemesters.sort().map((name, idx) => ({ id: String(idx + 1), name })));
+        setAllSubjects(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error("Failed to initialize page:", err);
       } finally {
@@ -54,33 +33,55 @@ export default function HomePage() {
       }
     }
     initializePage();
-  }, [user?.selected_year, user]);
+  }, []);
 
-  // Fetch subjects when branch and semester are selected
-  useEffect(() => {
-    async function fetchSubjects() {
-      if (selectedBranch && selectedSemester) {
-        try {
-          setLoading(true);
-          const res = await client.get('/api/subjects', {
-            params: {
-              branch: selectedBranch.name,
-              semester: selectedSemester.name
-            }
-          });
-          setSubjects(Array.isArray(res.data) ? res.data : []);
-        } catch (err) {
-          console.error("Failed to fetch subjects:", err);
-          setSubjects([]);
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        setSubjects([]);
-      }
+  // Compute filtered data from allSubjects (client-side filtering)
+  const { branches, semesters, filteredSubjects } = useMemo(() => {
+    // Filter by selected year
+    const yearToSemesters = {
+      '1st Year': ['1', '2', '1st year', '1st year '],
+      '2nd Year': ['3', '4', '2nd year', '2nd year ']
+    };
+    const validSemestersNorm = user?.selected_year
+      ? (yearToSemesters[user.selected_year] || []).map(s => String(s).trim().toLowerCase())
+      : [];
+    
+    const yearFiltered = user?.selected_year 
+      ? allSubjects.filter(s => validSemestersNorm.includes(String(s.semester || '').trim().toLowerCase()))
+      : allSubjects;
+    
+    // Extract unique branches
+    const uniqueBranches = [...new Set(yearFiltered.map(s => s.branch).filter(Boolean))];
+    const branchList = uniqueBranches.map((name, idx) => ({ id: String(idx + 1), name }));
+    
+    // Extract unique semesters (filtered by year)
+    const uniqueSemesters = [...new Set(yearFiltered.map(s => s.semester).filter(Boolean))];
+    const semesterList = uniqueSemesters.sort().map((name, idx) => ({ id: String(idx + 1), name }));
+    
+    // Filter subjects by selected branch and semester
+    let filtered = yearFiltered;
+    if (selectedBranch) {
+      filtered = filtered.filter(s => s.branch === selectedBranch.name);
     }
-    fetchSubjects();
-  }, [selectedBranch, selectedSemester]);
+    if (selectedSemester) {
+      filtered = filtered.filter(s => s.semester === selectedSemester.name);
+    }
+    
+    return {
+      branches: branchList,
+      semesters: semesterList,
+      filteredSubjects: filtered,
+    };
+  }, [allSubjects, user?.selected_year, selectedBranch, selectedSemester]);
+
+  // Update subjects when filters change
+  useEffect(() => {
+    if (selectedBranch && selectedSemester) {
+      setSubjects(filteredSubjects);
+    } else {
+      setSubjects([]);
+    }
+  }, [selectedBranch, selectedSemester, filteredSubjects]);
 
   // Breadcrumbs
   const crumbs = [
