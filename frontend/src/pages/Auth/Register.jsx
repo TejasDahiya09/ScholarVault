@@ -224,7 +224,7 @@ export default function Register() {
       setBranch={setOnboardingBranch}
       loading={loading}
     />
-  )
+  );
 }
 
 // Onboarding modal overlay
