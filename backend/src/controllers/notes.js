@@ -116,7 +116,7 @@ export const getSummary = async (req, res) => {
       const sentence = sentences[i].trim();
       
       // Send as SSE data event
-      res.write(`data: ${JSON.stringify({\n        chunk: sentence + ' ',\n        index: i,\n        total: sentences.length\n      })}\n\n`);
+      res.write(`data: ${JSON.stringify({ chunk: sentence + ' ', index: i, total: sentences.length })}\n\n`);
       
       // Small delay between sentences for streaming effect
       await new Promise(resolve => setTimeout(resolve, 50));
