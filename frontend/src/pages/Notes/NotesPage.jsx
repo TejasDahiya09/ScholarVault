@@ -403,6 +403,30 @@ export default function NotesPage() {
     setSelectedNote(null);
   };
 
+  // Track note study time invisibly (no timer UI)
+  useEffect(() => {
+    if (!selectedNote || !subjectId) return;
+
+    const startTime = Date.now();
+    const noteId = selectedNote.id;
+
+    // Silent start tracking
+    client.post(`/api/progress/note/${noteId}/start`, {
+      startedAt: new Date().toISOString()
+    }).catch(() => {}); // Ignore errors silently
+
+    // On unmount or note change, send duration
+    return () => {
+      const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
+      if (durationSeconds > 5) { // Only track if studied for more than 5 seconds
+        client.post(`/api/progress/note/${noteId}/end`, {
+          subjectId,
+          durationSeconds
+        }).catch(() => {}); // Ignore errors silently
+      }
+    };
+  }, [selectedNote, subjectId]);
+
   // Handle resize divider drag - optimized for smooth performance
   useEffect(() => {
     let lastClientX = 0;

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../middlewares/auth.js";
 import studySessionsDB from "../db/studySessions.js";
+import { supabase } from "../lib/services.js";
 
 const router = Router();
 
@@ -78,6 +79,74 @@ router.get("/analytics", authenticate, async (req, res, next) => {
       weekly,
       monthly: month,
     });
+  } catch (err) { next(err); }
+});
+
+/**
+ * Start tracking time for a specific note (invisible to user)
+ */
+router.post("/note/:noteId/start", authenticate, async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const noteId = req.params.noteId;
+    const startedAt = req.body?.startedAt || new Date().toISOString();
+    
+    // Store in temporary session storage (could use Redis in production)
+    // For now, just return OK - frontend will send duration on end
+    res.json({ ok: true, noteId, startedAt });
+  } catch (err) { next(err); }
+});
+
+/**
+ * End note study session and update total_time_spent
+ */
+router.post("/note/:noteId/end", authenticate, async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const noteId = req.params.noteId;
+    const subjectId = req.body?.subjectId;
+    const durationSeconds = req.body?.durationSeconds || 0;
+    
+    if (!subjectId) {
+      return res.status(400).json({ error: "subjectId required" });
+    }
+    
+    // Update or create user_study_progress entry
+    const { data: existing } = await supabase
+      .from("user_study_progress")
+      .select("id, total_time_spent")
+      .eq("user_id", userId)
+      .eq("note_id", noteId)
+      .single();
+    
+    if (existing) {
+      // Update existing record
+      const newTotal = (existing.total_time_spent || 0) + durationSeconds;
+      await supabase
+        .from("user_study_progress")
+        .update({
+          total_time_spent: newTotal,
+          last_study_date: new Date().toISOString().slice(0, 10),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
+      
+      res.json({ ok: true, noteId, totalTimeSpent: newTotal });
+    } else {
+      // Create new record
+      await supabase
+        .from("user_study_progress")
+        .insert([{
+          user_id: userId,
+          subject_id: subjectId,
+          note_id: noteId,
+          total_time_spent: durationSeconds,
+          last_study_date: new Date().toISOString().slice(0, 10),
+          is_completed: false,
+        }]);
+      
+      res.json({ ok: true, noteId, totalTimeSpent: durationSeconds });
+    }
   } catch (err) { next(err); }
 });
 
