@@ -112,8 +112,17 @@ export default function NotesPage() {
 
           setSubjectDetails(subject);
           const allNotes = subject.notes || [];
-          const pptItems = allNotes.filter(n => /\.pptx?$/.test((n.file_name || "").toLowerCase()));
-          const regularNotes = allNotes.filter(n => !/\.pptx?$/.test((n.file_name || "").toLowerCase()));
+
+          const isPptFile = (item) => {
+            const name = (item.file_name || "").toLowerCase();
+            const url = (item.s3_url || "").toLowerCase();
+            const hasPpt = name.includes('.ppt') || url.includes('.ppt');
+            const isPdf = name.endsWith('.pdf') || url.includes('.pdf');
+            return hasPpt && !isPdf;
+          };
+
+          const pptItems = allNotes.filter(isPptFile);
+          const regularNotes = allNotes.filter((n) => !isPptFile(n));
 
           setNotesList(regularNotes);
           setPptList(pptItems);
