@@ -141,17 +141,17 @@ Answer:`;
     try {
       const prompt = `Stream a concise study summary in plain text.
 
-    Rules (strict):
-    - Plain text only (no *, -, #, bullets, markdown)
-    - Short lines; stream as you write
-    - Prefer numbered key points: 1) 2) 3)
-    - Include: Overview, Key Points, Takeaway
-    - Keep it under 120 words total
+Rules (strict):
+- Plain text only (no *, -, #, bullets, markdown)
+- Short lines; stream as you write
+- Prefer numbered key points: 1) 2) 3)
+- Include: Overview, Key Points, Takeaway
+- Keep it under 120 words total
 
-    Content:
-    ${text}
+Content:
+${text}
 
-    Start with "Overview:" then stream Key Points and Takeaway.`;
+Start with "Overview:" then stream Key Points and Takeaway.`;
 
       const request = {
         contents: [
@@ -160,77 +160,73 @@ Answer:`;
             parts: [
               {
                 text: prompt,
-              let prompt;
+              },
+            ],
+          },
+        ],
+      };
 
-              if (useRag) {
-                // RAG mode: use context + knowledge
-                prompt = `Provide a crisp, helpful answer using the provided context first.
+      const stream = await vertexModel.generateContentStream(request);
+      for await (const chunk of stream.stream) {
+        const piece = chunk.candidates[0]?.content?.parts[0]?.text || "";
+        if (piece) {
+          res.write(`data: ${JSON.stringify({ chunk: piece })}\n\n`);
+        }
+      }
 
-        Rules:
-        - Plain text only (no bullets/markdown symbols)
-        - Stream short lines as you think
-        - Structure:
-          Answer: one concise sentence
-          Evidence: 2-4 numbered context-backed points
-          Tip: one practical next step
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch (err) {
+      console.error("Summary streaming error:", err);
+      res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+      res.end();
+    }
+  },
 
-        Context:
-        ${text}
+  /**
+   * Ask question with streaming - web knowledge enabled
+   */
+  async askQuestionStream(text, question, useRag = false, res) {
+    if (!text || !question) {
+      res.write(`data: ${JSON.stringify({ error: "Missing text or question" })}\n\n`);
+      res.end();
+      return;
+    }
 
-        Question: ${question}
-
-        Start now.`;
-              } else {
-                prompt = `Provide a crisp, helpful answer.
-
-        Rules:
-        - Plain text only (no bullets/markdown symbols)
-        - Stream short lines as you think
-        - Structure:
-          Answer: one concise sentence
-          Key Points: 2-4 numbered supporting points
-          Tip: one practical next step
-
-        Question: ${question}
-
-        Start now.`;
-              }
+    try {
+      let prompt;
 
       if (useRag) {
-        // RAG mode: use chunks + web knowledge for fast, comprehensive answers
-        prompt = `Quick answer mode. Use context and knowledge.
+        prompt = `Provide a crisp, helpful answer using the provided context first.
 
-NO MARKDOWN RULES - CRITICAL:
-- NO asterisks (*)
-- NO hyphens or dashes for formatting
-- NO hash symbols (#)
-- NO special characters for formatting
-- Use plain text ONLY
-- Number points if helpful: 1. 2. 3.
-- Use line breaks to separate ideas
+Rules:
+- Plain text only (no bullets/markdown symbols)
+- Stream short lines as you think
+- Structure:
+  Answer: one concise sentence
+  Evidence: 2-4 numbered context-backed points
+  Tip: one practical next step
 
 Context:
 ${text}
 
 Question: ${question}
 
-Answer:`;
+Start now.`;
       } else {
-        // Ask AI mode: web knowledge only for general understanding - FAST MODE
-        prompt = `Quick answer from knowledge.
+        prompt = `Provide a crisp, helpful answer.
 
-NO MARKDOWN RULES - CRITICAL:
-- NO asterisks (*)
-- NO hyphens or dashes for formatting
-- NO hash symbols (#)
-- NO special characters for formatting
-- Use plain text ONLY
-- Number points if helpful: 1. 2. 3.
-- Use line breaks to separate ideas
+Rules:
+- Plain text only (no bullets/markdown symbols)
+- Stream short lines as you think
+- Structure:
+  Answer: one concise sentence
+  Key Points: 2-4 numbered supporting points
+  Tip: one practical next step
 
 Question: ${question}
 
-Answer:`;
+Start now.`;
       }
 
       const request = {
@@ -247,15 +243,13 @@ Answer:`;
       };
 
       const stream = await vertexModel.generateContentStream(request);
-      
       for await (const chunk of stream.stream) {
-        const text = chunk.candidates[0]?.content?.parts[0]?.text || "";
-        if (text) {
-          const data = `data: ${JSON.stringify({ chunk: text })}\n\n`;
-          res.write(data);
+        const piece = chunk.candidates[0]?.content?.parts[0]?.text || "";
+        if (piece) {
+          res.write(`data: ${JSON.stringify({ chunk: piece })}\n\n`);
         }
       }
-      
+
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
     } catch (err) {
