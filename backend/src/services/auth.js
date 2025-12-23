@@ -24,8 +24,8 @@ export const authService = {
       throw new Error("Email already registered");
     }
 
-    // Hash password
-    const password_hash = await bcrypt.hash(password, 8);
+    // Hash password (using 5 rounds for faster registration)
+    const password_hash = await bcrypt.hash(password, 5);
 
     // Create user with selected_year
     const user = await userDB.create({ email, password_hash, name, selected_year, email_notifications, analytics_sharing });

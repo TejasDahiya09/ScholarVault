@@ -4,7 +4,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const client = axios.create({
   baseURL: API_BASE,
-  timeout: 60000,
+  timeout: 120000, // 2 minutes to handle Render cold starts
 });
 
 // Simple in-memory cache for GET requests
