@@ -12,6 +12,7 @@ const ragIcon = "/assets/icons/rag.svg";
 const progressIcon = "/assets/icons/progress.svg";
 const powerIcon = "/assets/icons/power.svg";
 const bookBrainSvg = "/assets/book-brain.svg";
+const logoImg = "/assets/logo.png";
 
 const FeatureCard = ({ icon, title, desc, delay = 0 }) => (
   <div
@@ -163,7 +164,7 @@ export default function Landing() {
                 {/* Inner illustration overlay */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   {innerIndex === 3 && (
-                    <img src={bookBrainSvg} alt="Book and Brain" className="w-4/5 h-4/5" />
+                    <img src={logoImg} alt="ScholarVault Logo" className="w-4/5 h-4/5 object-contain" />
                   )}
                   {innerIndex === 0 && (
                     <svg className="w-4/5 h-4/5" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
