@@ -260,7 +260,7 @@ export default function ProgressPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {subjects.map((subject) => (
+                  {[...subjects.filter(s => (s.progress || 0) > 0), ...subjects.filter(s => (s.progress || 0) <= 0)].map((subject) => (
                     <div key={subject.id} className="p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition-all">
                       <div className="flex items-start justify-between mb-3 gap-3">
                         <div className="flex-1 min-w-0">

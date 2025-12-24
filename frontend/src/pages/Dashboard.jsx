@@ -189,12 +189,18 @@ export default function Dashboard() {
     );
   }, [bookmarkedNotes, bookmarksPage]);
 
+  const sortedSubjects = useMemo(() => {
+    const withProgress = subjects.filter(s => (s.progress || 0) > 0);
+    const withoutProgress = subjects.filter(s => (s.progress || 0) <= 0);
+    return [...withProgress, ...withoutProgress];
+  }, [subjects]);
+
   const paginatedSubjects = useMemo(() => {
-    return subjects.slice(
+    return sortedSubjects.slice(
       subjectsPage * SUBJECTS_PER_PAGE,
       (subjectsPage + 1) * SUBJECTS_PER_PAGE
     );
-  }, [subjects, subjectsPage]);
+  }, [sortedSubjects, subjectsPage]);
 
   const needsAttention = useMemo(() => {
     return subjects
