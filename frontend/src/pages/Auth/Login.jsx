@@ -60,8 +60,15 @@ export default function Login() {
       
       login(token, user || { email })
       
-      // Always go to dashboard after login
-      navigate('/dashboard')
+      // Check if user has bookmarks
+      try {
+        const bookmarksRes = await client.get('/api/bookmarks/details')
+        const hasBookmarks = bookmarksRes.data?.bookmarks?.length > 0
+        navigate(hasBookmarks ? '/dashboard' : '/home')
+      } catch (err) {
+        // If error fetching bookmarks, go to subjects
+        navigate('/home')
+      }
     } catch (e) {
       setErr(e?.response?.data?.error || e?.message || 'Login failed')
     } finally {

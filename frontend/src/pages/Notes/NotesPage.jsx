@@ -130,44 +130,51 @@ export default function NotesPage() {
     });
   };
 
-  // Fetch user bookmarks (can be called after update)
-  const fetchBookmarks = async () => {
-    try {
-      const res = await client.get('/api/bookmarks');
-      const bookmarkIds = res.data?.bookmarks || [];
-      // Always create a new Set to trigger React state update
-      setBookmarkedNotes(new Set(bookmarkIds));
-    } catch (err) {
-      console.error("Failed to fetch bookmarks:", err);
+  // Fetch user bookmarks on mount
+  useEffect(() => {
+    async function fetchBookmarks() {
+      try {
+        const res = await client.get('/api/bookmarks');
+        const bookmarkIds = res.data?.bookmarks || [];
+        setBookmarkedNotes(new Set(bookmarkIds));
+      } catch (err) {
+        console.error("Failed to fetch bookmarks:", err);
+      }
     }
-  };
-  useEffect(() => { fetchBookmarks(); }, []);
+    fetchBookmarks();
+  }, []);
 
-  // Fetch subject data (can be called after update)
   // Fetch subject data
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
+
         if (subjectId) {
           const subjectRes = await client.get(`/api/subjects/${subjectId}`);
           const subject = subjectRes.data;
+
           setSubjectDetails(subject);
           const allNotes = subject.notes || [];
+
           const isPptFile = (item) => {
             const name = (item.file_name || "").toLowerCase();
             const url = (item.s3_url || "").toLowerCase();
             const key = (item.s3_key || "").toLowerCase();
+            // Check if file has .ppt or .pptx anywhere in name, URL, or S3 key
             return name.includes('.ppt') || url.includes('.ppt') || key.includes('.ppt') || 
                    name.includes('ppt') || url.includes('ppt') || key.includes('ppt');
           };
+
           const pptItems = allNotes.filter(isPptFile);
           const regularNotes = allNotes.filter((n) => !isPptFile(n));
+
           setNotesList(sortByUnitNumber(regularNotes));
           setPptList(sortByUnitNumber(pptItems));
           setBooksList(subject.books || []);
           setPyqList(subject.pyqs || []);
           setSyllabusList(subject.syllabus || []);
+          
           // Auto-select note if noteId is provided in URL
           if (noteId && subject.notes) {
             const noteToOpen = subject.notes.find(n => n.id === noteId);
@@ -187,19 +194,22 @@ export default function NotesPage() {
     load();
   }, [subjectId, noteId]);
 
-  // Fetch completion status for current subject (can be called after update)
-  const fetchCompletion = async () => {
+  // Fetch completion status for current subject so buttons reflect saved progress
+  useEffect(() => {
     if (!subjectId) return;
-    try {
-      const res = await client.get(`/api/subjects/${subjectId}/progress`);
-      const completedIds = res.data?.completed_note_ids || [];
-      // Always create a new Set to trigger React state update
-      setCompletedNotes(new Set(completedIds));
-    } catch (err) {
-      console.error("Failed to load completion status:", err);
+
+    async function fetchCompletion() {
+      try {
+        const res = await client.get(`/api/subjects/${subjectId}/progress`);
+        const completedIds = res.data?.completed_note_ids || [];
+        setCompletedNotes(new Set(completedIds));
+      } catch (err) {
+        console.error("Failed to load completion status:", err);
+      }
     }
-  };
-  useEffect(() => { fetchCompletion(); }, [subjectId]);
+
+    fetchCompletion();
+  }, [subjectId]);
 
   // Load cached summary when note changes or AI mode switches
   useEffect(() => {
@@ -632,25 +642,24 @@ export default function NotesPage() {
     e.stopPropagation();
     try {
       const isCompleted = completedNotes.has(noteId);
-      console.log('[DEBUG] Mark Complete: sending', {
-        url: `/api/notes/${noteId}/complete`,
-        body: { subjectId, completed: !isCompleted }
-      });
-      const response = await client.post(`/api/notes/${noteId}/complete`, {
+      await client.post(`/api/notes/${noteId}/complete`, {
         subjectId: subjectId,
         completed: !isCompleted,
       });
-      console.log('[DEBUG] Mark Complete: response', response?.data);
-      // Refetch completion state for accuracy
-      await fetchCompletion();
-      setToast({ show: true, message: isCompleted ? "Marked as incomplete" : "✓ Marked as complete!", type: isCompleted ? "info" : "success" });
-      if (!isCompleted) {
+      // Always fetch latest completion state from backend for reliability
+      const res = await client.get(`/api/subjects/${subjectId}/progress`);
+      const completedIds = res.data?.completed_note_ids || [];
+      setCompletedNotes(new Set(completedIds));
+      if (isCompleted) {
+        setToast({ show: true, message: "Marked as incomplete", type: "info" });
+      } else {
+        setToast({ show: true, message: "✓ Marked as complete!", type: "success" });
         setCompletePopup({ show: true, noteId });
         setTimeout(() => setCompletePopup({ show: false, noteId: null }), 3000);
       }
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     } catch (err) {
-      console.error("[DEBUG] Failed to mark note complete:", err, err?.response);
+      console.error("Failed to mark note complete:", err);
       setToast({ show: true, message: "Failed to update completion status", type: "error" });
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     }
@@ -660,22 +669,21 @@ export default function NotesPage() {
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
     try {
-      console.log('[DEBUG] Toggle Bookmark: sending', {
-        url: `/api/notes/${noteId}/bookmark`
-      });
-      const response = await client.post(`/api/notes/${noteId}/bookmark`);
-      console.log('[DEBUG] Toggle Bookmark: response', response?.data);
-      // Refetch bookmarks for accuracy
-      await fetchBookmarks();
-      // After refetch, check if note is now bookmarked
-      setToast({ show: true, message: bookmarkedNotes.has(noteId) ? "Bookmark removed" : "Bookmarked!", type: bookmarkedNotes.has(noteId) ? "info" : "success" });
-      if (!bookmarkedNotes.has(noteId)) {
+      const isBookmarked = bookmarkedNotes.has(noteId);
+      await client.post(`/api/notes/${noteId}/bookmark`);
+      // Always fetch latest bookmarks from backend for reliability
+      const res = await client.get('/api/bookmarks');
+      const bookmarkIds = res.data?.bookmarks || [];
+      setBookmarkedNotes(new Set(bookmarkIds));
+      if (isBookmarked) {
+        setToast({ show: true, message: "Bookmark removed", type: "info" });
+      } else {
         setBookmarkPopup({ show: true, noteId });
         setTimeout(() => setBookmarkPopup({ show: false, noteId: null }), 3000);
       }
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     } catch (err) {
-      console.error("[DEBUG] Failed to toggle bookmark:", err, err?.response);
+      console.error("Failed to toggle bookmark:", err);
       setToast({ show: true, message: "Failed to update bookmark", type: "error" });
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     }

@@ -5,6 +5,7 @@ PROJECT_DETAILS.md
 # ========== DATA & LARGE FILES ==========
 # Never upload ScholarVault data
 ScholarVault_Data/
+ScholarVault-main/
 *.zip
 *.rar
 *.7z
