@@ -648,22 +648,24 @@ export default function NotesPage() {
     try {
       const isCompleted = completedNotes.has(noteId);
       // Do not update UI until after confirmation
+      // Optimistically update UI
+      setCompletedNotes(prev => {
+        const updated = new Set(prev);
+        if (isCompleted) updated.delete(noteId);
+        else updated.add(noteId);
+        return updated;
+      });
       await client.post(`/api/notes/${noteId}/complete`, {
         subjectId: subjectId,
         completed: !isCompleted,
       });
-      // Re-fetch both bookmarks and completion status from backend
-      const [bookmarksRes, completionRes] = await Promise.all([
-        client.get('/api/bookmarks'),
-        subjectId ? client.get(`/api/subjects/${subjectId}/progress`) : Promise.resolve({ data: { completed_note_ids: [] } })
-      ]);
-      setBookmarkedNotes(new Set(bookmarksRes.data?.bookmarks || []));
-      setCompletedNotes(new Set(completionRes.data?.completed_note_ids || []));
-      // Signal dashboard/progress to refresh
+      // Only re-fetch completion status (not bookmarks, which are unaffected)
+      if (subjectId) {
+        const completionRes = await client.get(`/api/subjects/${subjectId}/progress`);
+        setCompletedNotes(new Set(completionRes.data?.completed_note_ids || []));
+      }
       localStorage.setItem('sv_refresh_dashboard', '1');
       window.dispatchEvent(new Event('sv_refresh_dashboard'));
-      // Refresh notes list
-      await load();
       if (isCompleted) {
         setToast({ show: true, message: "Marked as incomplete", type: "info" });
       } else {
@@ -684,19 +686,19 @@ export default function NotesPage() {
     e.stopPropagation();
     try {
       const isBookmarked = bookmarkedNotes.has(noteId);
+      // Optimistically update UI
+      setBookmarkedNotes(prev => {
+        const updated = new Set(prev);
+        if (isBookmarked) updated.delete(noteId);
+        else updated.add(noteId);
+        return updated;
+      });
       await client.post(`/api/notes/${noteId}/bookmark`);
-      // Re-fetch both bookmarks and completion status from backend
-      const [bookmarksRes, completionRes] = await Promise.all([
-        client.get('/api/bookmarks'),
-        subjectId ? client.get(`/api/subjects/${subjectId}/progress`) : Promise.resolve({ data: { completed_note_ids: [] } })
-      ]);
+      // Only re-fetch bookmarks (not completion, which is unaffected)
+      const bookmarksRes = await client.get('/api/bookmarks');
       setBookmarkedNotes(new Set(bookmarksRes.data?.bookmarks || []));
-      setCompletedNotes(new Set(completionRes.data?.completed_note_ids || []));
-      // Signal dashboard/progress to refresh
       localStorage.setItem('sv_refresh_dashboard', '1');
       window.dispatchEvent(new Event('sv_refresh_dashboard'));
-      // Refresh notes list
-      await load();
       if (isBookmarked) {
         setToast({ show: true, message: "Bookmark removed", type: "info" });
       } else {

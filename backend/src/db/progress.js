@@ -10,89 +10,28 @@ export const progressDB = {
    * Mark a note as completed
    * Updates user_study_progress with completion status
    */
-  async markNoteComplete(userId, noteId, subjectId) {
-    // First, try to find existing record
-    const { data: existing } = await supabase
-      .from("user_study_progress")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("subject_id", subjectId)
-      .eq("note_id", noteId)
-      .single();
-
-    let result;
-    if (existing) {
-      // Update existing record
-      const { data, error } = await supabase
-        .from("user_study_progress")
-        .update({
-          is_completed: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id)
-        .select()
-        .single();
-
-      if (error) {
-        throw new Error(`Failed to mark note as complete: ${error.message}`);
-      }
-      result = data;
-    } else {
-      // Insert new record
-      const { data, error } = await supabase
-        .from("user_study_progress")
-        .insert([
-          {
-            user_id: userId,
-            subject_id: subjectId,
-            note_id: noteId,
-            is_completed: true,
-            updated_at: new Date().toISOString(),
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) {
-        throw new Error(`Failed to mark note as complete: ${error.message}`);
-      }
-      result = data;
-    }
-
-    return result;
-  },
 
   /**
-   * Unmark a note as completed
+   * Set note completion status (atomic upsert)
    */
-  async unmarkNoteComplete(userId, noteId) {
-    // First, find the existing record
-    const { data: existing } = await supabase
-      .from("user_study_progress")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("note_id", noteId)
-      .single();
-
-    if (!existing) {
-      // If no record exists, nothing to unmark
-      return null;
-    }
-
+  async setNoteCompletion(userId, noteId, subjectId, completed) {
+    // Try upsert for atomicity
     const { data, error } = await supabase
       .from("user_study_progress")
-      .update({
-        is_completed: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", existing.id)
+      .upsert([
+        {
+          user_id: userId,
+          subject_id: subjectId,
+          note_id: noteId,
+          is_completed: completed,
+          updated_at: new Date().toISOString(),
+        },
+      ], { onConflict: ["user_id", "note_id"] })
       .select()
       .single();
-
     if (error) {
-      throw new Error(`Failed to unmark note as complete: ${error.message}`);
+      throw new Error(`Failed to set note completion: ${error.message}`);
     }
-
     return data;
   },
 

@@ -174,13 +174,8 @@ export const markAsCompleted = async (req, res, next) => {
       return res.status(400).json({ error: "subjectId is required" });
     }
 
-    let result;
-    if (completed) {
-      result = await progressDB.markNoteComplete(userId, noteId, subjectId);
-    } else {
-      result = await progressDB.unmarkNoteComplete(userId, noteId);
-    }
-
+    // Use atomic upsert for completion
+    const result = await progressDB.setNoteCompletion(userId, noteId, subjectId, completed);
     // Get updated subject completion status
     const status = await progressDB.getSubjectCompletionStatus(userId, subjectId);
 
@@ -188,6 +183,7 @@ export const markAsCompleted = async (req, res, next) => {
       status: "success",
       note_completed: completed,
       subject_completion: status,
+      result,
     });
   } catch (err) {
     next(err);
