@@ -126,7 +126,7 @@ export default function Landing() {
               {/* Content container */}
               <div className="relative h-full flex items-center justify-center p-6">
                 {/* Logo with solid background circle - isolated from dark mode */}
-                <div className="relative animate-float" style={{filter: 'none'}}>
+                <div className="relative animate-float" style={darkMode ? {filter: 'invert(0.93) hue-rotate(180deg)'} : {filter: 'none'}}>
                   {/* White circle background for logo - always white, no dark mode */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-80 h-80 bg-white rounded-full shadow-xl transition-all duration-500 hover:shadow-2xl"></div>
