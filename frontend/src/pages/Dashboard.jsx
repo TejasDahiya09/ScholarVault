@@ -19,6 +19,8 @@ export default function Dashboard() {
   const [bookmarkedNotes, setBookmarkedNotes] = useState([]);
   const [bookmarksPage, setBookmarksPage] = useState(0);
   const [subjectsPage, setSubjectsPage] = useState(0);
+  // Fix: Add missing weeklyActivity state
+  const [weeklyActivity, setWeeklyActivity] = useState([]);
 
   // Pagination constants
   const BOOKMARKS_PER_PAGE = 4;
