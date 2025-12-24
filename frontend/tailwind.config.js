@@ -49,6 +49,43 @@ export default {
       transitionProperty: {
         'height': 'height',
         'spacing': 'margin, padding',
+        'colors': 'background-color, border-color, color, fill, stroke',
+        'all': 'all',
+      },
+      transitionDuration: {
+        '0': '0ms',
+        '75': '75ms',
+        '100': '100ms',
+        '150': '150ms',
+        '200': '200ms',
+        '300': '300ms',
+        '500': '500ms',
+        '700': '700ms',
+        '1000': '1000ms',
+      },
+      transitionTimingFunction: {
+        'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
+        'ease-in-out': 'cubic-bezier(0.4, 0, 0.2, 1)',
+        'ease-out': 'cubic-bezier(0, 0, 0.2, 1)',
+      },
+      animation: {
+        'smooth-fade': 'fadeIn 0.4s ease-in-out',
+        'smooth-slide': 'slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        'smooth-scale': 'scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideIn: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        scaleIn: {
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
       },
     },
   },
@@ -66,6 +103,22 @@ export default {
         '.active-scale-98': {
           '&:active': {
             transform: 'scale(0.98)',
+          },
+        },
+        /* Smooth transition utilities */
+        '.transition-smooth': {
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        },
+        '.transition-smooth-fast': {
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        },
+        '.transition-smooth-slow': {
+          transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+        },
+        '.smooth-click': {
+          '&:active': {
+            transform: 'scale(0.98)',
+            transition: 'transform 0.1s cubic-bezier(0.4, 0, 0.2, 1)',
           },
         },
       };

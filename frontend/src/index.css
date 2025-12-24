@@ -54,6 +54,8 @@ html {
   -webkit-text-size-adjust: 100%;
   -moz-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Smooth scrolling behavior */
+  scroll-behavior: smooth;
 }
 
 html, body, #root {
@@ -80,6 +82,126 @@ body {
 }
 
 /* ================================
+   🎯 Global Smooth Transitions & Animations
+================================= */
+
+/* Smooth transitions on all interactive elements */
+button, a, input, select, textarea, [role="button"] {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth hover effects */
+button:hover, a:hover, [role="button"]:hover {
+  transition-duration: 0.2s;
+}
+
+/* Click animation (active state) */
+button:active, a:active, [role="button"]:active {
+  transform: scale(0.98);
+  transition-duration: 0.1s;
+}
+
+/* Input focus transition */
+input:focus, textarea:focus, select:focus {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth page transitions */
+* {
+  transition-property: background-color, border-color, color, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 0.2s;
+}
+
+/* Prevent transition on transform, width, height for performance */
+.no-smooth {
+  transition: none !important;
+}
+
+/* Smooth scroll anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Smooth opacity transitions for route changes */
+.fade-in {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.fade-out {
+  animation: fadeOut 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* Smooth slide transitions */
+.slide-in-from-bottom {
+  animation: slideInFromBottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-out-to-bottom {
+  animation: slideOutToBottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideOutToBottom {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+/* Smooth scale transitions */
+.scale-in {
+  animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ================================
    ⭐ Figma Neumorphic Card
 ================================= */
 .neumo-card {
@@ -99,11 +221,23 @@ body {
   font-weight: 600;
   padding: 0.75rem 1.25rem;
   border-radius: var(--radius-btn);
-  transition: opacity 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  cursor: pointer;
+  border: none;
 }
 
 .btn-gradient:hover {
-  opacity: 0.9;
+  opacity: 0.95;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+  transform: translateY(-2px);
+  transition-duration: 0.2s;
+}
+
+.btn-gradient:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+  transition-duration: 0.1s;
 }
 
 /* ================================
@@ -114,12 +248,14 @@ body {
   padding: 0.75rem 1rem;
   border-radius: var(--radius-input);
   border: 1px solid #e5e7eb;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .input:focus {
   outline: none;
   border-color: var(--primary-mid);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 0 0 2px rgba(59, 130, 246, 0.25);
+  transform: translateY(-1px);
 }
 
 /* ================================
