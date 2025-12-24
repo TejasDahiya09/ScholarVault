@@ -14,7 +14,7 @@ export default function ProgressPage() {
     completedUnits: 0,
     longestStreak: 0,
     currentStreak: 0,
-    peakStudyTime: 'morning'
+    peakStudyTime: null
   });
   const [weeklyData, setWeeklyData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
@@ -87,7 +87,7 @@ export default function ProgressPage() {
           completedUnits: totalCompleted,
           longestStreak: a.stats?.longestStreak || 0,
           currentStreak: a.stats?.currentStreak || 0,
-          peakStudyTime: a.stats?.peakStudyTime || 'morning',
+          peakStudyTime: typeof a.stats?.peakStudyTime === 'string' && a.stats.peakStudyTime ? a.stats.peakStudyTime : null,
         });
         setWeeklyData(Array.isArray(a.weekly) ? a.weekly : []);
         setMonthlyData(Array.isArray(a.monthly) ? a.monthly : []);
