@@ -6,6 +6,7 @@ import Breadcrumbs from "../../components/Breadcrumbs";
 import InPDFSearch from "../../components/InPDFSearch";
 import ErrorBoundary from "../../components/ErrorBoundary";
 import client from "../../api/client";
+import useBookmarks from "../../store/useBookmarks";
 import { getSignedPdfUrl, resolveKeyFromUrl } from "../../api/files";
 
 // Lazy load PDF viewer component for performance
@@ -42,7 +43,7 @@ export default function NotesPage() {
   const [subjectDetails, setSubjectDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [bookmarkedNotes, setBookmarkedNotes] = useState(new Set());
+  const { bookmarks, loading: bookmarksLoading, error: bookmarksError, fetchBookmarks, toggleBookmark } = useBookmarks();
   const [completedNotes, setCompletedNotes] = useState(new Set());
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
   const [bookmarkPopup, setBookmarkPopup] = useState({ show: false, noteId: null });
@@ -132,17 +133,8 @@ export default function NotesPage() {
 
   // Fetch user bookmarks on mount
   useEffect(() => {
-    async function fetchBookmarks() {
-      try {
-        const res = await client.get('/api/bookmarks');
-        const bookmarkIds = res.data?.bookmarks || [];
-        setBookmarkedNotes(new Set(bookmarkIds));
-      } catch (err) {
-        console.error("Failed to fetch bookmarks:", err);
-      }
-    }
     fetchBookmarks();
-  }, []);
+  }, [fetchBookmarks]);
 
   // Fetch subject data
   useEffect(() => {
@@ -197,19 +189,8 @@ export default function NotesPage() {
   // Fetch completion status for current subject so buttons reflect saved progress
   useEffect(() => {
     if (!subjectId) return;
-
-    async function fetchCompletion() {
-      try {
-        const res = await client.get(`/api/subjects/${subjectId}/progress`);
-        const completedIds = res.data?.completed_note_ids || [];
-        setCompletedNotes(new Set(completedIds));
-      } catch (err) {
-        console.error("Failed to load completion status:", err);
-      }
-    }
-
-    fetchCompletion();
-  }, [subjectId]);
+    fetchCompletedNotes(subjectId);
+  }, [subjectId, fetchCompletedNotes]);
 
   // Load cached summary when note changes or AI mode switches
   useEffect(() => {
@@ -640,16 +621,9 @@ export default function NotesPage() {
   // Handle mark as complete
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
+    const isCompleted = completedNotes.has(noteId);
     try {
-      const isCompleted = completedNotes.has(noteId);
-      await client.post(`/api/notes/${noteId}/complete`, {
-        subjectId: subjectId,
-        completed: !isCompleted,
-      });
-      // Always fetch latest completion state from backend for reliability
-      const res = await client.get(`/api/subjects/${subjectId}/progress`);
-      const completedIds = res.data?.completed_note_ids || [];
-      setCompletedNotes(new Set(completedIds));
+      await toggleComplete(noteId, subjectId, !isCompleted);
       if (isCompleted) {
         setToast({ show: true, message: "Marked as incomplete", type: "info" });
       } else {
@@ -668,13 +642,9 @@ export default function NotesPage() {
   // Handle bookmark toggle
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
+    const isBookmarked = bookmarks.has(noteId);
     try {
-      const isBookmarked = bookmarkedNotes.has(noteId);
-      await client.post(`/api/notes/${noteId}/bookmark`);
-      // Always fetch latest bookmarks from backend for reliability
-      const res = await client.get('/api/bookmarks');
-      const bookmarkIds = res.data?.bookmarks || [];
-      setBookmarkedNotes(new Set(bookmarkIds));
+      await toggleBookmark(noteId);
       if (isBookmarked) {
         setToast({ show: true, message: "Bookmark removed", type: "info" });
       } else {

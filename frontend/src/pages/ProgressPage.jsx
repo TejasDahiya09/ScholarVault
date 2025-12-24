@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import client from "../api/client";
+import useCompletion from "../store/useCompletion";
 import useAuth from "../store/useAuth";
 
 export default function ProgressPage() {
+  const { subjectProgress, fetchAllSubjectProgress } = useCompletion();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,8 @@ export default function ProgressPage() {
 
   useEffect(() => {
     fetchProgressData();
-  }, [user?.selected_year]);
+    fetchAllSubjectProgress();
+  }, [user?.selected_year, fetchAllSubjectProgress]);
 
   // Helper to filter subjects by selected year
   const filterSubjectsByYear = (subjects) => {
@@ -45,39 +48,27 @@ export default function ProgressPage() {
   async function fetchProgressData() {
     try {
       setLoading(true);
-      
       // Fetch subjects with progress
       const subjectsRes = await client.get('/api/subjects', {
         params: { userOnly: 'true' }
       });
       const allSubjects = subjectsRes.data || [];
-      
       // Filter by selected year
       const yearFilteredSubjects = filterSubjectsByYear(allSubjects);
-      
-      const subjectsWithProgress = await Promise.all(
-        yearFilteredSubjects.map(async (subject) => {
-          try {
-            const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
-            return {
-              ...subject,
-              progress: completionRes.data?.progress_percent || 0,
-              completed: completionRes.data?.completed_units || 0,
-              total: completionRes.data?.total_units || 0
-            };
-          } catch (err) {
-            return { ...subject, progress: 0, completed: 0, total: 0 };
-          }
-        })
-      );
-
+      // Use global subjectProgress if available
+      const subjectsWithProgress = yearFilteredSubjects.map(subject => {
+        const progress = subjectProgress[subject.id] || {};
+        return {
+          ...subject,
+          progress: progress.progress || 0,
+          completed: progress.completed || 0,
+          total: progress.total || 0
+        };
+      });
       setSubjects(subjectsWithProgress);
-
       // Calculate stats
       const totalCompleted = subjectsWithProgress.reduce((sum, s) => sum + (s.completed || 0), 0);
       const totalUnits = subjectsWithProgress.reduce((sum, s) => sum + (s.total || 0), 0);
-      
-      // Fetch analytics (time, streaks, weekly, monthly, subject time, velocity)
       try {
         const analyticsRes = await client.get('/api/progress/analytics');
         const a = analyticsRes.data || {};
