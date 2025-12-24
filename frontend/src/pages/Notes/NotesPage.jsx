@@ -87,13 +87,32 @@ export default function NotesPage() {
   const isSyllabus = selectedNote?.isSyllabus;
   const isPpt = selectedNote?.isPpt || false;
 
-  // Extract unit number from DB field or filename fallback
+  // Extract unit number from DB field or filename fallback (handles "Unit-2", "Unit -2", "u2", or any digits)
   const getUnitNumber = (item) => {
     if (!item) return Number.MAX_SAFE_INTEGER;
+
+    // Trust DB value first
     const dbUnit = parseInt(item.unit_number, 10);
     if (!Number.isNaN(dbUnit)) return dbUnit;
-    const match = (item.file_name || "").match(/[Uu]nit[\s_-]?(\d+)/);
-    return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+
+    const name = (item.file_name || "").toLowerCase();
+
+    // Robust patterns for unit detection
+    const patterns = [
+      /unit[\s._-]*([0-9]+)/i,  // "Unit-2", "Unit - 2", "unit_2"
+      /\bu\s*([0-9]+)/i,        // "u2", "u 2"
+      /([0-9]+)/,               // any number as last resort
+    ];
+
+    for (const pat of patterns) {
+      const m = name.match(pat);
+      if (m && m[1]) {
+        const num = parseInt(m[1], 10);
+        if (!Number.isNaN(num)) return num;
+      }
+    }
+
+    return Number.MAX_SAFE_INTEGER;
   };
 
   // Natural sort by unit number, fallback to filename
