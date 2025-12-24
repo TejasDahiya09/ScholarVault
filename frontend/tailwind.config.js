@@ -90,7 +90,8 @@ export default {
     },
   },
   plugins: [
-    require('@tailwindcss/line-clamp'),
+    // eslint-disable-next-line no-undef
+    (typeof require !== 'undefined' ? require('@tailwindcss/line-clamp') : undefined),
     // Add custom utilities plugin for safe areas and touch targets
     function({ addUtilities }) {
       const newUtilities = {
@@ -125,4 +126,6 @@ export default {
       addUtilities(newUtilities);
     },
   ],
+  // If using ES modules, use import. Otherwise, ensure require is defined.
+   
 };

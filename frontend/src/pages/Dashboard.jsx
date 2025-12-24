@@ -14,8 +14,7 @@ export default function Dashboard() {
     longestStreak: 0
   });
   const [subjects, setSubjects] = useState([]);
-  const [weeklyActivity, setWeeklyActivity] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
+  // ...existing code...
   const [nextUnit, setNextUnit] = useState(null);
   const [bookmarkedNotes, setBookmarkedNotes] = useState([]);
   const [bookmarksPage, setBookmarksPage] = useState(0);
@@ -34,7 +33,7 @@ export default function Dashboard() {
     // Listen for instant refresh event
     window.addEventListener('sv_refresh_dashboard', fetchAll);
     return () => window.removeEventListener('sv_refresh_dashboard', fetchAll);
-  }, [user?.selected_year]);
+  }, [user?.selected_year, fetchDashboardData]);
 
   // Stay on Dashboard even if there are no bookmarks
   // Previously redirected to "/home" which prevented accessing Dashboard.

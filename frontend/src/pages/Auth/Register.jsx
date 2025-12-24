@@ -35,9 +35,6 @@ export default function Register() {
     }
   }
 
-  async function handleOnboardingSubmit() {
-    // No longer needed - onboarding handled by AppShell component
-  }
 
   return (
     <>

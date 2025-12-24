@@ -178,7 +178,7 @@ export default function ProfilePage() {
       await client.delete('/api/auth/account');
       logout();
       navigate('/');
-    } catch (err) {
+    } catch {
       alert('Failed to delete account. Please try again.');
     }
   };
@@ -192,8 +192,7 @@ export default function ProfilePage() {
       a.href = url;
       a.download = `scholarvault-data-${new Date().toISOString()}.json`;
       a.click();
-    } catch (err) {
-      console.error('Download failed:', err);
+    } catch {
       alert('Failed to download data. Please try again.');
     }
   };
@@ -236,7 +235,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 py-4 sm:py-6 md:py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 py-4 sm:py-6 md:py-8">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
         <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold text-slate-900 mb-4 sm:mb-6 md:mb-8">
           Profile Settings
@@ -244,7 +243,7 @@ export default function ProfilePage() {
 
         {/* Profile Header Card */}
         <div className="bg-white rounded-xl sm:rounded-2xl md:rounded-3xl shadow-lg overflow-hidden mb-4 sm:mb-6 md:mb-8 border border-slate-200 hover:shadow-2xl transition-all duration-300">
-          <div className="h-24 sm:h-32 md:h-40 bg-linear-to-r from-indigo-600 via-blue-600 to-indigo-700 relative overflow-hidden">
+          <div className="h-24 sm:h-32 md:h-40 bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 relative overflow-hidden">
             <div className="absolute inset-0 opacity-30">
               <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full mix-blend-overlay blur-3xl"></div>
               <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-300 rounded-full mix-blend-overlay blur-3xl"></div>
@@ -254,7 +253,7 @@ export default function ProfilePage() {
           <div className="px-4 sm:px-6 md:px-8 pb-6 sm:pb-8 md:pb-10">
             {/* Avatar & Name Section */}
             <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6 md:gap-8 -mt-12 sm:-mt-16 md:-mt-20 relative z-10 mb-4 sm:mb-6 md:mb-8">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-xl sm:rounded-2xl bg-linear-to-br from-indigo-500 to-blue-500 flex items-center justify-center text-white text-3xl sm:text-4xl md:text-5xl font-bold shadow-2xl border-2 sm:border-4 border-white hover:scale-105 transition-transform duration-300">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-xl sm:rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center text-white text-3xl sm:text-4xl md:text-5xl font-bold shadow-2xl border-2 sm:border-4 border-white hover:scale-105 transition-transform duration-300">
                 {userName.charAt(0).toUpperCase()}
               </div>
 
@@ -310,7 +309,7 @@ export default function ProfilePage() {
           {/* Email Card */}
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5 md:p-6 border border-slate-200 hover:border-indigo-200 hover:shadow-md transition-all duration-200">
             <div className="flex items-start gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl bg-linear-to-br from-indigo-50 to-blue-50 flex items-center justify-center text-xl sm:text-2xl border border-indigo-100 shrink-0">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center text-xl sm:text-2xl border border-indigo-100 flex-shrink-0">
                 ✉️
               </div>
               <div className="flex-1 min-w-0">
@@ -329,7 +328,7 @@ export default function ProfilePage() {
           {/* Password Card */}
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5 md:p-6 border border-slate-200 hover:border-indigo-200 hover:shadow-md transition-all duration-200">
             <div className="flex items-start gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl bg-linear-to-br from-indigo-50 to-purple-50 flex items-center justify-center text-xl sm:text-2xl border border-indigo-100 shrink-0">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center text-xl sm:text-2xl border border-indigo-100 flex-shrink-0">
                 🔒
               </div>
               <div className="flex-1 min-w-0">
@@ -348,7 +347,7 @@ export default function ProfilePage() {
           {/* Study Stats */}
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm p-4 sm:p-5 md:p-6 border border-slate-200 hover:border-indigo-200 hover:shadow-md transition-all duration-200">
             <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-xl bg-linear-to-br from-green-50 to-emerald-50 flex items-center justify-center text-2xl border border-green-100">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center text-2xl border border-green-100">
                 📊
               </div>
               <div className="flex-1">
