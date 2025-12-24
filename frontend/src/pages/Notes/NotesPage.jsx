@@ -130,19 +130,17 @@ export default function NotesPage() {
     });
   };
 
-  // Fetch user bookmarks on mount
-  useEffect(() => {
-    async function fetchBookmarks() {
-      try {
-        const res = await client.get('/api/bookmarks');
-        const bookmarkIds = res.data?.bookmarks || [];
-        setBookmarkedNotes(new Set(bookmarkIds));
-      } catch (err) {
-        console.error("Failed to fetch bookmarks:", err);
-      }
+  // Fetch user bookmarks (can be called after update)
+  const fetchBookmarks = async () => {
+    try {
+      const res = await client.get('/api/bookmarks');
+      const bookmarkIds = res.data?.bookmarks || [];
+      setBookmarkedNotes(new Set(bookmarkIds));
+    } catch (err) {
+      console.error("Failed to fetch bookmarks:", err);
     }
-    fetchBookmarks();
-  }, []);
+  };
+  useEffect(() => { fetchBookmarks(); }, []);
 
   // Fetch subject data
   useEffect(() => {
@@ -194,22 +192,18 @@ export default function NotesPage() {
     load();
   }, [subjectId, noteId]);
 
-  // Fetch completion status for current subject so buttons reflect saved progress
-  useEffect(() => {
+  // Fetch completion status for current subject (can be called after update)
+  const fetchCompletion = async () => {
     if (!subjectId) return;
-
-    async function fetchCompletion() {
-      try {
-        const res = await client.get(`/api/subjects/${subjectId}/progress`);
-        const completedIds = res.data?.completed_note_ids || [];
-        setCompletedNotes(new Set(completedIds));
-      } catch (err) {
-        console.error("Failed to load completion status:", err);
-      }
+    try {
+      const res = await client.get(`/api/subjects/${subjectId}/progress`);
+      const completedIds = res.data?.completed_note_ids || [];
+      setCompletedNotes(new Set(completedIds));
+    } catch (err) {
+      console.error("Failed to load completion status:", err);
     }
-
-    fetchCompletion();
-  }, [subjectId]);
+  };
+  useEffect(() => { fetchCompletion(); }, [subjectId]);
 
   // Load cached summary when note changes or AI mode switches
   useEffect(() => {
@@ -646,20 +640,13 @@ export default function NotesPage() {
         subjectId: subjectId,
         completed: !isCompleted,
       });
-      
-      const newCompleted = new Set(completedNotes);
-      if (isCompleted) {
-        newCompleted.delete(noteId);
-        setToast({ show: true, message: "Marked as incomplete", type: "info" });
-      } else {
-        newCompleted.add(noteId);
-        setToast({ show: true, message: "✓ Marked as complete!", type: "success" });
+      // Refetch completion state from backend for accuracy
+      await fetchCompletion();
+      setToast({ show: true, message: isCompleted ? "Marked as incomplete" : "✓ Marked as complete!", type: isCompleted ? "info" : "success" });
+      if (!isCompleted) {
         setCompletePopup({ show: true, noteId });
         setTimeout(() => setCompletePopup({ show: false, noteId: null }), 3000);
       }
-      setCompletedNotes(newCompleted);
-      
-      // Auto-hide toast after 3 seconds
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     } catch (err) {
       console.error("Failed to mark note complete:", err);
@@ -672,20 +659,14 @@ export default function NotesPage() {
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
     try {
-      const isBookmarked = bookmarkedNotes.has(noteId);
       await client.post(`/api/notes/${noteId}/bookmark`);
-      
-      const newBookmarked = new Set(bookmarkedNotes);
-      if (isBookmarked) {
-        newBookmarked.delete(noteId);
-        setToast({ show: true, message: "Bookmark removed", type: "info" });
-      } else {
-        newBookmarked.add(noteId);
-        // Show bookmark popup for new bookmarks
+      // Refetch bookmarks from backend for accuracy
+      await fetchBookmarks();
+      setToast({ show: true, message: bookmarkedNotes.has(noteId) ? "Bookmark removed" : "Bookmarked!", type: bookmarkedNotes.has(noteId) ? "info" : "success" });
+      if (!bookmarkedNotes.has(noteId)) {
         setBookmarkPopup({ show: true, noteId });
         setTimeout(() => setBookmarkPopup({ show: false, noteId: null }), 3000);
       }
-      setBookmarkedNotes(newBookmarked);
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     } catch (err) {
       console.error("Failed to toggle bookmark:", err);
