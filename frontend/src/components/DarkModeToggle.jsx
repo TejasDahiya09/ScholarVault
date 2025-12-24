@@ -29,7 +29,7 @@ export default function DarkModeToggle({ variant = 'default' }) {
         <span className={`text-lg transition-transform duration-500 ${darkMode ? 'rotate-180' : ''}`}>
           {darkMode ? '☀️' : '🌙'}
         </span>
-        <span className="text-sm font-medium text-gray-700">Dark Mode</span>
+        <span className="text-sm font-medium text-gray-700">{darkMode ? 'Dark Mode' : 'Light Mode'}</span>
       </div>
       <label className="relative inline-flex items-center cursor-pointer">
         <input 
