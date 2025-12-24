@@ -62,11 +62,14 @@ export default function Dashboard() {
     try {
       setLoading(true);
       setError(null);
-      
       // Fetch bookmarks immediately
       try {
         const bookmarksRes = await client.get('/api/bookmarks/details');
         setBookmarkedNotes(bookmarksRes.data?.bookmarks || []);
+      } catch (err) {
+        console.error("Failed to fetch bookmarks:", err);
+      }
+
       // Fetch subjects
       let yearFilteredSubjects = [];
       try {
@@ -104,19 +107,16 @@ export default function Dashboard() {
       try {
         const analyticsRes = await client.get('/api/progress/analytics');
         const a = analyticsRes.data || {};
-        
         // Calculate total completed units from subjects
         const totalCompleted = yearFilteredSubjects.reduce((sum, s) => {
           // Will be updated when individual subject progress loads
           return sum;
         }, 0);
-        
         setStats({
           totalTime: a.stats?.totalTimeHours || 0,
           unitsCompleted: totalCompleted,
           longestStreak: a.stats?.longestStreak || 0
         });
-        
         setWeeklyActivity(Array.isArray(a.weekly) ? a.weekly : []);
       } catch (err) {
         console.error("Failed to fetch analytics:", err);
