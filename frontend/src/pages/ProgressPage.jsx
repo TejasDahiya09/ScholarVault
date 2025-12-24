@@ -1,22 +1,9 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
 
 export default function ProgressPage() {
-    // Pagination for subjects
-    const SUBJECTS_PER_PAGE = 5;
-    const [subjectsPage, setSubjectsPage] = useState(0);
-    const sortedSubjects = React.useMemo(() => {
-      return [...subjects.filter(s => (s.progress || 0) > 0), ...subjects.filter(s => (s.progress || 0) <= 0)];
-    }, [subjects]);
-    const paginatedSubjects = React.useMemo(() => {
-      return sortedSubjects.slice(
-        subjectsPage * SUBJECTS_PER_PAGE,
-        (subjectsPage + 1) * SUBJECTS_PER_PAGE
-      );
-    }, [sortedSubjects, subjectsPage]);
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -130,7 +117,7 @@ export default function ProgressPage() {
 
   // Sort subjects by different criteria
   const strongestSubjects = [...subjects].sort((a, b) => b.progress - a.progress).slice(0, 3);
-  // const needsAttention = [...subjects].filter(s => s.progress > 0 && s.progress < 40).sort((a, b) => a.progress - b.progress);
+  const needsAttention = [...subjects].filter(s => s.progress > 0 && s.progress < 40).sort((a, b) => a.progress - b.progress);
 
   if (loading) {
     return (
@@ -256,9 +243,61 @@ export default function ProgressPage() {
               </div>
             </div>
 
-            {/* Study Velocity Chart - moved below 30-Day Trend */}
+            {/* All Subjects Detailed Progress */}
+            <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">All Subjects Progress</h2>
+              
+              {subjects.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-4xl sm:text-5xl mb-4">📚</div>
+                  <p className="text-gray-500 text-sm mb-4">No subjects enrolled yet</p>
+                  <button
+                    onClick={() => navigate('/home')}
+                    className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
+                  >
+                    Browse Subjects
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {subjects.map((subject) => (
+                    <div key={subject.id} className="p-4 border border-gray-200 rounded-lg hover:border-indigo-300 transition-all">
+                      <div className="flex items-start justify-between mb-3 gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm sm:text-base text-gray-900">{subject.name}</h3>
+                          <p className="text-xs sm:text-sm text-gray-500 mt-1">
+                            {subject.completed} of {subject.total} units completed
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-lg sm:text-xl font-bold text-indigo-600">{Math.round(subject.progress)}%</div>
+                          <button
+                            onClick={() => navigate('/home')}
+                            className="text-xs font-medium text-indigo-600 hover:underline mt-1"
+                          >
+                            Continue →
+                          </button>
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                        <div
+                          className="bg-linear-to-r from-indigo-600 to-indigo-400 h-2.5 rounded-full transition-all duration-500"
+                          style={{ width: `${subject.progress}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                        <span>{subject.completed} completed</span>
+                        <span>{subject.total - subject.completed} remaining</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Study Velocity Chart */}
             {velocity.length > 0 && (
-              <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 mt-6">
+              <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Study Velocity</h2>
                 <p className="text-xs text-gray-500 mb-4">Notes completed per week (last 8 weeks)</p>
                 <div className="flex items-end justify-between gap-2 h-32 sm:h-40">
@@ -278,55 +317,6 @@ export default function ProgressPage() {
                 </div>
               </div>
             )}
-
-            {/* All Subjects Progress - paginated, small cards */}
-            <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200 mt-6">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">All Subjects Progress</h2>
-              {subjects.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-4xl sm:text-5xl mb-4">📚</div>
-                  <p className="text-gray-500 text-sm mb-4">No subjects enrolled yet</p>
-                  <button
-                    onClick={() => navigate('/home')}
-                    className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
-                  >
-                    Browse Subjects
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-3 mb-3">
-                    {paginatedSubjects.map((subject) => (
-                      {subject && subject.id && subject.name !== undefined ? (
-                        <div key={subject.id} className="min-h-touch flex flex-col justify-center border border-gray-200 rounded-lg p-3 hover:border-indigo-300 transition-all">
-                          <div className="flex items-center justify-between mb-2 gap-2">
-                            <h3 className="font-medium text-xs text-gray-900 truncate flex-1 min-w-0">{subject.name}</h3>
-                            <span className="text-xs font-semibold text-gray-900 whitespace-nowrap shrink-0">
-                              {typeof subject.progress === 'number' && subject.progress >= 0 ? `${Math.round(subject.progress)}%` : '...'}
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                              style={{ width: typeof subject.progress === 'number' && subject.progress >= 0 ? `${subject.progress}%` : '30%', opacity: typeof subject.progress === 'number' && subject.progress >= 0 ? 1 : 0.5 }}
-                            />
-                          </div>
-                        </div>
-                      ) : null}
-                    ))}
-                  </div>
-                  {sortedSubjects.length > SUBJECTS_PER_PAGE && (
-                    <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-2 text-xs">
-                      <span className="text-gray-500 whitespace-nowrap">Page {subjectsPage + 1} of {Math.ceil(sortedSubjects.length / SUBJECTS_PER_PAGE)}</span>
-                      <div className="flex gap-2 w-full xs:w-auto">
-                        <button onClick={() => setSubjectsPage(Math.max(0, subjectsPage - 1))} disabled={subjectsPage === 0} className="min-h-touch flex-1 xs:flex-none px-3 py-2 bg-gray-100 rounded disabled:opacity-50 hover:bg-gray-200 transition-colors whitespace-nowrap">← Prev</button>
-                        <button onClick={() => setSubjectsPage(Math.min(Math.ceil(sortedSubjects.length / SUBJECTS_PER_PAGE) - 1, subjectsPage + 1))} disabled={subjectsPage >= Math.ceil(sortedSubjects.length / SUBJECTS_PER_PAGE) - 1} className="min-h-touch flex-1 xs:flex-none px-3 py-2 bg-gray-100 rounded disabled:opacity-50 hover:bg-gray-200 transition-colors whitespace-nowrap">Next →</button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
 
             {/* Subject Time Breakdown */}
             {subjectTime.length > 0 && (
@@ -423,6 +413,36 @@ export default function ProgressPage() {
             )}
 
             {/* Subjects Needing Attention */}
+            {needsAttention.length > 0 && (
+              <div className="bg-linear-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-amber-200">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="text-xl">⚠️</span>
+                  Needs Focus
+                </h2>
+                <div className="space-y-3">
+                  {needsAttention.slice(0, 5).map((subject) => (
+                    <div key={subject.id} className="p-3 bg-white rounded-lg border border-amber-200">
+                      <h3 className="font-semibold text-xs sm:text-sm text-gray-900 mb-2">{subject.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                          <div
+                            className="bg-amber-600 h-1.5 rounded-full"
+                            style={{ width: `${subject.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-amber-700">{Math.round(subject.progress)}%</span>
+                      </div>
+                      <button
+                        onClick={() => navigate('/home')}
+                        className="text-xs font-medium text-indigo-600 hover:underline mt-2"
+                      >
+                        Resume Study →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Study Streak Info */}
             <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">

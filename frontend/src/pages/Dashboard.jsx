@@ -62,14 +62,16 @@ export default function Dashboard() {
     try {
       setLoading(true);
       setError(null);
+      
       // Fetch bookmarks immediately
       try {
         const bookmarksRes = await client.get('/api/bookmarks/details');
         setBookmarkedNotes(bookmarksRes.data?.bookmarks || []);
       } catch (err) {
         console.error("Failed to fetch bookmarks:", err);
+        setBookmarkedNotes([]);
       }
-
+      
       // Fetch subjects
       let yearFilteredSubjects = [];
       try {
@@ -78,26 +80,36 @@ export default function Dashboard() {
         });
         const allSubjects = subjectsRes.data || [];
         yearFilteredSubjects = filterSubjectsByYear(allSubjects);
-        // Fetch progress for all subjects in parallel
-        const subjectsWithProgress = await Promise.all(
-          yearFilteredSubjects.map(async (subject) => {
-            try {
-              const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
-              return {
-                ...subject,
-                progress: completionRes.data?.progress_percent || 0,
-                completed: completionRes.data?.completed_units || 0,
-                total: completionRes.data?.total_units || 0
-              };
-            } catch (err) {
-              return { ...subject, progress: 0, completed: 0, total: 0 };
-            }
-          })
-        );
-        setSubjects(subjectsWithProgress);
-        // Update total completed units in stats
-        const totalCompleted = subjectsWithProgress.reduce((sum, s) => sum + (s.completed || 0), 0);
-        setStats(prev => ({ ...prev, unitsCompleted: totalCompleted }));
+        
+        // Set subjects without loading progress first (faster initial render)
+        setSubjects(yearFilteredSubjects.map(s => ({ ...s, progress: -1 })));
+        
+        // Async load progress for each subject
+        yearFilteredSubjects.forEach(async (subject) => {
+          try {
+            const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
+            setSubjects(prev => {
+              const updated = prev.map(s => 
+                s.id === subject.id 
+                  ? {
+                      ...s,
+                      progress: completionRes.data?.progress_percent || 0,
+                      completed: completionRes.data?.completed_units || 0,
+                      total: completionRes.data?.total_units || 0
+                    }
+                  : s
+              );
+              
+              // Update total completed units in stats
+              const totalCompleted = updated.reduce((sum, s) => sum + (s.completed || 0), 0);
+              setStats(prev => ({ ...prev, unitsCompleted: totalCompleted }));
+              
+              return updated;
+            });
+          } catch (err) {
+            console.error(`Error fetching progress for ${subject.id}:`, err);
+          }
+        });
       } catch (err) {
         console.error("Failed to fetch subjects:", err);
         setError("Failed to load subjects. Please try refreshing.");
@@ -107,16 +119,19 @@ export default function Dashboard() {
       try {
         const analyticsRes = await client.get('/api/progress/analytics');
         const a = analyticsRes.data || {};
+        
         // Calculate total completed units from subjects
         const totalCompleted = yearFilteredSubjects.reduce((sum, s) => {
           // Will be updated when individual subject progress loads
           return sum;
         }, 0);
+        
         setStats({
           totalTime: a.stats?.totalTimeHours || 0,
           unitsCompleted: totalCompleted,
           longestStreak: a.stats?.longestStreak || 0
         });
+        
         setWeeklyActivity(Array.isArray(a.weekly) ? a.weekly : []);
       } catch (err) {
         console.error("Failed to fetch analytics:", err);
@@ -161,8 +176,9 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       setError("Failed to load dashboard. Please try refreshing.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   // Memoize paginated items
@@ -173,18 +189,12 @@ export default function Dashboard() {
     );
   }, [bookmarkedNotes, bookmarksPage]);
 
-  const sortedSubjects = useMemo(() => {
-    const withProgress = subjects.filter(s => (s.progress || 0) > 0);
-    const withoutProgress = subjects.filter(s => (s.progress || 0) <= 0);
-    return [...withProgress, ...withoutProgress];
-  }, [subjects]);
-
   const paginatedSubjects = useMemo(() => {
-    return sortedSubjects.slice(
+    return subjects.slice(
       subjectsPage * SUBJECTS_PER_PAGE,
       (subjectsPage + 1) * SUBJECTS_PER_PAGE
     );
-  }, [sortedSubjects, subjectsPage]);
+  }, [subjects, subjectsPage]);
 
   const needsAttention = useMemo(() => {
     return subjects
@@ -257,7 +267,7 @@ export default function Dashboard() {
         </div>
 
         {/* Bookmarked for Learning - Always shown with empty state */}
-        <div className="bg-linear-to-r from-amber-50 to-orange-50 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 border border-amber-200">
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 border border-amber-200">
           <h3 className="text-fluid-base sm:text-fluid-lg font-semibold text-gray-900 mb-3 xs:mb-4 truncate">📚 Saved for Learning</h3>
 
           {bookmarkedNotes.length === 0 ? (
@@ -323,7 +333,7 @@ export default function Dashboard() {
 
         {/* Continue Studying */}
         {nextUnit && (
-          <div className="bg-linear-to-r from-gray-900 to-gray-800 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 text-white">
+          <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 text-white">
             <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
               <div className="flex-1 min-w-0 w-full xs:w-auto">
                 <p className="text-fluid-xs text-gray-300 mb-2 uppercase tracking-wide">Continue Studying</p>
