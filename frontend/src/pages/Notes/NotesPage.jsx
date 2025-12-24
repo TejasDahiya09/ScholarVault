@@ -994,7 +994,7 @@ export default function NotesPage() {
                     </div>
                   </div>
 
-                  {/* Draggable Divider */}
+                  {/* Draggable Divider and Panel Control for both notes and PPTs */}
                   <div
                     ref={dividerRef}
                     onMouseDown={handleMouseDown}
@@ -1024,8 +1024,8 @@ export default function NotesPage() {
                     }}
                     title="Drag to resize panels • Ctrl+1/2/3 for presets • Ctrl+Arrow keys to adjust"
                   />
-                  
-                  {/* Resize Hint Popup */}
+              
+                  {/* Resize Hint Popup for both notes and PPTs */}
                   {showResizeHint && (
                     <div className="fixed top-1/2 transform -translate-y-1/2 bg-white rounded-2xl shadow-2xl p-6 z-50 max-w-sm border border-gray-200" style={{ right: '24px', backdropFilter: 'blur(10px)' }}>
                       <style>{`
@@ -1069,7 +1069,7 @@ export default function NotesPage() {
                             ✕
                           </button>
                         </div>
-                        
+                    
                         {/* Method 1: Drag */}
                         <div className="mb-4 pb-4 border-b border-gray-200">
                           <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
@@ -1118,7 +1118,7 @@ export default function NotesPage() {
                             </div>
                           </div>
                         </div>
-                        
+                    
                         {/* Button */}
                         <button
                           onClick={() => setShowResizeHint(false)}
