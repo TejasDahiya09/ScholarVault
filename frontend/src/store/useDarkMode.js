@@ -17,10 +17,11 @@ const useDarkMode = create((set) => ({
         document.body.style.filter = 'invert(0.93) hue-rotate(180deg)';
         document.body.style.backgroundColor = '#0a0a0a';
         
-        // Prevent dark mode from affecting viewer
+        // Exclude viewer modal from dark mode (keep it in light mode)
         const viewerModal = document.querySelector('[data-viewer-modal="true"]');
         if (viewerModal) {
           viewerModal.style.filter = 'invert(0.93) hue-rotate(180deg)';
+          viewerModal.style.isolation = 'isolate';
         }
       } else {
         document.body.style.filter = 'none';
@@ -29,6 +30,7 @@ const useDarkMode = create((set) => ({
         const viewerModal = document.querySelector('[data-viewer-modal="true"]');
         if (viewerModal) {
           viewerModal.style.filter = 'none';
+          viewerModal.style.isolation = 'auto';
         }
       }
     }, 0);
@@ -48,10 +50,11 @@ const useDarkMode = create((set) => ({
         document.body.style.filter = 'invert(0.93) hue-rotate(180deg)';
         document.body.style.backgroundColor = '#0a0a0a';
         
-        // Prevent dark mode from affecting viewer
+        // Exclude viewer modal from dark mode (keep it in light mode)
         const viewerModal = document.querySelector('[data-viewer-modal="true"]');
         if (viewerModal) {
           viewerModal.style.filter = 'invert(0.93) hue-rotate(180deg)';
+          viewerModal.style.isolation = 'isolate';
         }
       } else {
         document.body.style.filter = 'none';
@@ -60,6 +63,7 @@ const useDarkMode = create((set) => ({
         const viewerModal = document.querySelector('[data-viewer-modal="true"]');
         if (viewerModal) {
           viewerModal.style.filter = 'none';
+          viewerModal.style.isolation = 'auto';
         }
       }
     }, 0);
