@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, Suspense, lazy } from "react";
+import useDarkMode from "../../store/useDarkMode";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Switch } from "@headlessui/react";
 import Breadcrumbs from "../../components/Breadcrumbs";
@@ -17,8 +18,11 @@ const PdfViewerSection = lazy(() => Promise.resolve({
  * NotesPage - Smart Notes + Books + PYQ viewer with AI features
  * PERFORMANCE: Lazy loads PDF viewer, streams PDFs from backend with aggressive caching
  */
-export default function NotesPage() {
   const navigate = useNavigate();
+  const { darkMode } = useDarkMode();
+  // Always force viewer modal and all document viewers to true light mode by neutralizing global dark mode inversion.
+  // If darkMode is active, apply filter: invert(1) hue-rotate(180deg) to double-invert and neutralize.
+  const viewerLightModeStyle = darkMode ? { filter: 'invert(1) hue-rotate(180deg)', background: '#fff' } : { background: '#fff' };
   const [query] = useSearchParams();
 
   // Extract URL data
@@ -829,25 +833,22 @@ export default function NotesPage() {
       {selectedNote && (
         <ErrorBoundary>
           <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"><div className="bg-white rounded-lg p-6 shadow-2xl"><p className="text-gray-700 font-semibold">Loading PDF viewer...</p><div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full bg-indigo-600 animate-pulse"></div></div></div></div>}>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-2" data-viewer-modal="true">
-          <div className="bg-white w-full h-full max-w-full rounded-none sm:rounded-lg shadow-xl flex flex-col overflow-hidden mx-0 sm:mx-2">
-
-            {/* Header */}
-            <div className="flex justify-between items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b bg-gray-50">
-              <div className="flex-1 min-w-0 pr-2">
-                <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold truncate">{selectedNote.file_name}</h2>
-              </div>
-
-              <button
-                onClick={closeViewer}
-                className="text-2xl sm:text-3xl font-light text-gray-500 hover:text-gray-700 shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1 flex overflow-hidden viewer-container bg-white" data-theme="light">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-2" data-viewer-modal="true" style={viewerLightModeStyle}>
+              <div className="bg-white w-full h-full max-w-full rounded-none sm:rounded-lg shadow-xl flex flex-col overflow-hidden mx-0 sm:mx-2">
+                {/* Header */}
+                <div className="flex justify-between items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b bg-gray-50">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold truncate">{selectedNote.file_name}</h2>
+                  </div>
+                  <button
+                    onClick={closeViewer}
+                    className="text-2xl sm:text-3xl font-light text-gray-500 hover:text-gray-700 shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {/* Main Content */}
+                <div className="flex-1 flex overflow-hidden viewer-container bg-white" data-theme="light">
 
               {/* Viewer */}
               <div 
@@ -1268,13 +1269,14 @@ export default function NotesPage() {
             </div>
           </div>
         </div>
+
           </Suspense>
         </ErrorBoundary>
       )}
 
     </>
   );
-}
+// End of NotesPage component
 
 /** Reusable Section Component **/
 function Section({ title, items, onClick, onToggleBookmark, onMarkComplete, bookmarkedNotes, completedNotes, showMarkComplete = false }) {
