@@ -13,7 +13,6 @@ import notesRoutes from "./src/routes/notes.js";
 import subjectsRoutes from "./src/routes/subjects.js";
 import searchRoutes from "./src/routes/search.js";
 import filesRoutes from "./src/routes/files.js";
-import bookmarksRoutes from "./src/routes/bookmarks.js";
 import progressRoutes from "./src/routes/progress.js";
 
 const app = express();
