@@ -412,7 +412,7 @@ export default function ProgressPage() {
               </div>
             )}
 
-            // ...existing code...
+
 
             {/* Study Streak Info */}
             <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
