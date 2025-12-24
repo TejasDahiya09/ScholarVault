@@ -2,7 +2,6 @@ import React from "react";
 import { Link } from "react-router-dom";
 import NavBar from "../components/Layout/NavBar";
 import DarkModeToggle from "../components/DarkModeToggle";
-import { useEffect, useRef, useState } from "react";
 
 // use public icons for static serving
 const notesIcon = "/assets/icons/notes.svg";
@@ -36,34 +35,6 @@ const FeatureCard = ({ icon, title, desc, delay = 0 }) => (
 );
 
 export default function Landing() {
-  const [bgIndex, setBgIndex] = useState(0); // 0 = original hero, 1 = ai_hero_1, 2 = ai_hero_2
-  const [innerIndex, setInnerIndex] = useState(0); // 0 = heroInner, 1 = designer1, 2 = designer2
-  const lottieContainer = useRef(null);
-
-  // attempt to dynamically load lottie and a sample animation (fallback to static svg)
-  useEffect(() => {
-    let mounted = true;
-    async function loadLottie() {
-      try {
-        const lottie = await import('https://unpkg.com/lottie-web/build/player/lottie.min.js');
-        if (!mounted || !lottieContainer.current) return;
-        // load a sample animation from lottiefiles (public url)
-        const anim = lottie.loadAnimation({
-          container: lottieContainer.current,
-          renderer: 'svg',
-          loop: true,
-          autoplay: true,
-          path: 'https://assets7.lottiefiles.com/packages/lf20_tfb3estd.json',
-        });
-        return () => anim.destroy();
-      } catch (err) {
-        // silent fallback
-        return;
-      }
-    }
-    loadLottie();
-    return () => { mounted = false; };
-  }, []);
   const features = [
       { icon: notesIcon, title: "Smart Notes", desc: "Organize and manage study materials efficiently" },
       { icon: ocrIcon, title: "OCR Summaries", desc: "Extract text & generate summaries automatically" },
@@ -116,174 +87,32 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="flex-1 flex justify-center w-full px-2 sm:px-0">
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 lg:p-8 w-full max-w-md border border-gray-200 overflow-hidden">
-            {/* Hero Container */}
-            <div className="relative w-full bg-linear-to-br from-indigo-50 to-blue-50 rounded-lg sm:rounded-xl overflow-hidden">
-              <div className="relative aspect-square sm:aspect-auto h-64 sm:h-80 lg:h-96 flex items-center justify-center">
-                {/* Background illustrations */}
-                {bgIndex === 0 && (
-                  <svg className="w-full h-full" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                      <linearGradient id="lg" x1="0" x2="1">
-                        <stop offset="0%" stopColor="#4F46E5"/>
-                        <stop offset="100%" stopColor="#3B82F6"/>
-                      </linearGradient>
-                    </defs>
-                    <rect x="0" y="0" width="800" height="600" fill="#F0F9FF"/>
-                    <rect x="40" y="80" width="720" height="440" rx="28" fill="#fff" stroke="#E0E7FF" strokeWidth="2"/>
-                    <circle cx="200" cy="150" r="60" fill="url(#lg)" opacity="0.1"/>
-                    <circle cx="600" cy="400" r="80" fill="url(#lg)" opacity="0.1"/>
-                  </svg>
-                )}
-                {bgIndex === 1 && (
-                  <svg className="w-full h-full" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="0" y="0" width="800" height="600" fill="#FAFAFA"/>
-                    <rect x="80" y="100" width="640" height="400" rx="24" fill="#fff" stroke="#F3F4F6" strokeWidth="2"/>
-                    <path d="M 150 200 Q 250 150 350 200 T 650 200" stroke="#4F46E5" strokeWidth="3" fill="none"/>
-                    <circle cx="300" cy="250" r="40" fill="#EFF6FF"/>
-                    <circle cx="500" cy="350" r="35" fill="#F0F9FF"/>
-                  </svg>
-                )}
-                {bgIndex === 2 && (
-                  <svg className="w-full h-full" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="0" y="0" width="800" height="600" fill="#F9FAFB"/>
-                    <defs>
-                      <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#818CF8"/>
-                        <stop offset="100%" stopColor="#60A5FA"/>
-                      </linearGradient>
-                    </defs>
-                    <rect x="100" y="120" width="600" height="360" rx="20" fill="url(#grad)" opacity="0.1"/>
-                    <rect x="120" y="140" width="560" height="320" rx="16" fill="#fff"/>
-                    <line x1="140" y1="170" x2="640" y2="170" stroke="#E5E7EB" strokeWidth="2"/>
-                    <line x1="140" y1="220" x2="640" y2="220" stroke="#E5E7EB" strokeWidth="2"/>
-                  </svg>
-                )}
-
-                {/* Inner illustration overlay */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  {innerIndex === 3 && (
-                    <div className="relative w-full h-full flex items-center justify-center">
-                      {/* Background decorative elements */}
-                      <div className="absolute inset-0 overflow-hidden">
-                        <div className="absolute top-10 left-10 w-20 h-20 bg-indigo-100 rounded-full opacity-30 animate-pulse"></div>
-                        <div className="absolute bottom-10 right-10 w-24 h-24 bg-blue-100 rounded-full opacity-30 animate-pulse" style={{animationDelay: '1s'}}></div>
-                        <div className="absolute top-1/2 left-5 w-16 h-16 bg-purple-100 rounded-full opacity-20 animate-pulse" style={{animationDelay: '2s'}}></div>
-                      </div>
-                      
-                      {/* Logo container with shadow and glow */}
-                      <div className="relative z-10 p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100">
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-2xl"></div>
-                        <img 
-                          src={logoImg} 
-                          alt="ScholarVault Logo" 
-                          className="relative w-48 h-48 sm:w-56 sm:h-56 object-contain drop-shadow-2xl"
-                        />
-                      </div>
-                      
-                      {/* Floating badges */}
-                      <div className="absolute top-8 right-8 bg-indigo-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg animate-bounce">
-                        AI Powered
-                      </div>
-                      <div className="absolute bottom-8 left-8 bg-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg animate-bounce" style={{animationDelay: '0.5s'}}>
-                        Smart Learning
-                      </div>
-                    </div>
-                  )}
-                  {innerIndex === 0 && (
-                    <svg className="w-4/5 h-4/5" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="20" y="40" width="360" height="240" rx="16" fill="#fff" stroke="#E5E7EB" strokeWidth="2"/>
-                      <rect x="30" y="50" width="340" height="30" rx="6" fill="#F3F4F6"/>
-                      <circle cx="50" cy="65" r="6" fill="#4F46E5"/>
-                      <line x1="30" y1="100" x2="370" y2="100" stroke="#E5E7EB" strokeWidth="1"/>
-                      <line x1="30" y1="130" x2="370" y2="130" stroke="#D1D5DB" strokeWidth="2"/>
-                      <line x1="30" y1="150" x2="370" y2="150" stroke="#E5E7EB" strokeWidth="1"/>
-                      <line x1="30" y1="180" x2="370" y2="180" stroke="#D1D5DB" strokeWidth="2"/>
-                      <path d="M 50 230 L 70 210 L 90 220 L 110 190 L 130 210 L 150 180" stroke="#4F46E5" strokeWidth="2" fill="none"/>
-                    </svg>
-                  )}
-                  {innerIndex === 1 && (
-                    <svg className="w-4/5 h-4/5" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <defs>
-                        <linearGradient id="igrad" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor="#4F46E5"/>
-                          <stop offset="100%" stopColor="#3B82F6"/>
-                        </linearGradient>
-                      </defs>
-                      <rect x="20" y="20" width="360" height="260" rx="16" fill="url(#igrad)" opacity="0.05"/>
-                      <circle cx="120" cy="100" r="45" fill="#EFF6FF"/>
-                      <circle cx="280" cy="150" r="50" fill="#F0F9FF"/>
-                      <rect x="40" y="220" width="320" height="40" rx="8" fill="#F3F4F6"/>
-                      <line x1="60" y1="240" x2="360" y2="240" stroke="#D1D5DB" strokeWidth="2"/>
-                    </svg>
-                  )}
-                  {innerIndex === 2 && (
-                    <svg className="w-4/5 h-4/5" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="30" y="30" width="340" height="240" rx="12" fill="#fff" stroke="#E5E7EB" strokeWidth="1.5"/>
-                      <rect x="40" y="40" width="320" height="50" rx="8" fill="linear-gradient(to right, #4F46E5, #3B82F6)" opacity="0.1"/>
-                      <circle cx="380" cy="65" r="12" fill="#4F46E5"/>
-                      <rect x="40" y="110" width="320" height="100" rx="6" fill="#F9FAFB"/>
-                      <line x1="50" y1="130" x2="350" y2="130" stroke="#E5E7EB" strokeWidth="1.5"/>
-                      <line x1="50" y1="150" x2="350" y2="150" stroke="#E5E7EB" strokeWidth="1.5"/>
-                      <line x1="50" y1="170" x2="320" y2="170" stroke="#E5E7EB" strokeWidth="1.5"/>
-                      <rect x="40" y="230" width="320" height="30" rx="6" fill="#4F46E5" opacity="0.1"/>
-                    </svg>
-                  )}
-                </div>
-              </div>
+        <div className="flex-1 flex justify-center w-full">
+          <div className="relative w-full h-96 sm:h-[28rem] lg:h-[32rem] bg-linear-to-br from-indigo-50 via-blue-50 to-purple-50 rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex items-center justify-center">
+            {/* Background decorative elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-10 left-10 w-32 h-32 bg-indigo-100 rounded-full opacity-20 animate-pulse"></div>
+              <div className="absolute bottom-10 right-10 w-40 h-40 bg-blue-100 rounded-full opacity-20 animate-pulse" style={{animationDelay: '1s'}}></div>
+              <div className="absolute top-1/2 right-1/4 w-24 h-24 bg-purple-100 rounded-full opacity-15 animate-pulse" style={{animationDelay: '2s'}}></div>
             </div>
-
-            {/* Controls */}
-            <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 px-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-600 font-semibold whitespace-nowrap">Background</span>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => setBgIndex(0)} 
-                    className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${bgIndex===0? 'bg-indigo-600 scale-125' : 'bg-gray-300 hover:bg-gray-400'}`} 
-                    aria-label="Use default background"
-                  />
-                  <button 
-                    onClick={() => setBgIndex(1)} 
-                    className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${bgIndex===1? 'bg-indigo-600 scale-125' : 'bg-gray-300 hover:bg-gray-400'}`} 
-                    aria-label="Use hero option 1"
-                  />
-                  <button 
-                    onClick={() => setBgIndex(2)} 
-                    className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${bgIndex===2? 'bg-indigo-600 scale-125' : 'bg-gray-300 hover:bg-gray-400'}`} 
-                    aria-label="Use hero option 2"
-                  />
-                </div>
-              </div>
-
-              <div className="hidden sm:block w-px h-6 bg-gray-300"></div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-600 font-semibold whitespace-nowrap">Inner</span>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => setInnerIndex(0)} 
-                    className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${innerIndex===0? 'bg-indigo-600 scale-125' : 'bg-gray-300 hover:bg-gray-400'}`} 
-                    aria-label="Use inner default"
-                  />
-                  <button 
-                    onClick={() => setInnerIndex(1)} 
-                    className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${innerIndex===1? 'bg-indigo-600 scale-125' : 'bg-gray-300 hover:bg-gray-400'}`} 
-                    aria-label="Use inner option 1"
-                  />
-                  <button 
-                    onClick={() => setInnerIndex(2)} 
-                    className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${innerIndex===2? 'bg-indigo-600 scale-125' : 'bg-gray-300 hover:bg-gray-400'}`} 
-                    aria-label="Use inner option 2"
-                  />
-                  <button 
-                    onClick={() => setInnerIndex(3)} 
-                    className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${innerIndex===3? 'bg-indigo-600 scale-125' : 'bg-gray-300 hover:bg-gray-400'}`} 
-                    aria-label="Use inner book icon"
-                  />
-                </div>
-              </div>
+            
+            {/* Logo container with shadow and glow */}
+            <div className="relative z-10 p-8 sm:p-12 lg:p-16 bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-200">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-blue-500/5 rounded-3xl"></div>
+              <img 
+                src={logoImg} 
+                alt="ScholarVault Logo" 
+                className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 object-contain drop-shadow-2xl"
+                loading="eager"
+              />
+            </div>
+            
+            {/* Floating badges */}
+            <div className="absolute top-6 right-6 sm:top-8 sm:right-8 bg-indigo-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg animate-bounce">
+              AI Powered
+            </div>
+            <div className="absolute bottom-6 left-6 sm:bottom-8 sm:left-8 bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg animate-bounce" style={{animationDelay: '0.5s'}}>
+              Smart Learning
             </div>
           </div>
         </div>
