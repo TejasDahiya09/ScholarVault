@@ -87,9 +87,9 @@ export default function Landing() {
         </div>
 
         <div className="flex-1 flex justify-center w-full">
-          <div className="relative w-full max-w-xl">
+          <div className="relative w-full max-w-md">
             {/* Main container with glass effect */}
-            <div className="relative h-[450px] sm:h-[500px] bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
+            <div className="relative h-[420px] bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
               {/* Gradient background */}
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/50 via-blue-50/30 to-purple-100/50"></div>
               
@@ -101,12 +101,12 @@ export default function Landing() {
               </div>
               
               {/* Content container */}
-              <div className="relative h-full flex flex-col items-center justify-center p-8 sm:p-12">
+              <div className="relative h-full flex flex-col items-center justify-center p-6">
                 {/* Logo with solid background circle */}
-                <div className="relative mb-6">
+                <div className="relative mb-5">
                   {/* White circle background for logo */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-64 h-64 sm:w-72 sm:h-72 bg-white rounded-full shadow-xl"></div>
+                    <div className="w-80 h-80 bg-white rounded-full shadow-xl"></div>
                   </div>
                   
                   {/* Logo */}
@@ -114,34 +114,26 @@ export default function Landing() {
                     <img 
                       src={logoImg} 
                       alt="ScholarVault Logo" 
-                      className="w-56 h-56 sm:w-64 sm:h-64 object-contain filter drop-shadow-2xl"
+                      className="w-80 h-80 object-contain filter drop-shadow-2xl"
                       loading="eager"
                     />
                   </div>
                   
                   {/* Glow effect behind logo */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-56 h-56 sm:w-64 sm:h-64 bg-gradient-to-br from-indigo-400/20 to-blue-400/20 rounded-full blur-2xl"></div>
+                  <div className="absolute inset-0 flex items-center justify-center -z-10">
+                    <div className="w-72 h-72 bg-gradient-to-br from-indigo-400/20 to-blue-400/20 rounded-full blur-2xl"></div>
                   </div>
                 </div>
                 
                 {/* Text below logo */}
-                <div className="text-center space-y-2">
-                  <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                <div className="text-center space-y-1.5">
+                  <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
                     ScholarVault
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-600 font-medium">
+                  <p className="text-sm text-gray-600 font-medium">
                     AI-Powered Learning Platform
                   </p>
                 </div>
-              </div>
-              
-              {/* Floating badges - repositioned */}
-              <div className="absolute top-6 right-6 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-bold shadow-lg hover:shadow-xl transition-shadow">
-                ⚡ AI Powered
-              </div>
-              <div className="absolute bottom-6 left-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-bold shadow-lg hover:shadow-xl transition-shadow">
-                🚀 Smart Learning
               </div>
             </div>
           </div>
