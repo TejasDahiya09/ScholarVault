@@ -124,7 +124,7 @@ export default function SearchPage() {
         const res = await client.get('/api/notes/metadata');
         if (res.data) {
           setAllNotesMetadata(res.data);
-          console.log(`Loaded ${res.data.length} notes for instant search`);
+          // console.log(`Loaded ${res.data.length} notes for instant search`);
           // Initialize Fuse.js
           fuseRef.current = new Fuse(res.data, {
             keys: [
@@ -140,7 +140,7 @@ export default function SearchPage() {
           setUseClientSearch(true);
         }
       } catch (err) {
-        console.log('Client-side search not available:', err.message);
+        // console.log('Client-side search not available:', err.message);
       }
     };
     loadMetadata();

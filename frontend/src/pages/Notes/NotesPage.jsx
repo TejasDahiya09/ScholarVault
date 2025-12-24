@@ -249,7 +249,7 @@ export default function NotesPage() {
       setAiLoading(true);
       setAiResponse("");
       responseRef.current = "";
-      console.log("Starting summary stream...");
+      // console.log("Starting summary stream...");
       
       const API_BASE = import.meta.env.VITE_API_BASE_URL;
       const response = await fetch(`${API_BASE}/api/notes/${selectedNote.id}/summary`, {
@@ -267,7 +267,7 @@ export default function NotesPage() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
-          console.log("Stream complete");
+          // console.log("Stream complete");
           break;
         }
 
@@ -287,13 +287,13 @@ export default function NotesPage() {
               const jsonStr = line.slice(6);
               const data = JSON.parse(jsonStr);
               if (data.done) {
-                console.log("Summary stream finished");
+                // console.log("Summary stream finished");
               } else if (data.error) {
                 throw new Error(data.error);
               } else if (data.chunk) {
                 responseRef.current += data.chunk;
                 setAiResponse(responseRef.current);
-                console.log("Chunk received:", data.chunk.substring(0, 30));
+                // console.log("Chunk received:", data.chunk.substring(0, 30));
               }
             } catch (e) {
               console.error('JSON parse error:', e);
@@ -310,7 +310,7 @@ export default function NotesPage() {
           if (data.chunk) {
             responseRef.current += data.chunk;
             setAiResponse(responseRef.current);
-            console.log("Final chunk, total:", responseRef.current.length);
+            // console.log("Final chunk, total:", responseRef.current.length);
           }
         } catch (e) {
           console.error('Final buffer parse error:', e);
@@ -320,7 +320,7 @@ export default function NotesPage() {
       // Save to session storage for this session
       if (responseRef.current && selectedNote?.id) {
         sessionStorage.setItem(getSummaryCacheKey(selectedNote.id), responseRef.current);
-        console.log("Summary cached for note:", selectedNote.id);
+        // console.log("Summary cached for note:", selectedNote.id);
       }
     } catch (err) {
       console.error("Summary error:", err);
@@ -337,7 +337,7 @@ export default function NotesPage() {
       setAiLoading(true);
       setAiResponse("");
       responseRef.current = "";
-      console.log("Starting question stream...");
+      // console.log("Starting question stream...");
       
       const API_BASE = import.meta.env.VITE_API_BASE_URL;
       const response = await fetch(`${API_BASE}/api/notes/${selectedNote.id}/ask`, {
@@ -361,7 +361,7 @@ export default function NotesPage() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
-          console.log("Stream complete");
+          // console.log("Stream complete");
           break;
         }
 
@@ -381,13 +381,13 @@ export default function NotesPage() {
               const jsonStr = line.slice(6);
               const data = JSON.parse(jsonStr);
               if (data.done) {
-                console.log("Question stream finished");
+                // console.log("Question stream finished");
               } else if (data.error) {
                 throw new Error(data.error);
               } else if (data.chunk) {
                 responseRef.current += data.chunk;
                 setAiResponse(responseRef.current);
-                console.log("Chunk received:", data.chunk.substring(0, 30));
+                // console.log("Chunk received:", data.chunk.substring(0, 30));
               }
             } catch (e) {
               console.error('JSON parse error:', e);
@@ -404,7 +404,7 @@ export default function NotesPage() {
           if (data.chunk) {
             responseRef.current += data.chunk;
             setAiResponse(responseRef.current);
-            console.log("Final chunk, total:", responseRef.current.length);
+            // console.log("Final chunk, total:", responseRef.current.length);
           }
         } catch (e) {
           console.error('Final buffer parse error:', e);
@@ -893,7 +893,7 @@ export default function NotesPage() {
                       noteId={selectedNote.id}
                       onResultClick={(result) => {
                         // Optional: could scroll to result or show snippet
-                        console.log("Search result clicked:", result);
+                        // console.log("Search result clicked:", result);
                       }}
                     />
                   )}
