@@ -452,6 +452,21 @@ export default function NotesPage() {
     return () => { active = false; };
   }, [selectedNote]);
 
+  // Temporarily disable global dark mode while viewer is open to keep it light
+  useEffect(() => {
+    const root = document.documentElement;
+    const hadDark = root.classList.contains('dark');
+    if (selectedNote && hadDark) {
+      root.classList.remove('dark');
+    }
+
+    return () => {
+      if (hadDark) {
+        root.classList.add('dark');
+      }
+    };
+  }, [selectedNote]);
+
 
   const closeViewer = () => {
     setActiveTab("list");
