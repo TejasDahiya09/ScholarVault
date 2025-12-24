@@ -646,20 +646,22 @@ export default function NotesPage() {
         subjectId: subjectId,
         completed: !isCompleted,
       });
-      
-      const newCompleted = new Set(completedNotes);
+      // Re-fetch completion status from backend
+      if (subjectId) {
+        const res = await client.get(`/api/subjects/${subjectId}/progress`);
+        const completedIds = res.data?.completed_note_ids || [];
+        setCompletedNotes(new Set(completedIds));
+      }
+      // Signal dashboard/progress to refresh
+      localStorage.setItem('sv_refresh_dashboard', '1');
+      window.dispatchEvent(new Event('sv_refresh_dashboard'));
       if (isCompleted) {
-        newCompleted.delete(noteId);
         setToast({ show: true, message: "Marked as incomplete", type: "info" });
       } else {
-        newCompleted.add(noteId);
         setToast({ show: true, message: "✓ Marked as complete!", type: "success" });
         setCompletePopup({ show: true, noteId });
         setTimeout(() => setCompletePopup({ show: false, noteId: null }), 3000);
       }
-      setCompletedNotes(newCompleted);
-      
-      // Auto-hide toast after 3 seconds
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     } catch (err) {
       console.error("Failed to mark note complete:", err);
@@ -674,18 +676,19 @@ export default function NotesPage() {
     try {
       const isBookmarked = bookmarkedNotes.has(noteId);
       await client.post(`/api/notes/${noteId}/bookmark`);
-      
-      const newBookmarked = new Set(bookmarkedNotes);
+      // Re-fetch bookmarks from backend
+      const res = await client.get('/api/bookmarks');
+      const bookmarkIds = res.data?.bookmarks || [];
+      setBookmarkedNotes(new Set(bookmarkIds));
+      // Signal dashboard/progress to refresh
+      localStorage.setItem('sv_refresh_dashboard', '1');
+      window.dispatchEvent(new Event('sv_refresh_dashboard'));
       if (isBookmarked) {
-        newBookmarked.delete(noteId);
         setToast({ show: true, message: "Bookmark removed", type: "info" });
       } else {
-        newBookmarked.add(noteId);
-        // Show bookmark popup for new bookmarks
         setBookmarkPopup({ show: true, noteId });
         setTimeout(() => setBookmarkPopup({ show: false, noteId: null }), 3000);
       }
-      setBookmarkedNotes(newBookmarked);
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     } catch (err) {
       console.error("Failed to toggle bookmark:", err);

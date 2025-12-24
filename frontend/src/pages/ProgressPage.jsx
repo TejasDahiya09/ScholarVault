@@ -22,7 +22,20 @@ export default function ProgressPage() {
   const [velocity, setVelocity] = useState([]);
 
   useEffect(() => {
-    fetchProgressData();
+    // If coming back from NotesPage, refresh if needed
+    if (localStorage.getItem('sv_refresh_dashboard') === '1') {
+      fetchProgressData();
+      localStorage.removeItem('sv_refresh_dashboard');
+    } else {
+      fetchProgressData();
+    }
+    // Listen for instant refresh event
+    const refreshHandler = () => {
+      fetchProgressData();
+      localStorage.removeItem('sv_refresh_dashboard');
+    };
+    window.addEventListener('sv_refresh_dashboard', refreshHandler);
+    return () => window.removeEventListener('sv_refresh_dashboard', refreshHandler);
   }, [user?.selected_year]);
 
   // Helper to filter subjects by selected year
