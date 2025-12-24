@@ -117,7 +117,7 @@ export default function ProgressPage() {
 
   // Sort subjects by different criteria
   const strongestSubjects = [...subjects].sort((a, b) => b.progress - a.progress).slice(0, 3);
-  const needsAttention = [...subjects].filter(s => s.progress > 0 && s.progress < 40).sort((a, b) => a.progress - b.progress);
+
 
   if (loading) {
     return (
@@ -412,37 +412,7 @@ export default function ProgressPage() {
               </div>
             )}
 
-            {/* Subjects Needing Attention */}
-            {needsAttention.length > 0 && (
-              <div className="bg-linear-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-amber-200">
-                <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <span className="text-xl">⚠️</span>
-                  Needs Focus
-                </h2>
-                <div className="space-y-3">
-                  {needsAttention.slice(0, 5).map((subject) => (
-                    <div key={subject.id} className="p-3 bg-white rounded-lg border border-amber-200">
-                      <h3 className="font-semibold text-xs sm:text-sm text-gray-900 mb-2">{subject.name}</h3>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-200 rounded-full h-1.5">
-                          <div
-                            className="bg-amber-600 h-1.5 rounded-full"
-                            style={{ width: `${subject.progress}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-semibold text-amber-700">{Math.round(subject.progress)}%</span>
-                      </div>
-                      <button
-                        onClick={() => navigate('/home')}
-                        className="text-xs font-medium text-indigo-600 hover:underline mt-2"
-                      >
-                        Resume Study →
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            // ...existing code...
 
             {/* Study Streak Info */}
             <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
