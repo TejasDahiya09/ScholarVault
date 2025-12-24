@@ -298,7 +298,7 @@ export default function ProgressPage() {
                     <div key={index} className="flex-1 flex flex-col items-center gap-2">
                       <div className="w-full bg-gray-100 rounded-t relative" style={{ height: '100%' }}>
                         <div
-                          className="absolute bottom-0 w-full rounded-t bg-gradient-to-t from-purple-600 to-purple-400 transition-all duration-300"
+                          className="absolute bottom-0 w-full rounded-t bg-linear-to-t from-purple-600 to-purple-400 transition-all duration-300"
                           style={{ height: `${Math.min((week.count / Math.max(...velocity.map(v => v.count), 1)) * 100, 100)}%` }}
                           title={`${week.week}: ${week.count} notes`}
                         />
@@ -341,26 +341,34 @@ export default function ProgressPage() {
           {/* Right Column - Stats */}
           <div className="space-y-6 sm:space-y-8">
             {/* Peak Study Time */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-blue-200">
+            <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-blue-200">
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <span className="text-xl">☀️</span>
                 Peak Study Time
               </h2>
-              <div className="text-center py-4">
-                <div className="text-3xl sm:text-4xl mb-2">
-                  {stats.peakStudyTime === 'morning' && '🌅'}
-                  {stats.peakStudyTime === 'afternoon' && '☀️'}
-                  {stats.peakStudyTime === 'evening' && '🌆'}
-                  {stats.peakStudyTime === 'night' && '🌙'}
+              {stats.peakStudyTime ? (
+                <div className="text-center py-4">
+                  <div className="text-3xl sm:text-4xl mb-2">
+                    {stats.peakStudyTime === 'morning' && '🌅'}
+                    {stats.peakStudyTime === 'afternoon' && '☀️'}
+                    {stats.peakStudyTime === 'evening' && '🌆'}
+                    {stats.peakStudyTime === 'night' && '🌙'}
+                  </div>
+                  <p className="text-lg sm:text-xl font-bold text-indigo-700 capitalize">{stats.peakStudyTime}</p>
+                  <p className="text-xs text-gray-600 mt-2">
+                    {stats.peakStudyTime === 'morning' && '5 AM - 12 PM'}
+                    {stats.peakStudyTime === 'afternoon' && '12 PM - 5 PM'}
+                    {stats.peakStudyTime === 'evening' && '5 PM - 9 PM'}
+                    {stats.peakStudyTime === 'night' && '9 PM - 5 AM'}
+                  </p>
                 </div>
-                <p className="text-lg sm:text-xl font-bold text-indigo-700 capitalize">{stats.peakStudyTime}</p>
-                <p className="text-xs text-gray-600 mt-2">
-                  {stats.peakStudyTime === 'morning' && '5 AM - 12 PM'}
-                  {stats.peakStudyTime === 'afternoon' && '12 PM - 5 PM'}
-                  {stats.peakStudyTime === 'evening' && '5 PM - 9 PM'}
-                  {stats.peakStudyTime === 'night' && '9 PM - 5 AM'}
-                </p>
-              </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-3xl sm:text-4xl mb-2 text-gray-400">⏳</div>
+                  <p className="text-lg sm:text-base text-gray-500">Not enough data yet</p>
+                  <p className="text-xs text-gray-400 mt-2">Study at least 3 times to see your peak time!</p>
+                </div>
+              )}
               <p className="text-xs text-gray-500 text-center mt-2">Your most productive study time</p>
             </div>
 

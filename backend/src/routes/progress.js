@@ -96,18 +96,20 @@ router.get("/analytics", authenticate, async (req, res, next) => {
       .from("user_study_sessions")
       .select("session_start")
       .eq("user_id", userId);
-    
-    const timeBlocks = { morning: 0, afternoon: 0, evening: 0, night: 0 };
-    for (const s of sessions || []) {
-      const hour = new Date(s.session_start).getHours();
-      if (hour >= 5 && hour < 12) timeBlocks.morning++;
-      else if (hour >= 12 && hour < 17) timeBlocks.afternoon++;
-      else if (hour >= 17 && hour < 21) timeBlocks.evening++;
-      else timeBlocks.night++;
+
+    let peakTime = null;
+    if ((sessions?.length || 0) >= 3) {
+      const timeBlocks = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+      for (const s of sessions || []) {
+        const hour = new Date(s.session_start).getHours();
+        if (hour >= 5 && hour < 12) timeBlocks.morning++;
+        else if (hour >= 12 && hour < 17) timeBlocks.afternoon++;
+        else if (hour >= 17 && hour < 21) timeBlocks.evening++;
+        else timeBlocks.night++;
+      }
+      peakTime = Object.entries(timeBlocks)
+        .sort((a, b) => b[1] - a[1])[0]?.[0] || null;
     }
-    
-    const peakTime = Object.entries(timeBlocks)
-      .sort((a, b) => b[1] - a[1])[0]?.[0] || 'morning';
 
     // Study velocity (notes completed per week, last 8 weeks)
     const velocity = [];
