@@ -952,8 +952,8 @@ export default function NotesPage() {
                 </div>
               </div>
 
-              {/* Resizable Divider with Preset Buttons */}
-              {isPDF && isNote && (
+              {/* Resizable Divider with Preset Buttons (now for notes and PPTs) */}
+              {isPDF && (isNote || isPpt) && (
                 <>
                   <div className="flex flex-col items-center gap-1 bg-gray-50 py-2 px-0.5">
                     {/* Preset Layout Buttons */}
