@@ -81,7 +81,7 @@ export default function NotesPage() {
 
   
   // Document type tracking
-  const isNote = !selectedNote?.isBook && !selectedNote?.isPyQ && !selectedNote?.isSyllabus && !isPpt;
+  const isNote = !selectedNote?.isBook && !selectedNote?.isPyQ && !selectedNote?.isSyllabus;
   const isBook = selectedNote?.isBook;
   const isPyQ = selectedNote?.isPyQ;
   const isSyllabus = selectedNote?.isSyllabus;
@@ -888,7 +888,8 @@ export default function NotesPage() {
                     <span className="sm:hidden">⬇</span>
                   </button>
 
-                  {isNote && (
+                  {/* Hide Mark as Complete in PPT viewer */}
+                  {!isPpt && (
                     <button
                       onClick={(e) => handleMarkComplete(e, selectedNote?.id)}
                       className={`px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm whitespace-nowrap font-medium transition-all ${
