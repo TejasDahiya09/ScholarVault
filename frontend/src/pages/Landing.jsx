@@ -89,10 +89,10 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="flex-1 flex justify-center w-full">
+        <div className="flex-1 flex justify-center w-full" style={darkMode ? {filter: 'invert(0.93) hue-rotate(180deg)'} : {}}>
           <div className="relative w-full max-w-md">
             {/* Main container with glass effect - always light mode styling */}
-            <div className="relative h-[420px] bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-3xl hover:scale-[1.02]" style={darkMode ? {filter: 'invert(0.93) hue-rotate(180deg)'} : {}}>
+            <div className="relative h-[420px] bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-3xl hover:scale-[1.02]">
               {/* Gradient background */}
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/50 via-blue-50/30 to-purple-100/50 transition-opacity duration-700"></div>
               
