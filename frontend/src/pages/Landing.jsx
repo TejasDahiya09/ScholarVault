@@ -125,32 +125,28 @@ export default function Landing() {
               
               {/* Content container */}
               <div className="relative h-full flex items-center justify-center p-6">
-                {/* Logo with solid background circle */}
-                <div className="relative animate-float">
-                  {/* White circle background for logo - always white */}
+                {/* Logo with solid background circle - isolated from dark mode */}
+                <div className="relative animate-float" style={{filter: 'none'}}>
+                  {/* White circle background for logo - always white, no dark mode */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-80 h-80 bg-white rounded-full shadow-xl transition-all duration-500 hover:shadow-2xl" style={{filter: 'none'}}></div>
+                    <div className="w-80 h-80 bg-white rounded-full shadow-xl transition-all duration-500 hover:shadow-2xl"></div>
                   </div>
                   
-                  {/* Logo - always original colors */}
-                  <div className="relative z-10 flex items-center justify-center [filter:none]" style={{filter: 'none !important'}}>
+                  {/* Logo - completely isolated from dark mode */}
+                  <div className="relative z-10 flex items-center justify-center">
                     <img 
                       src={logoImg} 
                       alt="ScholarVault Logo" 
-                      className="w-80 h-80 object-contain filter drop-shadow-2xl transition-all duration-500 hover:scale-105 hover:drop-shadow-3xl"
+                      className="w-80 h-80 object-contain transition-all duration-500 hover:scale-105"
                       fetchPriority="high"
                       decoding="async"
                       style={{filter: 'drop-shadow(0 25px 25px rgb(0 0 0 / 0.15))'}}
                     />
                   </div>
                   
-                  {/* Glow effect behind logo */}
+                  {/* Glow effect behind logo - minimal change in dark mode */}
                   <div className="absolute inset-0 flex items-center justify-center -z-10">
-                    <div className={`w-72 h-72 rounded-full blur-2xl animate-pulse-slow ${
-                      darkMode
-                        ? 'bg-gradient-to-br from-indigo-500/30 to-blue-500/30'
-                        : 'bg-gradient-to-br from-indigo-400/20 to-blue-400/20'
-                    }`}></div>
+                    <div className="w-72 h-72 bg-gradient-to-br from-indigo-400/20 to-blue-400/20 rounded-full blur-2xl animate-pulse-slow"></div>
                   </div>
                 </div>
               </div>
