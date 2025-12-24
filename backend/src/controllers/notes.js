@@ -175,18 +175,9 @@ export const markAsCompleted = async (req, res, next) => {
     }
 
     // Use atomic upsert for completion
-    const result = await progressDB.setNoteCompletion(userId, noteId, subjectId, completed);
-    // Get updated subject completion status
-    const status = await progressDB.getSubjectCompletionStatus(userId, subjectId);
 
-    res.json({
-      status: "success",
-      note_completed: completed,
-      subject_completion: status,
-      result,
-    });
-  } catch (err) {
-    next(err);
+  res.status(410).json({ error: "Mark as completed feature has been removed." });
+  }
   }
 };
 
@@ -207,23 +198,10 @@ export const toggleBookmark = async (req, res, next) => {
     }
 
     // Check if already bookmarked
-    const isBookmarked = await bookmarksDB.isBookmarked(userId, noteId);
 
-    let result;
-    if (isBookmarked) {
-      result = await bookmarksDB.removeBookmark(userId, noteId);
-    } else {
-      result = await bookmarksDB.addBookmark(userId, noteId);
-    }
 
-    res.json({
-      status: "success",
-      bookmarked: !isBookmarked,
-      message: !isBookmarked ? "Bookmarked" : "Bookmark removed",
-    });
-  } catch (err) {
-    console.error("Bookmark error:", err);
-    next(err);
+  res.status(410).json({ error: "Bookmark feature has been removed." });
+  }
   }
 };
 

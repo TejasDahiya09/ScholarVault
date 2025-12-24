@@ -93,55 +93,5 @@ export const progressDB = {
       const s3Url = (note.s3_url || "").toLowerCase();
       const fileName = (note.file_name || "").toLowerCase();
       
-      // Exclude syllabus
+      // Mark as completed feature removed
       if (
-        s3Url.includes("/syllabus/") || 
-        fileName.includes("syllabus") ||
-        fileName.includes("curriculum") ||
-        fileName.includes("course outline") ||
-        s3Url.includes("syllabus")
-      ) {
-        return false;
-      }
-      
-      // Exclude PYQs
-      if (
-        s3Url.includes("/pyqs/") || 
-        s3Url.includes("/previous-years/") || 
-        s3Url.includes("/previous_years/") ||
-        fileName.includes("pyq") || 
-        fileName.includes("previous year") || 
-        fileName.includes("pye")
-      ) {
-        return false;
-      }
-      
-      // Include actual notes
-      return true;
-    });
-
-    const totalNotes = actualNotes.length;
-
-    // Get completed notes from progress table
-    const { data: progressData, error: progressError } = await supabase
-      .from("user_study_progress")
-      .select("note_id, is_completed")
-      .eq("user_id", userId)
-      .eq("subject_id", subjectId)
-      .eq("is_completed", true);
-
-    if (progressError) {
-      throw new Error(`Failed to fetch subject completion status: ${progressError.message}`);
-    }
-
-    const completedNotes = progressData?.length || 0;
-
-    return {
-      total_notes: totalNotes,
-      completed_notes: completedNotes,
-      percentage: totalNotes > 0 ? Math.round((completedNotes / totalNotes) * 100) : 0,
-    };
-  },
-};
-
-export default progressDB;

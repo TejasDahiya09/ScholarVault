@@ -12,7 +12,7 @@ import notesRoutes from "./src/routes/notes.js";
 import subjectsRoutes from "./src/routes/subjects.js";
 import searchRoutes from "./src/routes/search.js";
 import filesRoutes from "./src/routes/files.js";
-import bookmarksRoutes from "./src/routes/bookmarks.js";
+// Bookmarks routes removed
 import progressRoutes from "./src/routes/progress.js";
 
 const app = express();
@@ -92,6 +92,7 @@ app.use("/api/subjects", subjectsRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/files", filesRoutes);
 app.use("/api/bookmarks", bookmarksRoutes);
+// Bookmarks routes removed
 app.use("/api/progress", progressRoutes);
 
 /**
