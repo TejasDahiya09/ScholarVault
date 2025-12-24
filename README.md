@@ -1,103 +1,116 @@
 # ScholarVault 📚
 
-A comprehensive smart learning platform that combines study notes management, progress analytics, and AI-powered features to help students optimize their learning journey.
+A comprehensive smart learning platform that combines study notes management, progress analytics, and AI-powered features to help engineering students optimize their learning journey with real-time insights and intelligent study tracking.
 
 ## 🎯 Core Features
 
-### Learning Management
-- **Smart Notes Management**: PDF viewer with annotation capabilities, powered by AI summaries
-- **Subject Organization**: Organize notes by subjects and semesters, with structured learning paths
-- **Progress Tracking**: Real-time tracking of completed units with detailed analytics
-- **Year-based Learning**: Support for 1st and 2nd year curricula with semester-level organization
-- **Bookmark System**: Save important notes and resources for quick access
+### 📖 Learning Management
+- **Smart Notes Management**: Browse and study PDF notes with integrated AI-powered summaries
+- **Subject Organization**: Well-organized notes by subjects, years, and semesters (1st & 2nd Year B.Tech)
+- **Progress Tracking**: Real-time tracking of study progress with detailed analytics dashboard
+- **Bookmark System**: Save and organize important notes for quick access
+- **Full-text Search**: Instantly search across all study materials with subject filtering
 
-### Advanced Analytics & Insights
-- **Session Tracking**: Automatic capture of study sessions across login/logout and tab lifecycle
-- **Per-Note Time Tracking**: Invisible time tracking for individual notes (>5 second threshold)
-- **Comprehensive Analytics**: 
-  - Weekly & monthly activity trends with hourly breakdowns
-  - Subject-level time aggregation showing hours spent per subject
-  - Peak study time detection (morning/afternoon/evening/night)
-  - 8-week study velocity graph (notes completed per week)
-  - Streak tracking with 15-minute daily threshold
-  - Revisit counting for completed notes
+### 📊 Advanced Analytics & Insights
+- **Automatic Session Tracking**: Tracks study time automatically when you login/logout
+- **Per-Note Time Tracking**: Monitor how much time you spend on each note
+- **Comprehensive Dashboard**: 
+  - Weekly & monthly study activity trends
+  - Subject-wise time spent analysis
+  - 8-week learning velocity graph showing progress
+  - Study streaks with daily consistency tracking
+  - Peak study time detection (when you study best)
+  - Personalized learning insights
 
-### User Management
-- **Authentication**: Secure JWT-based authentication with email/password
-- **Preferences**: Customizable user preferences (notifications, year selection, study goals)
-- **Data Export**: Complete user data export in JSON format
-- **Profile Management**: Update email, password, and profile information
+### 👤 User Management
+- **Secure Authentication**: Email/password authentication with industry-standard security
+- **Customizable Preferences**: Set your study goals, year, and notification preferences
+- **Profile Management**: Easily update your account information
+- **Data Privacy**: Complete control over your study data
 
-### Search & Discovery
-- **Full-text Search**: Search across all notes with filtering by subject
-- **Search Analytics**: Track popular search queries for insights
-- **Subject Discovery**: Browse and enroll in available subjects by branch and semester
+### 🔍 Search & Discovery
+- **Powerful Search**: Find specific topics across all notes instantly
+- **Smart Filtering**: Filter by subjects and study materials
+- **Browse Catalog**: Explore available subjects organized by year and semester
+- **Popular Searches**: Discover trending topics studied by other students
 
-### File Management
-- **Secure File Uploads**: Upload study materials with automatic processing
-- **OCR Processing**: Automatic text extraction from PDF documents
-- **Smart Organization**: Automatic categorization and indexing
+### 📁 Study Materials Management
+- **PDF Support**: Easily access study materials in PDF format
+- **Smart Organization**: Notes automatically organized by subject and year
+- **Quick Access**: One-click access to frequently studied materials
+- **Study Tracking**: Automatic monitoring of which materials you study
 
 ## 🚀 Getting Started
 
-Visit [ScholarVault.app](https://scholarvault.app) to create an account and start optimizing your learning with intelligent analytics.
+1. **Create Account**: Sign up with your email at [ScholarVault](https://scholarvault.app)
+2. **Select Your Year**: Choose your academic year (1st or 2nd Year)
+3. **Browse Subjects**: Explore available subjects for your branch
+4. **Start Learning**: Open notes and begin studying - tracking starts automatically!
+5. **Track Progress**: Watch your analytics dashboard update in real-time
 
-## 📊 Key Analytics Features
+## 💡 Key Benefits
 
-**Session Management**
-- Automatic session tracking on login/logout
-- Handles complex session scenarios with midnight-spanning sessions
-- Accurate daily time attribution
+**Understand Your Learning Pattern**
+- See exactly how much time you spend studying each subject
+- Identify your peak study hours and best learning times
+- Track consistency with built-in streak counters
+- Visualize progress over weeks and months
 
-**Per-Note Tracking**
-- Invisible background tracking when studying notes
-- Records learning duration per note
-- Tracks when you revisit completed materials
+**Stay Motivated**
+- Celebrate consistent study habits with streak tracking
+- Set personal learning velocity goals
+- Get insights into your strongest and weakest subjects
+- Monitor completion progress
 
-**Streaks & Consistency**
-- Track your study consistency with streak counters
-- 15-minute daily study threshold
-- Visualize your longest streak and current momentum
+**Smart Study Tools**
+- AI-powered summaries of complex topics (powered by advanced AI models)
+- Automatic text extraction from PDF documents
+- Instant search across all your study materials
+- Personalized recommendations based on your study pattern
 
-**Subject Insights**
-- Understand how much time you spend per subject
-- Compare your learning intensity across subjects
-- Identify subjects needing more attention
+**Complete Data Privacy**
+- Your study data is private and never shared
+- Complete control over your information
+- No ads or tracking of personal behavior
+- Optional data export in standard formats
 
-**Learning Velocity**
-- 8-week trend of completed notes per week
-- Track your learning progression over time
-- Identify peak learning periods
+## 🔧 Technology Stack
 
-## 📁 Architecture
-
-ScholarVault is built using modern cloud technologies with enterprise-grade security and scalability. The platform uses:
-
-- Modern React 18 frontend with responsive design
-- Node.js backend with REST API
-- PostgreSQL database with advanced analytics
-- Cloud storage for document management
-- AI-powered features for enhanced learning
-
-For detailed technical architecture information, see [ARCHITECTURE.md](ARCHITECTURE.md).
+**Frontend**: React 18 + TailwindCSS + Vite  
+**Backend**: Node.js + Express.js  
+**Database**: PostgreSQL  
+**Cloud**: AWS S3 (file storage), Google Cloud (AI features)  
+**Hosting**: Netlify (frontend)
 
 ## 🔒 Security & Privacy
 
-ScholarVault prioritizes your data security:
+We take your security seriously:
 
-- **Secure Authentication**: Industry-standard JWT token-based authentication
-- **Password Security**: Advanced hashing algorithms for password protection
-- **API Protection**: Rate limiting and CORS protection against abuse
-- **Data Privacy**: Your study data is private and encrypted
-- **File Security**: Secure upload and storage mechanisms
-- **Regular Updates**: Continuous security monitoring and updates
+- **Encrypted Passwords**: Advanced hashing protects your account
+- **Secure Connections**: All data transmitted over HTTPS
+- **API Protection**: Rate limiting prevents abuse
+- **Data Encryption**: Your study data is encrypted at rest
+- **No Third-party Tracking**: Your data isn't sold or shared
+- **Regular Security Updates**: Continuous monitoring and improvements
 
-## 📱 User Workflows
+## 📞 Support & Contact
 
-**Study Session Workflow**
-1. Login to ScholarVault → Session tracking starts automatically
-2. Browse and open your study notes
-3. Study and take notes → Time tracking runs invisibly in background
+For questions, bugs, or feature requests:
+- Check the [project documentation](#)
+- Open an issue on GitHub
+- Contact the development team
+
+## 📜 License
+
+This project is proprietary. Unauthorized copying or distribution is prohibited.
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our contribution guidelines.
+
+---
+
+**Built with ❤️ for students who want to study smarter, not harder.**
 4. Mark units as completed when finished
 5. Logout → Session ends and analytics are aggregated
 6. View Progress page to see all your analytics updated in real-time
