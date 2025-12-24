@@ -1,12 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import client from "../api/client";
-import useBookmarks from "../store/useBookmarks";
 import useAuth from "../store/useAuth";
-import useCompletion from "../store/useCompletion";
 
 export default function Dashboard() {
-  const { subjectProgress, fetchAllSubjectProgress } = useCompletion();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -20,7 +17,7 @@ export default function Dashboard() {
   const [weeklyActivity, setWeeklyActivity] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [nextUnit, setNextUnit] = useState(null);
-  const { bookmarksDetails, fetchBookmarksDetails } = useBookmarks();
+  const [bookmarkedNotes, setBookmarkedNotes] = useState([]);
   const [bookmarksPage, setBookmarksPage] = useState(0);
   const [subjectsPage, setSubjectsPage] = useState(0);
 
@@ -30,9 +27,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-    fetchBookmarksDetails();
-    fetchAllSubjectProgress();
-  }, [user?.selected_year, fetchBookmarksDetails, fetchAllSubjectProgress]);
+  }, [user?.selected_year]);
 
   // Stay on Dashboard even if there are no bookmarks
   // Previously redirected to "/home" which prevented accessing Dashboard.
@@ -50,92 +45,228 @@ export default function Dashboard() {
     };
     
     const validSemestersNorm = (yearToSemesters[user.selected_year] || [])
-      async function fetchDashboardData() {
+      .map(s => String(s).trim().toLowerCase());
+    return subjects.filter(subject => 
+      validSemestersNorm.includes(String(subject.semester || '').trim().toLowerCase())
+    );
+  }, [user?.selected_year]);
+
+  async function fetchDashboardData() {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch bookmarks immediately
+      try {
+        const bookmarksRes = await client.get('/api/bookmarks/details');
+        setBookmarkedNotes(bookmarksRes.data?.bookmarks || []);
+      } catch (err) {
+        console.error("Failed to fetch bookmarks:", err);
+        setBookmarkedNotes([]);
+      }
+      
+      // Fetch subjects
+      let yearFilteredSubjects = [];
+      try {
+        const subjectsRes = await client.get('/api/subjects', {
+          params: { userOnly: 'true' }
+        });
+        const allSubjects = subjectsRes.data || [];
+        yearFilteredSubjects = filterSubjectsByYear(allSubjects);
+        
+        // Set subjects without loading progress first (faster initial render)
+        setSubjects(yearFilteredSubjects.map(s => ({ ...s, progress: -1 })));
+        
+        // Async load progress for each subject
+        yearFilteredSubjects.forEach(async (subject) => {
+          try {
+            const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
+            setSubjects(prev => {
+              const updated = prev.map(s => 
+                s.id === subject.id 
+                  ? {
+                      ...s,
+                      progress: completionRes.data?.progress_percent || 0,
+                      completed: completionRes.data?.completed_units || 0,
+                      total: completionRes.data?.total_units || 0
+                    }
+                  : s
+              );
+              
+              // Update total completed units in stats
+              const totalCompleted = updated.reduce((sum, s) => sum + (s.completed || 0), 0);
+              setStats(prev => ({ ...prev, unitsCompleted: totalCompleted }));
+              
+              return updated;
+            });
+          } catch (err) {
+            console.error(`Error fetching progress for ${subject.id}:`, err);
+          }
+        });
+      } catch (err) {
+        console.error("Failed to fetch subjects:", err);
+        setError("Failed to load subjects. Please try refreshing.");
+      }
+
+      // Fetch analytics (time, streaks, weekly activity)
+      try {
+        const analyticsRes = await client.get('/api/progress/analytics');
+        const a = analyticsRes.data || {};
+        
+        // Calculate total completed units from subjects
+        const totalCompleted = yearFilteredSubjects.reduce((sum, s) => {
+          // Will be updated when individual subject progress loads
+          return sum;
+        }, 0);
+        
+        setStats({
+          totalTime: a.stats?.totalTimeHours || 0,
+          unitsCompleted: totalCompleted,
+          longestStreak: a.stats?.longestStreak || 0
+        });
+        
+        setWeeklyActivity(Array.isArray(a.weekly) ? a.weekly : []);
+      } catch (err) {
+        console.error("Failed to fetch analytics:", err);
+        // Set empty weekly activity as fallback
+        const today = new Date().getDay();
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        setWeeklyActivity(
+          days.map((day, index) => ({
+            day,
+            minutes: 0,
+            isToday: index === today
+          }))
+        );
+      }
+
+      // Recent activity
+      const recent = JSON.parse(localStorage.getItem("sv_last_note") || "null");
+      if (recent) {
+        setRecentActivity([recent]);
+      }
+
+      // Find next unit to study (lazy loaded)
+      const nextSubject = yearFilteredSubjects.find(s => (s.progress || 0) < 100);
+      if (nextSubject) {
         try {
-          setLoading(true);
-          setError(null);
-          // Fetch subjects
-          let yearFilteredSubjects = [];
-          try {
-            const subjectsRes = await client.get('/api/subjects', {
-              params: { userOnly: 'true' }
+          const unitsRes = await client.get(`/api/subjects/${nextSubject.id}/units`);
+          const units = unitsRes.data || [];
+          const incompleteUnit = units.find(u => !u.is_completed);
+          if (incompleteUnit) {
+            setNextUnit({
+              subject: nextSubject.name,
+              unit: incompleteUnit.name,
+              unitId: incompleteUnit.id,
+              subjectId: nextSubject.id
             });
-            const allSubjects = subjectsRes.data || [];
-            yearFilteredSubjects = filterSubjectsByYear(allSubjects);
-            // Set subjects without loading progress first (faster initial render)
-            // Use global subjectProgress if available
-            setSubjects(yearFilteredSubjects.map(s => {
-              const progress = subjectProgress[s.id] || {};
-              return {
-                ...s,
-                progress: progress.progress || -1,
-                completed: progress.completed || 0,
-                total: progress.total || 0
-              };
-            }));
-          } catch (err) {
-            console.error("Failed to fetch subjects:", err);
-            setError("Failed to load subjects. Please try refreshing.");
           }
-          // Fetch analytics (time, streaks, weekly activity)
-          try {
-            const analyticsRes = await client.get('/api/progress/analytics');
-            const a = analyticsRes.data || {};
-            // Calculate total completed units from subjects
-            const totalCompleted = yearFilteredSubjects.reduce((sum, s) => {
-              // Will be updated when individual subject progress loads
-              return sum;
-            }, 0);
-            setStats({
-              totalTime: a.stats?.totalTimeHours || 0,
-              unitsCompleted: totalCompleted,
-              longestStreak: a.stats?.longestStreak || 0
-            });
-            setWeeklyActivity(Array.isArray(a.weekly) ? a.weekly : []);
-          } catch (err) {
-            console.error("Failed to fetch analytics:", err);
-            // Set empty weekly activity as fallback
-            const today = new Date().getDay();
-            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            setWeeklyActivity(
-              days.map((day, index) => ({
-                day,
-                minutes: 0,
-                isToday: index === today
-              }))
-            );
-          }
-          // Recent activity
-          const recent = JSON.parse(localStorage.getItem("sv_last_note") || "null");
-          if (recent) {
-            setRecentActivity([recent]);
-          }
-          // Find next unit to study (lazy loaded)
-          const nextSubject = yearFilteredSubjects.find(s => (s.progress || 0) < 100);
-          if (nextSubject) {
-            try {
-              const unitsRes = await client.get(`/api/subjects/${nextSubject.id}/units`);
-              const units = unitsRes.data || [];
-              const incompleteUnit = units.find(u => !u.is_completed);
-              if (incompleteUnit) {
-                setNextUnit({
-                  subject: nextSubject.name,
-                  unit: incompleteUnit.name,
-                  unitId: incompleteUnit.id,
-                  subjectId: nextSubject.id
-                });
-              }
-            } catch (err) {
-              console.error("Error fetching units:", err);
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching dashboard data:", error);
-          setError("Failed to load dashboard. Please try refreshing.");
-        } finally {
-          setLoading(false);
+        } catch (err) {
+          console.error("Error fetching units:", err);
         }
       }
+
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      setError("Failed to load dashboard. Please try refreshing.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Memoize paginated items
+  const paginatedBookmarks = useMemo(() => {
+    return bookmarkedNotes.slice(
+      bookmarksPage * BOOKMARKS_PER_PAGE,
+      (bookmarksPage + 1) * BOOKMARKS_PER_PAGE
+    );
+  }, [bookmarkedNotes, bookmarksPage]);
+
+  const paginatedSubjects = useMemo(() => {
+    return subjects.slice(
+      subjectsPage * SUBJECTS_PER_PAGE,
+      (subjectsPage + 1) * SUBJECTS_PER_PAGE
+    );
+  }, [subjects, subjectsPage]);
+
+  const needsAttention = useMemo(() => {
+    return subjects
+      .filter(s => (s.progress || 0) > 0 && (s.progress || 0) < 40)
+      .sort((a, b) => (a.progress || 0) - (b.progress || 0))
+      .slice(0, 3);
+  }, [subjects]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen py-4 xs:py-6 sm:py-8 safe-top safe-bottom">
+      <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8">
+        {/* Error Display */}
+        {error && (
+          <div className="mb-4 xs:mb-6 p-3 xs:p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3">
+              <p className="text-sm xs:text-base">{error}</p>
+              <button onClick={fetchDashboardData} className="min-h-touch min-w-touch px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap shrink-0">
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* Header */}
+        <div className="mb-4 xs:mb-6 sm:mb-8">
+          <h1 className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 mb-1 xs:mb-2">Dashboard</h1>
+          <p className="text-gray-600 text-fluid-xs xs:text-fluid-sm">Welcome back! Here's your learning overview</p>
+        </div>
+
+        {/* Top Summary Metrics */}
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 xs:gap-4 lg:gap-6 mb-4 xs:mb-6 sm:mb-8">
+          <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200 min-h-touch touch:active:scale-95 transition-transform">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-fluid-xs text-gray-500 mb-1 uppercase tracking-wide truncate">Study Time</p>
+                <p className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 truncate">{stats.totalTime}h</p>
+              </div>
+              <div className="text-fluid-xl sm:text-fluid-2xl shrink-0">⏱️</div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200 min-h-touch touch:active:scale-95 transition-transform">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-fluid-xs text-gray-500 mb-1 uppercase tracking-wide truncate">Units Completed</p>
+                <p className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 truncate">{stats.unitsCompleted}</p>
+              </div>
+              <div className="text-fluid-xl sm:text-fluid-2xl shrink-0">✅</div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200 min-h-touch xs:col-span-2 md:col-span-1 touch:active:scale-95 transition-transform">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-fluid-xs text-gray-500 mb-1 uppercase tracking-wide truncate">Study Streak</p>
+                <p className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 truncate">{stats.longestStreak} days</p>
+              </div>
+              <div className="text-fluid-xl sm:text-fluid-2xl shrink-0">🔥</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bookmarked for Learning - Always shown with empty state */}
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 border border-amber-200">
+          <h3 className="text-fluid-base sm:text-fluid-lg font-semibold text-gray-900 mb-3 xs:mb-4 truncate">📚 Saved for Learning</h3>
+
+          {bookmarkedNotes.length === 0 ? (
+            <div className="p-3 xs:p-4 bg-white rounded-lg border border-amber-100">
+              <p className="text-fluid-sm text-gray-700">No bookmarks yet.</p>
+              <p className="text-fluid-xs text-gray-500 mt-1">Bookmark notes while studying to find them quickly here.</p>
               <div className="mt-3 xs:mt-4 flex flex-col xs:flex-row gap-2 xs:gap-3">
                 <button
                   onClick={() => navigate('/home')}
