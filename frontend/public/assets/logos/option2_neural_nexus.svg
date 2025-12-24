@@ -1,0 +1,24 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#F8F9FA"/>
+  <g transform="translate(75, 75)">
+    <!-- Center spine -->
+    <rect x="120" y="40" width="10" height="170" rx="5" fill="#0F766E"/>
+    
+    <!-- Left page -->
+    <path d="M120 60 L60 80 L30 140 L120 170" stroke="#0F766E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M120 100 L80 120 L120 140" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    
+    <!-- Right page -->
+    <path d="M130 60 L190 80 L220 140 L130 170" stroke="#0F766E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M130 100 L170 120 L130 140" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    
+    <!-- Connection nodes -->
+    <circle cx="60" cy="80" r="8" fill="#0F766E"/>
+    <circle cx="30" cy="140" r="8" fill="#0F766E"/>
+    <circle cx="190" cy="80" r="8" fill="#0F766E"/>
+    <circle cx="220" cy="140" r="8" fill="#0F766E"/>
+    <!-- Central hub -->
+    <circle cx="125" cy="200" r="10" fill="#0D9488"/>
+  </g>
+  <text x="200" y="330" font-family="'Inter', sans-serif" font-size="32" font-weight="bold" fill="#0F766E" text-anchor="middle" letter-spacing="0.5">SCHOLARVAULT</text>
+</svg>
