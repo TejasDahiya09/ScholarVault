@@ -1,5 +1,3 @@
-import bookmarksRoutes from "./src/routes/bookmarks.js";
-app.use("/api/bookmarks", bookmarksRoutes);
 import express from "express";
 import morgan from "morgan";
 import compression from "compression";

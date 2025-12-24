@@ -1,4 +1,3 @@
-// Removed duplicate import and router.post declarations
 import { Router } from "express";
 import notesController from "../controllers/notes.js";
 import searchController from "../controllers/search.js";
