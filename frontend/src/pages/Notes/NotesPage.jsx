@@ -699,7 +699,7 @@ export default function NotesPage() {
 
   const { darkMode } = useDarkMode();
   // Style to force viewer modal and all document viewers to true light mode
-  const viewerLightModeStyle = darkMode ? { filter: 'invert(1) hue-rotate(180deg)', isolation: 'isolate', colorScheme: 'light' } : { colorScheme: 'light' };
+  const viewerLightModeStyle = { colorScheme: 'light' };
 
   return (
     <div data-no-dark-mode="true" style={{ colorScheme: 'light' }} className="light">
