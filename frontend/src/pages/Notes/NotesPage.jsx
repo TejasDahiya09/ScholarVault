@@ -145,52 +145,46 @@ export default function NotesPage() {
   }, []);
 
   // Fetch subject data
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-
-        if (subjectId) {
-          const subjectRes = await client.get(`/api/subjects/${subjectId}`);
-          const subject = subjectRes.data;
-
-          setSubjectDetails(subject);
-          const allNotes = subject.notes || [];
-
-          const isPptFile = (item) => {
-            const name = (item.file_name || "").toLowerCase();
-            const url = (item.s3_url || "").toLowerCase();
-            const key = (item.s3_key || "").toLowerCase();
-            // Check if file has .ppt or .pptx anywhere in name, URL, or S3 key
-            return name.includes('.ppt') || url.includes('.ppt') || key.includes('.ppt') || 
-                   name.includes('ppt') || url.includes('ppt') || key.includes('ppt');
-          };
-
-          const pptItems = allNotes.filter(isPptFile);
-          const regularNotes = allNotes.filter((n) => !isPptFile(n));
-
-          setNotesList(sortByUnitNumber(regularNotes));
-          setPptList(sortByUnitNumber(pptItems));
-          setBooksList(subject.books || []);
-          setPyqList(subject.pyqs || []);
-          setSyllabusList(subject.syllabus || []);
-          
-          // Auto-select note if noteId is provided in URL
-          if (noteId && subject.notes) {
-            const noteToOpen = subject.notes.find(n => n.id === noteId);
-            if (noteToOpen) {
-              setSelectedNote(noteToOpen);
-              setActiveTab('viewer');
-            }
+  // Extracted load function to allow manual refresh
+  const load = async () => {
+    try {
+      setLoading(true);
+      if (subjectId) {
+        const subjectRes = await client.get(`/api/subjects/${subjectId}`);
+        const subject = subjectRes.data;
+        setSubjectDetails(subject);
+        const allNotes = subject.notes || [];
+        const isPptFile = (item) => {
+          const name = (item.file_name || "").toLowerCase();
+          const url = (item.s3_url || "").toLowerCase();
+          const key = (item.s3_key || "").toLowerCase();
+          return name.includes('.ppt') || url.includes('.ppt') || key.includes('.ppt') || 
+                 name.includes('ppt') || url.includes('ppt') || key.includes('ppt');
+        };
+        const pptItems = allNotes.filter(isPptFile);
+        const regularNotes = allNotes.filter((n) => !isPptFile(n));
+        setNotesList(sortByUnitNumber(regularNotes));
+        setPptList(sortByUnitNumber(pptItems));
+        setBooksList(subject.books || []);
+        setPyqList(subject.pyqs || []);
+        setSyllabusList(subject.syllabus || []);
+        if (noteId && subject.notes) {
+          const noteToOpen = subject.notes.find(n => n.id === noteId);
+          if (noteToOpen) {
+            setSelectedNote(noteToOpen);
+            setActiveTab('viewer');
           }
         }
-      } catch (err) {
-        console.error("Load error:", err);
-        setError(err.response?.data?.error || err.message);
-      } finally {
-        setLoading(false);
       }
+    } catch (err) {
+      console.error("Load error:", err);
+      setError(err.response?.data?.error || err.message);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     load();
   }, [subjectId, noteId]);
 
@@ -656,6 +650,8 @@ export default function NotesPage() {
       // Signal dashboard/progress to refresh
       localStorage.setItem('sv_refresh_dashboard', '1');
       window.dispatchEvent(new Event('sv_refresh_dashboard'));
+      // Refresh notes list
+      await load();
       if (isCompleted) {
         setToast({ show: true, message: "Marked as incomplete", type: "info" });
       } else {
@@ -687,6 +683,8 @@ export default function NotesPage() {
       // Signal dashboard/progress to refresh
       localStorage.setItem('sv_refresh_dashboard', '1');
       window.dispatchEvent(new Event('sv_refresh_dashboard'));
+      // Refresh notes list
+      await load();
       if (isBookmarked) {
         setToast({ show: true, message: "Bookmark removed", type: "info" });
       } else {
