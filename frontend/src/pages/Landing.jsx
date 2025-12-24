@@ -11,7 +11,7 @@ const ragIcon = "/assets/icons/rag.svg";
 const progressIcon = "/assets/icons/progress.svg";
 const powerIcon = "/assets/icons/power.svg";
 const bookBrainSvg = "/assets/book-brain.svg";
-const logoImg = "/assets/logo.png";
+const logoImg = "/assets/logo.png?v=2";
 
 const FeatureCard = ({ icon, title, desc, delay = 0 }) => (
   <div
