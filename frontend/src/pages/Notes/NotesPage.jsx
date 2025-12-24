@@ -163,8 +163,19 @@ export default function NotesPage() {
         };
         const pptItems = allNotes.filter(isPptFile);
         const regularNotes = allNotes.filter((n) => !isPptFile(n));
-        setNotesList(sortByUnitNumber(regularNotes));
-        setPptList(sortByUnitNumber(pptItems));
+        // Merge completed/bookmarked status into notes
+        const mergedNotes = regularNotes.map(note => ({
+          ...note,
+          completed: completedNotes.has(note.id),
+          bookmarked: bookmarkedNotes.has(note.id)
+        }));
+        setNotesList(sortByUnitNumber(mergedNotes));
+        const mergedPpts = pptItems.map(note => ({
+          ...note,
+          completed: completedNotes.has(note.id),
+          bookmarked: bookmarkedNotes.has(note.id)
+        }));
+        setPptList(sortByUnitNumber(mergedPpts));
         setBooksList(subject.books || []);
         setPyqList(subject.pyqs || []);
         setSyllabusList(subject.syllabus || []);
