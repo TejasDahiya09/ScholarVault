@@ -91,7 +91,7 @@ export default function Landing() {
 
         <div 
           className="flex-1 flex justify-center w-full dark-mode-exclude" 
-          style={darkMode ? {filter: 'invert(0.93) hue-rotate(180deg) !important'} : {}}
+          style={darkMode ? {filter: 'invert(1) hue-rotate(180deg)'} : {}}
         >
           <div className="relative w-full max-w-md">
             {/* Main container with glass effect - always light mode styling */}

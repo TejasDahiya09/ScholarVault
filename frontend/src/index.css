@@ -9,11 +9,15 @@
 /* ================================   🌓 Dark Mode Exclusions
 ================================= */
 .dark-mode-exclude {
-  filter: none !important;
+  isolation: isolate;
+  transform: translateZ(0);
+  will-change: filter;
 }
 
+/* Force complete invert to cancel body's 0.93 invert */
 body[style*="invert"] .dark-mode-exclude {
-  filter: invert(0.93) hue-rotate(180deg) !important;
+  filter: invert(1) hue-rotate(180deg) !important;
+  -webkit-filter: invert(1) hue-rotate(180deg) !important;
 }
 
 /* ================================   � Custom Animations
