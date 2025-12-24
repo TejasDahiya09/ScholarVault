@@ -87,31 +87,62 @@ export default function Landing() {
         </div>
 
         <div className="flex-1 flex justify-center w-full">
-          <div className="relative w-full max-w-lg h-80 sm:h-96 bg-linear-to-br from-indigo-50 via-blue-50 to-purple-50 rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex items-center justify-center">
-            {/* Background decorative elements */}
-            <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute top-8 left-8 w-24 h-24 bg-indigo-100 rounded-full opacity-20 animate-pulse"></div>
-              <div className="absolute bottom-8 right-8 w-28 h-28 bg-blue-100 rounded-full opacity-20 animate-pulse" style={{animationDelay: '1s'}}></div>
-              <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-purple-100 rounded-full opacity-15 animate-pulse" style={{animationDelay: '2s'}}></div>
-            </div>
-            
-            {/* Logo container */}
-            <div className="relative z-10">
-              <img 
-                src={logoImg} 
-                alt="ScholarVault Logo" 
-                className="w-48 h-48 sm:w-56 sm:h-56 object-contain drop-shadow-xl"
-                loading="eager"
-                style={{imageRendering: 'crisp-edges'}}
-              />
-            </div>
-            
-            {/* Floating badges */}
-            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-indigo-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg animate-bounce">
-              AI Powered
-            </div>
-            <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 bg-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg animate-bounce" style={{animationDelay: '0.5s'}}>
-              Smart Learning
+          <div className="relative w-full max-w-xl">
+            {/* Main container with glass effect */}
+            <div className="relative h-[450px] sm:h-[500px] bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
+              {/* Gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/50 via-blue-50/30 to-purple-100/50"></div>
+              
+              {/* Animated background elements */}
+              <div className="absolute inset-0 overflow-hidden opacity-40">
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-300 to-blue-300 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-br from-blue-300 to-purple-300 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-gradient-to-br from-purple-200 to-indigo-200 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+              </div>
+              
+              {/* Content container */}
+              <div className="relative h-full flex flex-col items-center justify-center p-8 sm:p-12">
+                {/* Logo with solid background circle */}
+                <div className="relative mb-6">
+                  {/* White circle background for logo */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-64 h-64 sm:w-72 sm:h-72 bg-white rounded-full shadow-xl"></div>
+                  </div>
+                  
+                  {/* Logo */}
+                  <div className="relative z-10 flex items-center justify-center">
+                    <img 
+                      src={logoImg} 
+                      alt="ScholarVault Logo" 
+                      className="w-56 h-56 sm:w-64 sm:h-64 object-contain filter drop-shadow-2xl"
+                      loading="eager"
+                    />
+                  </div>
+                  
+                  {/* Glow effect behind logo */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-56 h-56 sm:w-64 sm:h-64 bg-gradient-to-br from-indigo-400/20 to-blue-400/20 rounded-full blur-2xl"></div>
+                  </div>
+                </div>
+                
+                {/* Text below logo */}
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                    ScholarVault
+                  </h3>
+                  <p className="text-sm sm:text-base text-gray-600 font-medium">
+                    AI-Powered Learning Platform
+                  </p>
+                </div>
+              </div>
+              
+              {/* Floating badges - repositioned */}
+              <div className="absolute top-6 right-6 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-bold shadow-lg hover:shadow-xl transition-shadow">
+                ⚡ AI Powered
+              </div>
+              <div className="absolute bottom-6 left-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-bold shadow-lg hover:shadow-xl transition-shadow">
+                🚀 Smart Learning
+              </div>
             </div>
           </div>
         </div>
