@@ -143,55 +143,46 @@ export default function NotesPage() {
   };
   useEffect(() => { fetchBookmarks(); }, []);
 
-  // Fetch subject data
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-
-        if (subjectId) {
-          const subjectRes = await client.get(`/api/subjects/${subjectId}`);
-          const subject = subjectRes.data;
-
-          setSubjectDetails(subject);
-          const allNotes = subject.notes || [];
-
-          const isPptFile = (item) => {
-            const name = (item.file_name || "").toLowerCase();
-            const url = (item.s3_url || "").toLowerCase();
-            const key = (item.s3_key || "").toLowerCase();
-            // Check if file has .ppt or .pptx anywhere in name, URL, or S3 key
-            return name.includes('.ppt') || url.includes('.ppt') || key.includes('.ppt') || 
-                   name.includes('ppt') || url.includes('ppt') || key.includes('ppt');
-          };
-
-          const pptItems = allNotes.filter(isPptFile);
-          const regularNotes = allNotes.filter((n) => !isPptFile(n));
-
-          setNotesList(sortByUnitNumber(regularNotes));
-          setPptList(sortByUnitNumber(pptItems));
-          setBooksList(subject.books || []);
-          setPyqList(subject.pyqs || []);
-          setSyllabusList(subject.syllabus || []);
-          
-          // Auto-select note if noteId is provided in URL
-          if (noteId && subject.notes) {
-            const noteToOpen = subject.notes.find(n => n.id === noteId);
-            if (noteToOpen) {
-              setSelectedNote(noteToOpen);
-              setActiveTab('viewer');
-            }
+  // Fetch subject data (can be called after update)
+  const fetchSubjectData = async () => {
+    try {
+      setLoading(true);
+      if (subjectId) {
+        const subjectRes = await client.get(`/api/subjects/${subjectId}`);
+        const subject = subjectRes.data;
+        setSubjectDetails(subject);
+        const allNotes = subject.notes || [];
+        const isPptFile = (item) => {
+          const name = (item.file_name || "").toLowerCase();
+          const url = (item.s3_url || "").toLowerCase();
+          const key = (item.s3_key || "").toLowerCase();
+          return name.includes('.ppt') || url.includes('.ppt') || key.includes('.ppt') || 
+                 name.includes('ppt') || url.includes('ppt') || key.includes('ppt');
+        };
+        const pptItems = allNotes.filter(isPptFile);
+        const regularNotes = allNotes.filter((n) => !isPptFile(n));
+        setNotesList(sortByUnitNumber(regularNotes));
+        setPptList(sortByUnitNumber(pptItems));
+        setBooksList(subject.books || []);
+        setPyqList(subject.pyqs || []);
+        setSyllabusList(subject.syllabus || []);
+        // Auto-select note if noteId is provided in URL
+        if (noteId && subject.notes) {
+          const noteToOpen = subject.notes.find(n => n.id === noteId);
+          if (noteToOpen) {
+            setSelectedNote(noteToOpen);
+            setActiveTab('viewer');
           }
         }
-      } catch (err) {
-        console.error("Load error:", err);
-        setError(err.response?.data?.error || err.message);
-      } finally {
-        setLoading(false);
       }
+    } catch (err) {
+      console.error("Load error:", err);
+      setError(err.response?.data?.error || err.message);
+    } finally {
+      setLoading(false);
     }
-    load();
-  }, [subjectId, noteId]);
+  };
+  useEffect(() => { fetchSubjectData(); }, [subjectId, noteId]);
 
   // Fetch completion status for current subject (can be called after update)
   const fetchCompletion = async () => {
@@ -638,12 +629,18 @@ export default function NotesPage() {
     e.stopPropagation();
     try {
       const isCompleted = completedNotes.has(noteId);
-      await client.post(`/api/notes/${noteId}/complete`, {
+      console.log('[DEBUG] Mark Complete: sending', {
+        url: `/api/notes/${noteId}/complete`,
+        body: { subjectId, completed: !isCompleted }
+      });
+      const response = await client.post(`/api/notes/${noteId}/complete`, {
         subjectId: subjectId,
         completed: !isCompleted,
       });
-      // Refetch completion state from backend for accuracy
+      console.log('[DEBUG] Mark Complete: response', response?.data);
+      // Refetch completion state and subject data for accuracy
       await fetchCompletion();
+      await fetchSubjectData();
       setToast({ show: true, message: isCompleted ? "Marked as incomplete" : "✓ Marked as complete!", type: isCompleted ? "info" : "success" });
       if (!isCompleted) {
         setCompletePopup({ show: true, noteId });
@@ -651,7 +648,7 @@ export default function NotesPage() {
       }
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     } catch (err) {
-      console.error("Failed to mark note complete:", err);
+      console.error("[DEBUG] Failed to mark note complete:", err, err?.response);
       setToast({ show: true, message: "Failed to update completion status", type: "error" });
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     }
@@ -661,9 +658,14 @@ export default function NotesPage() {
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
     try {
-      await client.post(`/api/notes/${noteId}/bookmark`);
-      // Refetch bookmarks from backend for accuracy
+      console.log('[DEBUG] Toggle Bookmark: sending', {
+        url: `/api/notes/${noteId}/bookmark`
+      });
+      const response = await client.post(`/api/notes/${noteId}/bookmark`);
+      console.log('[DEBUG] Toggle Bookmark: response', response?.data);
+      // Refetch bookmarks and subject data for accuracy
       await fetchBookmarks();
+      await fetchSubjectData();
       // After refetch, check if note is now bookmarked
       setToast({ show: true, message: bookmarkedNotes.has(noteId) ? "Bookmark removed" : "Bookmarked!", type: bookmarkedNotes.has(noteId) ? "info" : "success" });
       if (!bookmarkedNotes.has(noteId)) {
@@ -672,7 +674,7 @@ export default function NotesPage() {
       }
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     } catch (err) {
-      console.error("Failed to toggle bookmark:", err);
+      console.error("[DEBUG] Failed to toggle bookmark:", err, err?.response);
       setToast({ show: true, message: "Failed to update bookmark", type: "error" });
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     }
