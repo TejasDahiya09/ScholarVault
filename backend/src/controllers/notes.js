@@ -1,3 +1,58 @@
+import bookmarksDB from "../db/bookmarks.js";
+import progressDB from "../db/progress.js";
+// Toggle bookmark for a note
+export const toggleBookmark = async (req, res, next) => {
+  try {
+    const userId = req.user?.userId;
+    const { id: noteId } = req.params;
+
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+    if (!noteId) {
+      return res.status(400).json({ error: "Note ID is required" });
+    }
+    // Check if already bookmarked
+    const isBookmarked = await bookmarksDB.isBookmarked(userId, noteId);
+    let result;
+    if (isBookmarked) {
+      result = await bookmarksDB.removeBookmark(userId, noteId);
+    } else {
+      result = await bookmarksDB.addBookmark(userId, noteId);
+    }
+    res.json({
+      status: "success",
+      bookmarked: !isBookmarked,
+      message: !isBookmarked ? "Bookmarked" : "Bookmark removed",
+    });
+  } catch (err) {
+    console.error("Bookmark error:", err);
+    next(err);
+  }
+};
+// Mark note as completed
+export const markAsCompleted = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { id: noteId } = req.params;
+    const { subjectId, completed } = req.body;
+    if (!subjectId) {
+      return res.status(400).json({ error: "subjectId is required" });
+    }
+    // Use atomic upsert for completion
+    const result = await progressDB.setNoteCompletion(userId, noteId, subjectId, completed);
+    // Get updated subject completion status
+    const status = await progressDB.getSubjectCompletionStatus(userId, subjectId);
+    res.json({
+      status: "success",
+      note_completed: completed,
+      subject_completion: status,
+      result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 import supabase from "../lib/services.js";
 import { notesService } from "../services/notes.js";
 import { aiService } from "../services/ai.js";

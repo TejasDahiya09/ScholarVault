@@ -1,3 +1,6 @@
+import * as notesController from "../controllers/notes.js";
+router.post("/:id/bookmark", notesController.toggleBookmark);
+router.post("/:id/complete", notesController.markAsCompleted);
 import { Router } from "express";
 import notesController from "../controllers/notes.js";
 import searchController from "../controllers/search.js";
