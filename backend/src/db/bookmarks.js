@@ -2,12 +2,9 @@ import { supabase } from "../lib/services.js";
 
 /**
  * Bookmarks Database Operations
- */
-export const bookmarksDB = {
-	/**
-	 * Add a bookmark
-	 */
-	async addBookmark(userId, noteId) {
+}
+
+export default bookmarksDB;
 		const { data, error } = await supabase
 			.from("user_bookmarks")
 			.insert([
