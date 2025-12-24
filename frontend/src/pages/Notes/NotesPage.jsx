@@ -23,7 +23,13 @@ export default function NotesPage() {
   const { darkMode } = useDarkMode();
   // Always force viewer modal and all document viewers to true light mode by neutralizing global dark mode inversion.
   // If darkMode is active, apply filter: invert(1) hue-rotate(180deg) to double-invert and neutralize.
-  const viewerLightModeStyle = darkMode ? { filter: 'invert(1) hue-rotate(180deg)', background: '#fff' } : { background: '#fff' };
+  // Enforce true light mode and 100% accurate colors in viewer modal, even in dark mode
+  const viewerLightModeStyle = {
+    background: '#fff',
+    color: '#000',
+    filter: 'none',
+    WebkitFilter: 'none',
+  };
   const [query] = useSearchParams();
 
   // Extract URL data
@@ -835,6 +841,18 @@ export default function NotesPage() {
         <ErrorBoundary>
           <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"><div className="bg-white rounded-lg p-6 shadow-2xl"><p className="text-gray-700 font-semibold">Loading PDF viewer...</p><div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full bg-indigo-600 animate-pulse"></div></div></div></div>}>
             <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-2" data-viewer-modal="true" style={viewerLightModeStyle}>
+              <style>{`
+                [data-viewer-modal="true"],
+                [data-viewer-modal="true"] * {
+                  background: #fff !important;
+                  color: #000 !important;
+                  filter: none !important;
+                  -webkit-filter: none !important;
+                  box-shadow: none !important;
+                  text-shadow: none !important;
+                  caret-color: #000 !important;
+                }
+              `}</style>
               <div className="bg-white w-full h-full max-w-full rounded-none sm:rounded-lg shadow-xl flex flex-col overflow-hidden mx-0 sm:mx-2">
                 {/* Header */}
                 <div className="flex justify-between items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b bg-gray-50">
