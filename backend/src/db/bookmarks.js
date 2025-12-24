@@ -1,10 +1,9 @@
 import { supabase } from "../lib/services.js";
-
-/**
- * Bookmarks Database Operations
 }
 
 export default bookmarksDB;
+ */
+export const bookmarksDB = {
 		const { data, error } = await supabase
 			.from("user_bookmarks")
 			.insert([
