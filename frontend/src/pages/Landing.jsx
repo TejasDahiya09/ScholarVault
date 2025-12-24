@@ -10,7 +10,7 @@ const aiIcon = "/assets/icons/ai.svg";
 const ragIcon = "/assets/icons/rag.svg";
 const progressIcon = "/assets/icons/progress.svg";
 const powerIcon = "/assets/icons/power.svg";
-const logoImg = "/assets/logo.png?v=4";
+const logoImg = "/assets/logo.png?v=5";
 
 const FeatureCard = ({ icon, title, desc, delay = 0 }) => (
   <div
