@@ -12,6 +12,7 @@ export default function Register() {
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -20,14 +21,18 @@ export default function Register() {
       setErr('Please fill all fields')
       return
     }
+    if (!acceptedTerms) {
+      setErr('You must accept the Terms of Service and Privacy Policy to register.')
+      return
+    }
     try {
       setLoading(true)
       const res = await client.post('/api/auth/register', { name, email, password })
       const { token, user } = res.data || {}
       if (!token) throw new Error('Invalid server response')
       login(token, user || { email })
-      // Navigate to home - AppShell will show onboarding modal if year not set
-      navigate('/home')
+      // Navigate to subjects after registration
+      navigate('/subjects')
     } catch (e) {
       setErr(e?.response?.data?.error || e?.message || 'Registration failed')
     } finally {
@@ -157,12 +162,17 @@ export default function Register() {
                 </div>
 
                 <label className="flex items-start gap-3 cursor-pointer hover-scale">
-                  <input type="checkbox" className="w-4 h-4 rounded border-gray-300 mt-0.5" />
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-gray-300 mt-0.5"
+                    checked={acceptedTerms}
+                    onChange={e => setAcceptedTerms(e.target.checked)}
+                  />
                   <span className="text-xs">
                     I agree to the{' '}
-                    <a href="#" className="text-primary font-medium hover:underline">Terms of Service</a>
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary font-medium hover:underline">Terms of Service</a>
                     {' '}and{' '}
-                    <a href="#" className="text-primary font-medium hover:underline">Privacy Policy</a>
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary font-medium hover:underline">Privacy Policy</a>
                   </span>
                 </label>
 
