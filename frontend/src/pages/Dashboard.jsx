@@ -67,11 +67,6 @@ export default function Dashboard() {
       try {
         const bookmarksRes = await client.get('/api/bookmarks/details');
         setBookmarkedNotes(bookmarksRes.data?.bookmarks || []);
-      } catch (err) {
-        console.error("Failed to fetch bookmarks:", err);
-        setBookmarkedNotes([]);
-      }
-      
       // Fetch subjects
       let yearFilteredSubjects = [];
       try {
@@ -80,31 +75,30 @@ export default function Dashboard() {
         });
         const allSubjects = subjectsRes.data || [];
         yearFilteredSubjects = filterSubjectsByYear(allSubjects);
-        
-        // Set subjects without loading progress first (faster initial render)
-        setSubjects(yearFilteredSubjects.map(s => ({ ...s, progress: -1 })));
-        
-        // Async load progress for each subject
-        yearFilteredSubjects.forEach(async (subject) => {
-          try {
-            const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
-            setSubjects(prev => {
-              const updated = prev.map(s => 
-                s.id === subject.id 
-                  ? {
-                      ...s,
-                      progress: completionRes.data?.progress_percent || 0,
-                      completed: completionRes.data?.completed_units || 0,
-                      total: completionRes.data?.total_units || 0
-                    }
-                  : s
-              );
-              
-              // Update total completed units in stats
-              const totalCompleted = updated.reduce((sum, s) => sum + (s.completed || 0), 0);
-              setStats(prev => ({ ...prev, unitsCompleted: totalCompleted }));
-              
-              return updated;
+        // Fetch progress for all subjects in parallel
+        const subjectsWithProgress = await Promise.all(
+          yearFilteredSubjects.map(async (subject) => {
+            try {
+              const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
+              return {
+                ...subject,
+                progress: completionRes.data?.progress_percent || 0,
+                completed: completionRes.data?.completed_units || 0,
+                total: completionRes.data?.total_units || 0
+              };
+            } catch (err) {
+              return { ...subject, progress: 0, completed: 0, total: 0 };
+            }
+          })
+        );
+        setSubjects(subjectsWithProgress);
+        // Update total completed units in stats
+        const totalCompleted = subjectsWithProgress.reduce((sum, s) => sum + (s.completed || 0), 0);
+        setStats(prev => ({ ...prev, unitsCompleted: totalCompleted }));
+      } catch (err) {
+        console.error("Failed to fetch subjects:", err);
+        setError("Failed to load subjects. Please try refreshing.");
+      }
             });
           } catch (err) {
             console.error(`Error fetching progress for ${subject.id}:`, err);
