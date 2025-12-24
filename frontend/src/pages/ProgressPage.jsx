@@ -297,20 +297,22 @@ export default function ProgressPage() {
                 <>
                   <div className="space-y-3 mb-3">
                     {paginatedSubjects.map((subject) => (
-                      <div key={subject.id} className="min-h-touch flex flex-col justify-center border border-gray-200 rounded-lg p-3 hover:border-indigo-300 transition-all">
-                        <div className="flex items-center justify-between mb-2 gap-2">
-                          <h3 className="font-medium text-xs text-gray-900 truncate flex-1 min-w-0">{subject.name}</h3>
-                          <span className="text-xs font-semibold text-gray-900 whitespace-nowrap shrink-0">
-                            {subject.progress >= 0 ? `${Math.round(subject.progress)}%` : '...'}
-                          </span>
+                      {subject && subject.id && subject.name !== undefined ? (
+                        <div key={subject.id} className="min-h-touch flex flex-col justify-center border border-gray-200 rounded-lg p-3 hover:border-indigo-300 transition-all">
+                          <div className="flex items-center justify-between mb-2 gap-2">
+                            <h3 className="font-medium text-xs text-gray-900 truncate flex-1 min-w-0">{subject.name}</h3>
+                            <span className="text-xs font-semibold text-gray-900 whitespace-nowrap shrink-0">
+                              {typeof subject.progress === 'number' && subject.progress >= 0 ? `${Math.round(subject.progress)}%` : '...'}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: typeof subject.progress === 'number' && subject.progress >= 0 ? `${subject.progress}%` : '30%', opacity: typeof subject.progress === 'number' && subject.progress >= 0 ? 1 : 0.5 }}
+                            />
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: subject.progress >= 0 ? `${subject.progress}%` : '30%', opacity: subject.progress >= 0 ? 1 : 0.5 }}
-                          />
-                        </div>
-                      </div>
+                      ) : null}
                     ))}
                   </div>
                   {sortedSubjects.length > SUBJECTS_PER_PAGE && (
