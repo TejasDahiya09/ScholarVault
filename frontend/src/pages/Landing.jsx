@@ -87,29 +87,30 @@ export default function Landing() {
         </div>
 
         <div className="flex-1 flex justify-center w-full">
-          <div className="relative w-full h-96 sm:h-[28rem] lg:h-[32rem] bg-linear-to-br from-indigo-50 via-blue-50 to-purple-50 rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex items-center justify-center">
+          <div className="relative w-full max-w-lg h-80 sm:h-96 bg-linear-to-br from-indigo-50 via-blue-50 to-purple-50 rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex items-center justify-center">
             {/* Background decorative elements */}
             <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute top-10 left-10 w-32 h-32 bg-indigo-100 rounded-full opacity-20 animate-pulse"></div>
-              <div className="absolute bottom-10 right-10 w-40 h-40 bg-blue-100 rounded-full opacity-20 animate-pulse" style={{animationDelay: '1s'}}></div>
-              <div className="absolute top-1/2 right-1/4 w-24 h-24 bg-purple-100 rounded-full opacity-15 animate-pulse" style={{animationDelay: '2s'}}></div>
+              <div className="absolute top-8 left-8 w-24 h-24 bg-indigo-100 rounded-full opacity-20 animate-pulse"></div>
+              <div className="absolute bottom-8 right-8 w-28 h-28 bg-blue-100 rounded-full opacity-20 animate-pulse" style={{animationDelay: '1s'}}></div>
+              <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-purple-100 rounded-full opacity-15 animate-pulse" style={{animationDelay: '2s'}}></div>
             </div>
             
-            {/* Logo container with shadow and glow */}
-            <div className="relative z-10 p-8 sm:p-12 lg:p-16">
+            {/* Logo container */}
+            <div className="relative z-10">
               <img 
                 src={logoImg} 
                 alt="ScholarVault Logo" 
-                className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 object-contain drop-shadow-2xl"
+                className="w-48 h-48 sm:w-56 sm:h-56 object-contain drop-shadow-xl"
                 loading="eager"
+                style={{imageRendering: 'crisp-edges'}}
               />
             </div>
             
             {/* Floating badges */}
-            <div className="absolute top-6 right-6 sm:top-8 sm:right-8 bg-indigo-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg animate-bounce">
+            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-indigo-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg animate-bounce">
               AI Powered
             </div>
-            <div className="absolute bottom-6 left-6 sm:bottom-8 sm:left-8 bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg animate-bounce" style={{animationDelay: '0.5s'}}>
+            <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 bg-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg animate-bounce" style={{animationDelay: '0.5s'}}>
               Smart Learning
             </div>
           </div>
