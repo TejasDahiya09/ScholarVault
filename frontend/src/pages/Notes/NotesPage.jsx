@@ -23,9 +23,6 @@ const PdfViewerSection = lazy(() => Promise.resolve({
   // Always force viewer modal and all document viewers to true light mode by neutralizing global dark mode inversion.
   // If darkMode is active, apply filter: invert(1) hue-rotate(180deg) to double-invert and neutralize.
   const viewerLightModeStyle = darkMode ? { filter: 'invert(1) hue-rotate(180deg)', background: '#fff' } : { background: '#fff' };
-    // Move loading and error returns inside the component
-    if (typeof loading !== 'undefined' && loading) return <div className="p-8 text-center">Loading...</div>;
-    if (typeof error !== 'undefined' && error) return <div className="p-8 text-center text-red-600">{error}</div>;
   const [query] = useSearchParams();
 
   // Extract URL data
