@@ -135,6 +135,8 @@ router.get("/analytics", authenticate, async (req, res, next) => {
       });
     }
 
+    // Debug log for sessions and peakTime
+    console.log("[DEBUG] sessions:", sessions, "peakTime:", peakTime);
     res.json({
       stats: {
         totalTimeHours: totalHours,
