@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import client from '../../api/client'
 import useAuth from '../../store/useAuth'
@@ -22,6 +22,8 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false)
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
+  const [emailError, setEmailError] = useState('')
+  const debouncedEmail = useDebounce(email, 300)
 
   // Load saved credentials on mount
   useEffect(() => {
@@ -63,7 +65,7 @@ export default function Login() {
         const bookmarksRes = await client.get('/api/bookmarks/details')
         const hasBookmarks = bookmarksRes.data?.bookmarks?.length > 0
         navigate(hasBookmarks ? '/dashboard' : '/home')
-      } catch {
+      } catch (err) {
         // If error fetching bookmarks, go to subjects
         navigate('/home')
       }

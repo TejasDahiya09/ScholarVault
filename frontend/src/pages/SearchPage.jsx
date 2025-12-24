@@ -522,7 +522,7 @@ export default function SearchPage() {
   }, [processedResults]);
 
   return (
-    <div className="min-h-[calc(100vh-64px)] w-full bg-linear-to-br from-slate-50 to-blue-50">
+    <div className="min-h-[calc(100vh-64px)] w-full bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
         {/* Header */}
         <div className="mb-4 sm:mb-6">
@@ -606,7 +606,7 @@ export default function SearchPage() {
                       setSearchState(SEARCH_STATES.IDLE);
                       setShowSuggestions(false);
                     }}
-                    className="text-slate-400 hover:text-slate-600 shrink-0"
+                    className="text-slate-400 hover:text-slate-600 flex-shrink-0"
                   >
                     <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -616,7 +616,7 @@ export default function SearchPage() {
                 <button
                   type="submit"
                   disabled={loading || !query.trim() || query.trim().length < 2}
-                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm shrink-0"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm flex-shrink-0"
                 >
                   {loading ? "Searching..." : "Search"}
                 </button>
@@ -857,7 +857,7 @@ export default function SearchPage() {
                         <h3 className="font-semibold text-sm sm:text-base text-slate-900 line-clamp-2 flex-1">
                           {result.file_name}
                         </h3>
-                        <div className="flex gap-1 shrink-0">
+                        <div className="flex gap-1 flex-shrink-0">
                           {result.keyword_match && (
                             <span className="px-1.5 sm:px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] sm:text-xs rounded" title="Keyword Match">K</span>
                           )}

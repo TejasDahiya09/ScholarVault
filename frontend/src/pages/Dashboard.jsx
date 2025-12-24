@@ -14,13 +14,12 @@ export default function Dashboard() {
     longestStreak: 0
   });
   const [subjects, setSubjects] = useState([]);
-  // ...existing code...
+  const [weeklyActivity, setWeeklyActivity] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [nextUnit, setNextUnit] = useState(null);
   const [bookmarkedNotes, setBookmarkedNotes] = useState([]);
   const [bookmarksPage, setBookmarksPage] = useState(0);
   const [subjectsPage, setSubjectsPage] = useState(0);
-  // Fix: Add missing weeklyActivity state
-  const [weeklyActivity, setWeeklyActivity] = useState([]);
 
   // Pagination constants
   const BOOKMARKS_PER_PAGE = 4;
@@ -35,7 +34,7 @@ export default function Dashboard() {
     // Listen for instant refresh event
     window.addEventListener('sv_refresh_dashboard', fetchAll);
     return () => window.removeEventListener('sv_refresh_dashboard', fetchAll);
-  }, [user?.selected_year, fetchDashboardData]);
+  }, [user?.selected_year]);
 
   // Stay on Dashboard even if there are no bookmarks
   // Previously redirected to "/home" which prevented accessing Dashboard.
@@ -268,7 +267,7 @@ export default function Dashboard() {
         </div>
 
         {/* Bookmarked for Learning - Always shown with empty state */}
-        <div className="bg-linear-to-r from-amber-50 to-orange-50 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 border border-amber-200">
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 border border-amber-200">
           <h3 className="text-fluid-base sm:text-fluid-lg font-semibold text-gray-900 mb-3 xs:mb-4 truncate">📚 Saved for Learning</h3>
 
           {bookmarkedNotes.length === 0 ? (
@@ -334,7 +333,7 @@ export default function Dashboard() {
 
         {/* Continue Studying */}
         {nextUnit && (
-          <div className="bg-linear-to-r from-gray-900 to-gray-800 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 text-white">
+          <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 text-white">
             <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
               <div className="flex-1 min-w-0 w-full xs:w-auto">
                 <p className="text-fluid-xs text-gray-300 mb-2 uppercase tracking-wide">Continue Studying</p>

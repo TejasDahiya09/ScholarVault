@@ -99,7 +99,7 @@ export default function YearSelectionModal({ onYearSelected }) {
           </button>
 
           {/* Coming Soon Banner for Year 3 & 4 */}
-          <div className="p-4 sm:p-5 rounded-lg sm:rounded-xl bg-linear-to-r from-amber-50 to-orange-50 border-2 border-amber-200">
+          <div className="p-4 sm:p-5 rounded-lg sm:rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200">
             <div className="flex items-start gap-3">
               <span className="text-2xl sm:text-3xl">🚀</span>
               <div>

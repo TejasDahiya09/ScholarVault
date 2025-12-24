@@ -89,14 +89,8 @@ export default {
       },
     },
   },
-  shortcuts: {
-    'bg-gradient-to-r': 'bg-linear-to-r',
-    'bg-gradient-to-br': 'bg-linear-to-br',
-    'flex-shrink-0': 'shrink-0',
-  },
   plugins: [
-    // eslint-disable-next-line no-undef
-    (typeof require !== 'undefined' ? require('@tailwindcss/line-clamp') : undefined),
+    require('@tailwindcss/line-clamp'),
     // Add custom utilities plugin for safe areas and touch targets
     function({ addUtilities }) {
       const newUtilities = {
@@ -131,6 +125,4 @@ export default {
       addUtilities(newUtilities);
     },
   ],
-  // If using ES modules, use import. Otherwise, ensure require is defined.
-   
 };

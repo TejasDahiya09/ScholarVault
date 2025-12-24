@@ -13,7 +13,7 @@ export function resolveKeyFromUrl(s3Url) {
     // Path style: s3.<region>.amazonaws.com/<bucket>/<key>
     const ps = host.match(/^s3[.-][a-z0-9-]+\.amazonaws\.com$/i);
     if (ps) {
-      const [, ...rest] = pathname.split("/");
+      const [bucket, ...rest] = pathname.split("/");
       return decodeURIComponent(rest.join("/"));
     }
     // Fallback: return decoded path portion

@@ -178,7 +178,7 @@ export default function ProfilePage() {
       await client.delete('/api/auth/account');
       logout();
       navigate('/');
-    } catch {
+    } catch (err) {
       alert('Failed to delete account. Please try again.');
     }
   };
@@ -192,7 +192,8 @@ export default function ProfilePage() {
       a.href = url;
       a.download = `scholarvault-data-${new Date().toISOString()}.json`;
       a.click();
-    } catch {
+    } catch (err) {
+      console.error('Download failed:', err);
       alert('Failed to download data. Please try again.');
     }
   };
@@ -402,7 +403,7 @@ export default function ProfilePage() {
                   ))}
                 </div>
                 <p className="text-slate-600 text-xs sm:text-sm">Current selection: {currentYear || 'Not set'}</p>
-                <div className="mt-3 p-3 bg-linear-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
+                <div className="mt-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
                   <div className="flex items-start gap-2">
                     <span className="text-lg">🚀</span>
                     <p className="text-xs sm:text-sm text-amber-800">

@@ -27,7 +27,8 @@ export default function NotesPage() {
   const [query] = useSearchParams();
 
   // Extract URL data
-  // ...existing code...
+  const branch = query.get("branch") || "";
+  const semester = query.get("semester") || "";
   const subjectName = query.get("subjectName") || "";
   const subjectId = query.get("subjectId");
   const noteId = query.get("noteId"); // Auto-open note if provided
@@ -38,7 +39,7 @@ export default function NotesPage() {
   const [booksList, setBooksList] = useState([]);
   const [pyqList, setPyqList] = useState([]);
   const [syllabusList, setSyllabusList] = useState([]);
-  // ...existing code...
+  const [subjectDetails, setSubjectDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookmarkedNotes, setBookmarkedNotes] = useState(new Set());
@@ -49,7 +50,7 @@ export default function NotesPage() {
 
   // Viewer
   const [selectedNote, setSelectedNote] = useState(null);
-  // ...existing code...
+  const [activeTab, setActiveTab] = useState("list"); 
   const [zoom, setZoom] = useState(1);
   const [viewerWidth, setViewerWidth] = useState(80); // 80% for viewer by default (notes bigger)
   const [showResizeHint, setShowResizeHint] = useState(false); // Show resize hint on open
@@ -86,7 +87,9 @@ export default function NotesPage() {
   
   // Document type tracking
   const isNote = !selectedNote?.isBook && !selectedNote?.isPyQ && !selectedNote?.isSyllabus && !selectedNote?.isPpt;
-  // ...existing code...
+  const isBook = selectedNote?.isBook;
+  const isPyQ = selectedNote?.isPyQ;
+  const isSyllabus = selectedNote?.isSyllabus;
   const isPpt = selectedNote?.isPpt || false;
 
   // Extract unit number from DB field or filename fallback (handles "Unit-2", "Unit -2", "u2", or any digits)
@@ -150,7 +153,7 @@ export default function NotesPage() {
       if (subjectId) {
         const subjectRes = await client.get(`/api/subjects/${subjectId}`);
         const subject = subjectRes.data;
-        // ...existing code...
+        setSubjectDetails(subject);
         const allNotes = subject.notes || [];
         const isPptFile = (item) => {
           const name = (item.file_name || "").toLowerCase();

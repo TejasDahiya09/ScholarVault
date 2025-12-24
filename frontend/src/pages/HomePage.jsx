@@ -85,7 +85,7 @@ export default function HomePage() {
             </p>
             <button
               onClick={() => navigate('/profile')}
-              className="min-h-touch px-6 py-3 bg-linear-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 font-semibold active:scale-98"
+              className="min-h-touch px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 font-semibold active:scale-98"
             >
               Go to Profile
             </button>

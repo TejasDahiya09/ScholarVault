@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function Breadcrumbs({ crumbs = [], className = "" }) {
+export default function Breadcrumbs({ crumbs = [], className = "", separator = "›" }) {
   const navigate = useNavigate();
 
   return (

@@ -228,7 +228,7 @@ export default function ProgressPage() {
                     <div key={index} className="flex flex-col items-center gap-1" style={{ width: '20px' }}>
                       <div className="w-full bg-gray-100 rounded-t relative flex-1">
                         <div
-                          className="absolute bottom-0 w-full rounded-t bg-gradient-to-t from-indigo-600 to-indigo-400 transition-all duration-300"
+                          className="absolute bottom-0 w-full rounded-t bg-linear-to-t from-indigo-600 to-indigo-400 transition-all duration-300"
                           style={{ height: `${Math.min((day.minutes / 120) * 100, 100)}%` }}
                           title={`${day.date}: ${day.minutes}m, ${day.completed} units`}
                         />
@@ -253,7 +253,7 @@ export default function ProgressPage() {
                     <div key={index} className="flex-1 flex flex-col items-center gap-2">
                       <div className="w-full bg-gray-100 rounded-t relative" style={{ height: '100%' }}>
                         <div
-                          className="absolute bottom-0 w-full rounded-t bg-gradient-to-t from-purple-600 to-purple-400 transition-all duration-300"
+                          className="absolute bottom-0 w-full rounded-t bg-linear-to-t from-purple-600 to-purple-400 transition-all duration-300"
                           style={{ height: `${Math.min((week.count / Math.max(...velocity.map(v => v.count), 1)) * 100, 100)}%` }}
                           title={`${week.week}: ${week.count} notes`}
                         />
@@ -292,7 +292,7 @@ export default function ProgressPage() {
                             {subject.completed} of {subject.total} units completed
                           </p>
                         </div>
-                        <div className="text-right flex-shrink-0">
+                        <div className="text-right shrink-0">
                           <div className="text-lg sm:text-xl font-bold text-indigo-600">{Math.round(subject.progress)}%</div>
                           <button
                             onClick={() => navigate('/home')}
@@ -304,7 +304,7 @@ export default function ProgressPage() {
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                         <div
-                          className="bg-gradient-to-r from-indigo-600 to-indigo-400 h-2.5 rounded-full transition-all duration-500"
+                          className="bg-linear-to-r from-indigo-600 to-indigo-400 h-2.5 rounded-full transition-all duration-500"
                           style={{ width: `${subject.progress}%` }}
                         />
                       </div>
@@ -325,7 +325,7 @@ export default function ProgressPage() {
                 <div className="space-y-3">
                   {subjectTime.slice(0, 5).map((subject, index) => (
                     <div key={subject.subject_id} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-700 text-xs flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-indigo-700 text-xs shrink-0">
                         {index + 1}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -337,7 +337,7 @@ export default function ProgressPage() {
                           />
                         </div>
                       </div>
-                      <span className="text-xs sm:text-sm font-semibold text-indigo-700 flex-shrink-0">{subject.hours}h</span>
+                      <span className="text-xs sm:text-sm font-semibold text-indigo-700 shrink-0">{subject.hours}h</span>
                     </div>
                   ))}
                 </div>
@@ -348,7 +348,7 @@ export default function ProgressPage() {
           {/* Right Column - Stats */}
           <div className="space-y-6 sm:space-y-8">
             {/* Peak Study Time */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-blue-200">
+            <div className="bg-linear-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-blue-200">
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <span className="text-xl">☀️</span>
                 Peak Study Time
@@ -381,7 +381,7 @@ export default function ProgressPage() {
 
             {/* Top Performing Subjects */}
             {strongestSubjects.length > 0 && (
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-green-200">
+              <div className="bg-linear-to-br from-green-50 to-emerald-50 rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-green-200">
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <span className="text-xl">🌟</span>
                   Top Performers
@@ -390,7 +390,7 @@ export default function ProgressPage() {
                   {strongestSubjects.map((subject, index) => (
                     <div key={subject.id} className="p-3 bg-white rounded-lg border border-green-200">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-700 text-sm flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-700 text-sm shrink-0">
                           #{index + 1}
                         </div>
                         <div className="flex-1 min-w-0">

@@ -9,7 +9,7 @@ export default function OAuthCallback() {
     let user = null
     try {
       if (userStr) user = JSON.parse(decodeURIComponent(userStr))
-    } catch {
+    } catch (e) {
       // ignore
     }
 
@@ -17,7 +17,7 @@ export default function OAuthCallback() {
       window.opener.postMessage({ token, user }, window.location.origin)
       // give opener a moment then close
       setTimeout(() => {
-        try { window.close() } catch { }
+        try { window.close() } catch (e) {}
       }, 700)
     }
   }, [])
