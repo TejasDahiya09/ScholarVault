@@ -17,10 +17,11 @@ const useDarkMode = create((set) => ({
         document.body.style.filter = 'invert(0.93) hue-rotate(180deg)';
         document.body.style.backgroundColor = '#0a0a0a';
         
-        // Prevent dark mode from affecting viewer
+        // Exclude notes viewer from dark inversion
         const viewerModal = document.querySelector('[data-viewer-modal="true"]');
         if (viewerModal) {
-          viewerModal.style.filter = 'invert(0.93) hue-rotate(180deg)';
+          viewerModal.style.filter = 'none';
+          viewerModal.style.backgroundColor = '#ffffff';
         }
       } else {
         document.body.style.filter = 'none';
@@ -48,10 +49,11 @@ const useDarkMode = create((set) => ({
         document.body.style.filter = 'invert(0.93) hue-rotate(180deg)';
         document.body.style.backgroundColor = '#0a0a0a';
         
-        // Prevent dark mode from affecting viewer
+        // Exclude notes viewer from dark inversion
         const viewerModal = document.querySelector('[data-viewer-modal="true"]');
         if (viewerModal) {
-          viewerModal.style.filter = 'invert(0.93) hue-rotate(180deg)';
+          viewerModal.style.filter = 'none';
+          viewerModal.style.backgroundColor = '#ffffff';
         }
       } else {
         document.body.style.filter = 'none';
