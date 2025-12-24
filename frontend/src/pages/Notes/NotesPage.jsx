@@ -18,6 +18,7 @@ const PdfViewerSection = lazy(() => Promise.resolve({
  * NotesPage - Smart Notes + Books + PYQ viewer with AI features
  * PERFORMANCE: Lazy loads PDF viewer, streams PDFs from backend with aggressive caching
  */
+export default function NotesPage() {
   const navigate = useNavigate();
   const { darkMode } = useDarkMode();
   // Always force viewer modal and all document viewers to true light mode by neutralizing global dark mode inversion.
