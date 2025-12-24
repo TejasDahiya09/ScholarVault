@@ -1,6 +1,4 @@
 import React, { useEffect, useState, useRef, Suspense, lazy } from "react";
-import { createPortal } from "react-dom";
-import useDarkMode from "../../store/useDarkMode";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Switch } from "@headlessui/react";
 import Breadcrumbs from "../../components/Breadcrumbs";
@@ -72,22 +70,6 @@ export default function NotesPage() {
   const containerWidthRef = useRef(0);
   const dividerRef = useRef(null);
   const animationFrameRef = useRef(null);
-  const [portalEl, setPortalEl] = useState(null);
-  const { darkMode, setDarkMode } = useDarkMode();
-
-  // Ensure a portal container exists outside #root to bypass global dark-mode filter
-  useEffect(() => {
-    let el = document.getElementById('sv-viewer-portal');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'sv-viewer-portal';
-      document.body.appendChild(el);
-    }
-    setPortalEl(el);
-    return () => {
-      // Keep portal for reuse; do not remove to avoid flicker across opens
-    };
-  }, []);
 
   // Detect file type - Check both filename and S3 URL for robustness
   const fileName = selectedNote?.file_name?.toLowerCase() || "";
@@ -470,26 +452,6 @@ export default function NotesPage() {
     return () => { active = false; };
   }, [selectedNote]);
 
-  // Temporarily disable global dark mode while viewer is open to keep it light
-  useEffect(() => {
-    const root = document.documentElement;
-    const hadDarkClass = root.classList.contains('dark');
-    const hadDarkMode = darkMode === true;
-
-    if (selectedNote) {
-      // Suspend Tailwind dark class
-      if (hadDarkClass) root.classList.remove('dark');
-      // Suspend invert-based dark mode globally
-      if (hadDarkMode) setDarkMode(false);
-    }
-
-    return () => {
-      // Restore previous dark states when viewer closes
-      if (hadDarkClass) root.classList.add('dark');
-      if (hadDarkMode) setDarkMode(true);
-    };
-  }, [selectedNote]);
-
 
   const closeViewer = () => {
     setActiveTab("list");
@@ -863,28 +825,22 @@ export default function NotesPage() {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"></div>
       )}
 
-      {/* VIEWER MODAL (rendered through portal outside #root) */}
-      {selectedNote && portalEl && createPortal(
-        (
+      {/* VIEWER MODAL */}
+      {selectedNote && (
         <ErrorBoundary>
           <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"><div className="bg-white rounded-lg p-6 shadow-2xl"><p className="text-gray-700 font-semibold">Loading PDF viewer...</p><div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full bg-indigo-600 animate-pulse"></div></div></div></div>}>
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-2 viewer-force-light"
-              data-viewer-modal="true"
-              data-theme="light"
-              style={{ colorScheme: 'light', backgroundColor: '#f8fafc' }}
-            >
-          <div className="bg-white w-full h-full max-w-full rounded-none sm:rounded-lg shadow-xl flex flex-col overflow-hidden mx-0 sm:mx-2" style={{ colorScheme: 'light', backgroundColor: '#ffffff' }}>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-2" data-viewer-modal="true">
+          <div className="bg-white w-full h-full max-w-full rounded-none sm:rounded-lg shadow-xl flex flex-col overflow-hidden mx-0 sm:mx-2">
 
             {/* Header */}
-              <div className="flex justify-between items-center px-3 sm:px-4 md:px-5 py-2 sm:py-3 border-b bg-gray-50">
+            <div className="flex justify-between items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b bg-gray-50">
               <div className="flex-1 min-w-0 pr-2">
-                <h2 className="text-xs sm:text-sm md:text-base font-semibold truncate leading-tight">{selectedNote.file_name}</h2>
+                <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold truncate">{selectedNote.file_name}</h2>
               </div>
 
               <button
                 onClick={closeViewer}
-                className="text-xl sm:text-2xl font-light text-gray-500 hover:text-gray-700 shrink-0 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center"
+                className="text-2xl sm:text-3xl font-light text-gray-500 hover:text-gray-700 shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center"
               >
                 ✕
               </button>
@@ -997,42 +953,6 @@ export default function NotesPage() {
               {/* Resizable Divider with Preset Buttons */}
               {isPDF && isNote && (
                 <>
-                  <style>{`
-                    /* Keep viewer light even when app is in dark mode */
-                    .viewer-force-light, .viewer-force-light * {
-                      color-scheme: light !important;
-                      filter: none !important;
-                    }
-                    .dark .viewer-force-light,
-                    .viewer-force-light {
-                      background: #f8fafc !important;
-                      color: #0f172a !important;
-                    }
-                    .dark .viewer-force-light .bg-white,
-                    .dark .viewer-force-light .bg-gray-50,
-                    .dark .viewer-force-light .bg-slate-50,
-                    .viewer-force-light .bg-white,
-                    .viewer-force-light .bg-gray-50,
-                    .viewer-force-light .bg-slate-50 {
-                      background: #ffffff !important;
-                    }
-                    .dark .viewer-force-light .text-gray-900,
-                    .dark .viewer-force-light .text-gray-800,
-                    .dark .viewer-force-light .text-gray-700,
-                    .dark .viewer-force-light .text-gray-600,
-                    .dark .viewer-force-light .text-gray-500,
-                    .viewer-force-light .text-gray-900,
-                    .viewer-force-light .text-gray-800,
-                    .viewer-force-light .text-gray-700,
-                    .viewer-force-light .text-gray-600,
-                    .viewer-force-light .text-gray-500 {
-                      color: #0f172a !important;
-                    }
-                    .dark .viewer-force-light .bg-black,
-                    .viewer-force-light .bg-black {
-                      background: #111827 !important;
-                    }
-                  `}</style>
                   <div className="flex flex-col items-center gap-1 bg-gray-50 py-2 px-0.5">
                     {/* Preset Layout Buttons */}
                     <div className="flex gap-0.5 flex-col w-full">
@@ -1337,8 +1257,7 @@ export default function NotesPage() {
         </div>
           </Suspense>
         </ErrorBoundary>
-        ), portalEl)
-      }
+      )}
 
     </>
   );
