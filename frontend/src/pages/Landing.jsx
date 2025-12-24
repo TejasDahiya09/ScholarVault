@@ -2,11 +2,8 @@ import React from "react";
 import { Link } from "react-router-dom";
 import NavBar from "../components/Layout/NavBar";
 import DarkModeToggle from "../components/DarkModeToggle";
-import hero from "../assets/hero.svg";
-import heroInner from "../assets/hero_inner.svg";
-import heroDesigner1 from "../assets/hero_designer_1.svg";
-import heroDesigner2 from "../assets/hero_designer_2.svg";
 import { useEffect, useRef, useState } from "react";
+
 // use public icons for static serving
 const notesIcon = "/assets/icons/notes.svg";
 const ocrIcon = "/assets/icons/ocr.svg";
