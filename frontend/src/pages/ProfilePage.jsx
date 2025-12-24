@@ -7,6 +7,8 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, logout, login } = useAuth();
   const [currentYear, setCurrentYear] = useState(user?.selected_year || '');
+  const [pendingYear, setPendingYear] = useState(null);
+  const [showYearModal, setShowYearModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(user?.name || "Student");
   const [loading, setLoading] = useState(true);
@@ -196,16 +198,33 @@ export default function ProfilePage() {
     }
   };
 
-  const handleYearChange = async (year) => {
+  const handleYearButtonClick = (year) => {
+    if (year !== currentYear) {
+      setPendingYear(year);
+      setShowYearModal(true);
+    }
+  };
+
+  const handleConfirmYearChange = async () => {
+    if (!pendingYear) return;
     try {
-      await client.put('/api/auth/preferences', { selected_year: year });
-      setCurrentYear(year);
-      const updatedUser = { ...user, selected_year: year };
+      await client.put('/api/auth/preferences', { selected_year: pendingYear });
+      setCurrentYear(pendingYear);
+      const updatedUser = { ...user, selected_year: pendingYear };
       login(localStorage.getItem('sv_token'), updatedUser);
+      setShowYearModal(false);
+      setPendingYear(null);
     } catch (err) {
       console.error('Failed to update year:', err);
       alert('Failed to update year. Please try again.');
+      setShowYearModal(false);
+      setPendingYear(null);
     }
+  };
+
+  const handleCancelYearChange = () => {
+    setShowYearModal(false);
+    setPendingYear(null);
   };
 
   if (loading) {
@@ -359,10 +378,10 @@ export default function ProfilePage() {
               </div>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-                  {["1st Year", "2nd Year"].map((yearOption) => (
+                  {['1st Year', '2nd Year'].map((yearOption) => (
                     <button
                       key={yearOption}
-                      onClick={() => handleYearChange(yearOption)}
+                      onClick={() => handleYearButtonClick(yearOption)}
                       className={`py-3 px-4 rounded-lg border-2 font-medium transition-all ${
                         currentYear === yearOption
                           ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
@@ -443,6 +462,29 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Year Change Confirmation Modal */}
+        {showYearModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 md:p-8">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-slate-900 mb-4 sm:mb-6">Confirm Year Change</h3>
+              <p className="text-slate-700 text-sm mb-4">Are you sure you want to change your academic year to <span className="font-bold text-indigo-600">{pendingYear}</span>? This will update your profile and filter subjects accordingly.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleConfirmYearChange}
+                  className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-500 transition-all shadow-sm hover:shadow-md"
+                >
+                  Save & Update
+                </button>
+                <button
+                  onClick={handleCancelYearChange}
+                  className="px-6 py-3 border-2 border-slate-200 rounded-lg font-medium hover:bg-slate-50 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Password Change Modal */}
         {showPasswordModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
