@@ -1,0 +1,135 @@
+# ========== DOCUMENTATION & INTERNAL FILES ==========
+# Internal project documentation (not for GitHub)
+PROJECT_DETAILS.md
+
+# ========== DATA & LARGE FILES ==========
+# Never upload ScholarVault data
+ScholarVault_Data/
+*.zip
+*.rar
+*.7z
+*.tar.gz
+
+# ========== CREDENTIALS & SECURITY ==========
+# API Keys and credentials
+gcp_credentials.json
+vertex-key.json
+credentials/
+aws_keys.csv
+.aws/
+.gcp/
+*.pem
+*.key
+*.p12
+
+# Environment variables (contains secrets)
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# ========== DATABASE ==========
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+supabase/
+.supabase/
+
+# ========== NODE.JS ==========
+node_modules/
+npm-debug.log*
+npm-error.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.npm/
+.node_repl_history
+
+# Backend specific
+backend/node_modules/
+backend/.env*
+backend/dist/
+backend/.build/
+
+# Frontend specific
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+frontend/.next/
+frontend/build/
+
+# ========== PYTHON ==========
+__pycache__/
+*.py[cod]
+*.pyc
+*$py.class
+*.egg-info/
+dist/
+.Python
+venv/
+env/
+ENV/
+build/
+.eggs/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ========== IDE & EDITOR ==========
+.vscode/
+.vscode-settings.json
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+.project
+.classpath
+*.code-workspace
+
+# ========== OS SPECIFIC ==========
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ========== BUILD & DIST ==========
+dist/
+build/
+.next/
+.nuxt/
+.cache/
+.vuepress/dist/
+.serverless/
+.fusebox/
+.dynamodb/
+
+# ========== TESTING ==========
+coverage/
+.nyc_output/
+test-results/
+.mocha_output/
+
+# ========== LOGS ==========
+logs/
+*.log
+lerna-debug.log*
+
+# ========== MISC ==========
+.DS_Store
+.env.example.backup
+*.bak
+*.tmp
+.vscode-settings.json
+.prettierrc.backup
+# ========== AWS & SENSITIVE DIRECTORIES ==========
+AWS/
