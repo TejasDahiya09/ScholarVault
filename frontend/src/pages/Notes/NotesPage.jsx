@@ -87,6 +87,25 @@ export default function NotesPage() {
   const isSyllabus = selectedNote?.isSyllabus;
   const isPpt = selectedNote?.isPpt || false;
 
+  // Extract unit number from DB field or filename fallback
+  const getUnitNumber = (item) => {
+    if (!item) return Number.MAX_SAFE_INTEGER;
+    const dbUnit = parseInt(item.unit_number, 10);
+    if (!Number.isNaN(dbUnit)) return dbUnit;
+    const match = (item.file_name || "").match(/[Uu]nit[\s_-]?(\d+)/);
+    return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+  };
+
+  // Natural sort by unit number, fallback to filename
+  const sortByUnitNumber = (list = []) => {
+    return [...list].sort((a, b) => {
+      const unitA = getUnitNumber(a);
+      const unitB = getUnitNumber(b);
+      if (unitA !== unitB) return unitA - unitB;
+      return (a.file_name || "").localeCompare(b.file_name || "");
+    });
+  };
+
   // Fetch user bookmarks on mount
   useEffect(() => {
     async function fetchBookmarks() {
@@ -126,8 +145,8 @@ export default function NotesPage() {
           const pptItems = allNotes.filter(isPptFile);
           const regularNotes = allNotes.filter((n) => !isPptFile(n));
 
-          setNotesList(regularNotes);
-          setPptList(pptItems);
+          setNotesList(sortByUnitNumber(regularNotes));
+          setPptList(sortByUnitNumber(pptItems));
           setBooksList(subject.books || []);
           setPyqList(subject.pyqs || []);
           setSyllabusList(subject.syllabus || []);
@@ -150,6 +169,23 @@ export default function NotesPage() {
     }
     load();
   }, [subjectId, noteId]);
+
+  // Fetch completion status for current subject so buttons reflect saved progress
+  useEffect(() => {
+    if (!subjectId) return;
+
+    async function fetchCompletion() {
+      try {
+        const res = await client.get(`/api/subjects/${subjectId}/progress`);
+        const completedIds = res.data?.completed_note_ids || [];
+        setCompletedNotes(new Set(completedIds));
+      } catch (err) {
+        console.error("Failed to load completion status:", err);
+      }
+    }
+
+    fetchCompletion();
+  }, [subjectId]);
 
   // Load cached summary when note changes or AI mode switches
   useEffect(() => {
