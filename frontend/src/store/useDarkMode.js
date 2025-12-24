@@ -17,9 +17,9 @@ const useDarkMode = create((set) => ({
         document.body.style.filter = 'invert(0.93) hue-rotate(180deg)';
         document.body.style.backgroundColor = '#0a0a0a';
         
-        // Exclude elements marked with data-no-dark-mode (e.g., NotesPage viewer)
-        const noDarkModeElements = document.querySelectorAll('[data-no-dark-mode="true"]');
-        noDarkModeElements.forEach(el => {
+        // Exclude NotesPage and all viewer modals (notes, PPT, books, PYQ, syllabus) from dark mode
+        const excludedElements = document.querySelectorAll('[data-no-dark-mode="true"], [data-viewer-modal="true"]');
+        excludedElements.forEach(el => {
           el.style.filter = 'invert(0.93) hue-rotate(180deg)';
           el.style.isolation = 'isolate';
         });
@@ -27,8 +27,8 @@ const useDarkMode = create((set) => ({
         document.body.style.filter = 'none';
         document.body.style.backgroundColor = '';
         
-        const noDarkModeElements = document.querySelectorAll('[data-no-dark-mode="true"]');
-        noDarkModeElements.forEach(el => {
+        const excludedElements = document.querySelectorAll('[data-no-dark-mode="true"], [data-viewer-modal="true"]');
+        excludedElements.forEach(el => {
           el.style.filter = 'none';
           el.style.isolation = 'auto';
         });
@@ -50,9 +50,9 @@ const useDarkMode = create((set) => ({
         document.body.style.filter = 'invert(0.93) hue-rotate(180deg)';
         document.body.style.backgroundColor = '#0a0a0a';
         
-        // Exclude elements marked with data-no-dark-mode (e.g., NotesPage viewer)
-        const noDarkModeElements = document.querySelectorAll('[data-no-dark-mode="true"]');
-        noDarkModeElements.forEach(el => {
+        // Exclude NotesPage and all viewer modals (notes, PPT, books, PYQ, syllabus) from dark mode
+        const excludedElements = document.querySelectorAll('[data-no-dark-mode="true"], [data-viewer-modal="true"]');
+        excludedElements.forEach(el => {
           el.style.filter = 'invert(0.93) hue-rotate(180deg)';
           el.style.isolation = 'isolate';
         });
@@ -60,8 +60,8 @@ const useDarkMode = create((set) => ({
         document.body.style.filter = 'none';
         document.body.style.backgroundColor = '';
         
-        const noDarkModeElements = document.querySelectorAll('[data-no-dark-mode="true"]');
-        noDarkModeElements.forEach(el => {
+        const excludedElements = document.querySelectorAll('[data-no-dark-mode="true"], [data-viewer-modal="true"]');
+        excludedElements.forEach(el => {
           el.style.filter = 'none';
           el.style.isolation = 'auto';
         });
