@@ -164,7 +164,32 @@ export default function Landing() {
                 {/* Inner illustration overlay */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   {innerIndex === 3 && (
-                    <img src={logoImg} alt="ScholarVault Logo" className="w-4/5 h-4/5 object-contain" />
+                    <div className="relative w-full h-full flex items-center justify-center">
+                      {/* Background decorative elements */}
+                      <div className="absolute inset-0 overflow-hidden">
+                        <div className="absolute top-10 left-10 w-20 h-20 bg-indigo-100 rounded-full opacity-30 animate-pulse"></div>
+                        <div className="absolute bottom-10 right-10 w-24 h-24 bg-blue-100 rounded-full opacity-30 animate-pulse" style={{animationDelay: '1s'}}></div>
+                        <div className="absolute top-1/2 left-5 w-16 h-16 bg-purple-100 rounded-full opacity-20 animate-pulse" style={{animationDelay: '2s'}}></div>
+                      </div>
+                      
+                      {/* Logo container with shadow and glow */}
+                      <div className="relative z-10 p-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100">
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-2xl"></div>
+                        <img 
+                          src={logoImg} 
+                          alt="ScholarVault Logo" 
+                          className="relative w-48 h-48 sm:w-56 sm:h-56 object-contain drop-shadow-2xl"
+                        />
+                      </div>
+                      
+                      {/* Floating badges */}
+                      <div className="absolute top-8 right-8 bg-indigo-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg animate-bounce">
+                        AI Powered
+                      </div>
+                      <div className="absolute bottom-8 left-8 bg-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg animate-bounce" style={{animationDelay: '0.5s'}}>
+                        Smart Learning
+                      </div>
+                    </div>
                   )}
                   {innerIndex === 0 && (
                     <svg className="w-4/5 h-4/5" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
