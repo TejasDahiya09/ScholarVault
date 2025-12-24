@@ -1277,6 +1277,8 @@ export default function NotesPage() {
 
     </>
   );
+
+}
 // End of NotesPage component
 
 /** Reusable Section Component **/
