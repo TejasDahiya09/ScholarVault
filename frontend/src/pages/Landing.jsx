@@ -97,8 +97,7 @@ export default function Landing() {
             </div>
             
             {/* Logo container with shadow and glow */}
-            <div className="relative z-10 p-8 sm:p-12 lg:p-16 bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-200">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-blue-500/5 rounded-3xl"></div>
+            <div className="relative z-10 p-8 sm:p-12 lg:p-16">
               <img 
                 src={logoImg} 
                 alt="ScholarVault Logo" 
