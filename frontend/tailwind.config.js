@@ -89,6 +89,11 @@ export default {
       },
     },
   },
+  shortcuts: {
+    'bg-gradient-to-r': 'bg-linear-to-r',
+    'bg-gradient-to-br': 'bg-linear-to-br',
+    'flex-shrink-0': 'shrink-0',
+  },
   plugins: [
     // eslint-disable-next-line no-undef
     (typeof require !== 'undefined' ? require('@tailwindcss/line-clamp') : undefined),
