@@ -210,7 +210,7 @@ export default function ProgressPage() {
                         title={`${day.minutes} minutes`}
                       />
                     </div>
-                    <span className={`text-xs sm:text-sm font-medium ${day.isToday ? 'text-indigo-600' : 'text-gray-500'}`}>
+                    <span className={`text-xs sm:text-sm font-medium ${day.isToday ? 'text-indigo-600' : 'text-gray-500'}`}> 
                       {day.day}
                     </span>
                     <span className="text-xs text-gray-400">{day.minutes}m</span>
@@ -242,6 +242,29 @@ export default function ProgressPage() {
                 <span>Today</span>
               </div>
             </div>
+
+            {/* Study Velocity Chart */}
+            {velocity.length > 0 && (
+              <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Study Velocity</h2>
+                <p className="text-xs text-gray-500 mb-4">Notes completed per week (last 8 weeks)</p>
+                <div className="flex items-end justify-between gap-2 h-32 sm:h-40">
+                  {velocity.map((week, index) => (
+                    <div key={index} className="flex-1 flex flex-col items-center gap-2">
+                      <div className="w-full bg-gray-100 rounded-t relative" style={{ height: '100%' }}>
+                        <div
+                          className="absolute bottom-0 w-full rounded-t bg-linear-to-t from-purple-600 to-purple-400 transition-all duration-300"
+                          style={{ height: `${Math.min((week.count / Math.max(...velocity.map(v => v.count), 1)) * 100, 100)}%` }}
+                          title={`${week.week}: ${week.count} notes`}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500 truncate w-full text-center">{week.week}</span>
+                      <span className="text-xs font-medium text-gray-700">{week.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* All Subjects Detailed Progress */}
             <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
@@ -294,29 +317,6 @@ export default function ProgressPage() {
                 </div>
               )}
             </div>
-
-            {/* Study Velocity Chart */}
-            {velocity.length > 0 && (
-              <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
-                <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Study Velocity</h2>
-                <p className="text-xs text-gray-500 mb-4">Notes completed per week (last 8 weeks)</p>
-                <div className="flex items-end justify-between gap-2 h-32 sm:h-40">
-                  {velocity.map((week, index) => (
-                    <div key={index} className="flex-1 flex flex-col items-center gap-2">
-                      <div className="w-full bg-gray-100 rounded-t relative" style={{ height: '100%' }}>
-                        <div
-                          className="absolute bottom-0 w-full rounded-t bg-linear-to-t from-purple-600 to-purple-400 transition-all duration-300"
-                          style={{ height: `${Math.min((week.count / Math.max(...velocity.map(v => v.count), 1)) * 100, 100)}%` }}
-                          title={`${week.week}: ${week.count} notes`}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-500 truncate w-full text-center">{week.week}</span>
-                      <span className="text-xs font-medium text-gray-700">{week.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Subject Time Breakdown */}
             {subjectTime.length > 0 && (
