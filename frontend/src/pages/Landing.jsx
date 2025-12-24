@@ -101,9 +101,9 @@ export default function Landing() {
               </div>
               
               {/* Content container */}
-              <div className="relative h-full flex flex-col items-center justify-center p-6">
+              <div className="relative h-full flex items-center justify-center p-6">
                 {/* Logo with solid background circle */}
-                <div className="relative mb-5">
+                <div className="relative">
                   {/* White circle background for logo */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-80 h-80 bg-white rounded-full shadow-xl"></div>
@@ -115,7 +115,8 @@ export default function Landing() {
                       src={logoImg} 
                       alt="ScholarVault Logo" 
                       className="w-80 h-80 object-contain filter drop-shadow-2xl"
-                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
                     />
                   </div>
                   
@@ -123,16 +124,6 @@ export default function Landing() {
                   <div className="absolute inset-0 flex items-center justify-center -z-10">
                     <div className="w-72 h-72 bg-gradient-to-br from-indigo-400/20 to-blue-400/20 rounded-full blur-2xl"></div>
                   </div>
-                </div>
-                
-                {/* Text below logo */}
-                <div className="text-center space-y-1.5">
-                  <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
-                    ScholarVault
-                  </h3>
-                  <p className="text-sm text-gray-600 font-medium">
-                    AI-Powered Learning Platform
-                  </p>
                 </div>
               </div>
             </div>
