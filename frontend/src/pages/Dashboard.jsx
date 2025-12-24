@@ -64,7 +64,7 @@ export default function Dashboard() {
       
       // Fetch bookmarks immediately
       try {
-        const bookmarksRes = await client.get('/api/bookmarks/details');
+        const bookmarksRes = await client.get('/api/bookmarks');
         setBookmarkedNotes(bookmarksRes.data?.bookmarks || []);
       } catch (err) {
         console.error("Failed to fetch bookmarks:", err);
