@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, Suspense, lazy } from "react";
+import useDarkMode from "../../store/useDarkMode";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Switch } from "@headlessui/react";
 import Breadcrumbs from "../../components/Breadcrumbs";
@@ -696,6 +697,10 @@ export default function NotesPage() {
   if (loading) return <div className="p-8 text-center">Loading...</div>;
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
 
+  const { darkMode } = useDarkMode();
+  // Style to force viewer modal and all document viewers to true light mode
+  const viewerLightModeStyle = darkMode ? { filter: 'invert(1) hue-rotate(180deg)', isolation: 'isolate', colorScheme: 'light' } : { colorScheme: 'light' };
+
   return (
     <div data-no-dark-mode="true" style={{ colorScheme: 'light' }} className="light">
       {/* Bookmark Saved Popup */}
@@ -829,7 +834,7 @@ export default function NotesPage() {
       {selectedNote && (
         <ErrorBoundary>
           <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"><div className="bg-white rounded-lg p-6 shadow-2xl"><p className="text-gray-700 font-semibold">Loading PDF viewer...</p><div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full bg-indigo-600 animate-pulse"></div></div></div></div>}>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-2" data-viewer-modal="true">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-2" data-viewer-modal="true" style={viewerLightModeStyle}>
           <div className="bg-white w-full h-full max-w-full rounded-none sm:rounded-lg shadow-xl flex flex-col overflow-hidden mx-0 sm:mx-2">
 
             {/* Header */}
