@@ -17,21 +17,19 @@ const useDarkMode = create((set) => ({
         document.body.style.filter = 'invert(0.93) hue-rotate(180deg)';
         document.body.style.backgroundColor = '#0a0a0a';
         
-        // Exclude NotesPage and all viewer modals (notes, PPT, books, PYQ, syllabus) from dark mode
-        const excludedElements = document.querySelectorAll('[data-no-dark-mode="true"], [data-viewer-modal="true"]');
-        excludedElements.forEach(el => {
-          el.style.filter = 'invert(0.93) hue-rotate(180deg)';
-          el.style.isolation = 'isolate';
-        });
+        // Prevent dark mode from affecting viewer
+        const viewerModal = document.querySelector('[data-viewer-modal="true"]');
+        if (viewerModal) {
+          viewerModal.style.filter = 'invert(0.93) hue-rotate(180deg)';
+        }
       } else {
         document.body.style.filter = 'none';
         document.body.style.backgroundColor = '';
         
-        const excludedElements = document.querySelectorAll('[data-no-dark-mode="true"], [data-viewer-modal="true"]');
-        excludedElements.forEach(el => {
-          el.style.filter = 'none';
-          el.style.isolation = 'auto';
-        });
+        const viewerModal = document.querySelector('[data-viewer-modal="true"]');
+        if (viewerModal) {
+          viewerModal.style.filter = 'none';
+        }
       }
     }, 0);
     
@@ -50,21 +48,19 @@ const useDarkMode = create((set) => ({
         document.body.style.filter = 'invert(0.93) hue-rotate(180deg)';
         document.body.style.backgroundColor = '#0a0a0a';
         
-        // Exclude NotesPage and all viewer modals (notes, PPT, books, PYQ, syllabus) from dark mode
-        const excludedElements = document.querySelectorAll('[data-no-dark-mode="true"], [data-viewer-modal="true"]');
-        excludedElements.forEach(el => {
-          el.style.filter = 'invert(0.93) hue-rotate(180deg)';
-          el.style.isolation = 'isolate';
-        });
+        // Prevent dark mode from affecting viewer
+        const viewerModal = document.querySelector('[data-viewer-modal="true"]');
+        if (viewerModal) {
+          viewerModal.style.filter = 'invert(0.93) hue-rotate(180deg)';
+        }
       } else {
         document.body.style.filter = 'none';
         document.body.style.backgroundColor = '';
         
-        const excludedElements = document.querySelectorAll('[data-no-dark-mode="true"], [data-viewer-modal="true"]');
-        excludedElements.forEach(el => {
-          el.style.filter = 'none';
-          el.style.isolation = 'auto';
-        });
+        const viewerModal = document.querySelector('[data-viewer-modal="true"]');
+        if (viewerModal) {
+          viewerModal.style.filter = 'none';
+        }
       }
     }, 0);
     
