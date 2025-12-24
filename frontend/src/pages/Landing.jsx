@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import NavBar from "../components/Layout/NavBar";
 import DarkModeToggle from "../components/DarkModeToggle";
+import useDarkMode from "../store/useDarkMode";
 
 // use public icons for static serving
 const notesIcon = "/assets/icons/notes.svg";
@@ -34,6 +35,8 @@ const FeatureCard = ({ icon, title, desc, delay = 0 }) => (
 );
 
 export default function Landing() {
+  const { darkMode } = useDarkMode();
+  
   const features = [
       { icon: notesIcon, title: "Smart Notes", desc: "Organize and manage study materials efficiently" },
       { icon: ocrIcon, title: "OCR Summaries", desc: "Extract text & generate summaries automatically" },
@@ -88,25 +91,47 @@ export default function Landing() {
 
         <div className="flex-1 flex justify-center w-full">
           <div className="relative w-full max-w-md">
-            {/* Main container with glass effect */}
-            <div className="relative h-[420px] bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-3xl hover:scale-[1.02]">
+            {/* Main container with glass effect - dark mode aware */}
+            <div className={`relative h-[420px] backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] ${
+              darkMode 
+                ? 'bg-gray-900/90 border border-gray-700/50' 
+                : 'bg-white/60 border border-white/20'
+            }`} style={darkMode ? {filter: 'none'} : {}}>
               {/* Gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/50 via-blue-50/30 to-purple-100/50 transition-opacity duration-700"></div>
+              <div className={`absolute inset-0 transition-opacity duration-700 ${
+                darkMode
+                  ? 'bg-gradient-to-br from-indigo-900/30 via-blue-900/20 to-purple-900/30'
+                  : 'bg-gradient-to-br from-indigo-100/50 via-blue-50/30 to-purple-100/50'
+              }`}></div>
               
               {/* Animated background elements */}
               <div className="absolute inset-0 overflow-hidden opacity-40">
-                <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-300 to-blue-300 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-br from-blue-300 to-purple-300 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-gradient-to-br from-purple-200 to-indigo-200 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+                <div className={`absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl animate-pulse ${
+                  darkMode 
+                    ? 'bg-gradient-to-br from-indigo-500/40 to-blue-500/40'
+                    : 'bg-gradient-to-br from-indigo-300 to-blue-300'
+                }`}></div>
+                <div className={`absolute -bottom-10 -left-10 w-40 h-40 rounded-full blur-3xl animate-pulse ${
+                  darkMode
+                    ? 'bg-gradient-to-br from-blue-500/40 to-purple-500/40'
+                    : 'bg-gradient-to-br from-blue-300 to-purple-300'
+                }`} style={{animationDelay: '1s'}}></div>
+                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full blur-3xl animate-pulse ${
+                  darkMode
+                    ? 'bg-gradient-to-br from-purple-500/30 to-indigo-500/30'
+                    : 'bg-gradient-to-br from-purple-200 to-indigo-200'
+                }`} style={{animationDelay: '2s'}}></div>
               </div>
               
               {/* Content container */}
               <div className="relative h-full flex items-center justify-center p-6">
                 {/* Logo with solid background circle */}
                 <div className="relative animate-float">
-                  {/* White circle background for logo */}
+                  {/* Background circle - dark mode aware */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-80 h-80 bg-white rounded-full shadow-xl transition-all duration-500 hover:shadow-2xl"></div>
+                    <div className={`w-80 h-80 rounded-full shadow-xl transition-all duration-500 hover:shadow-2xl ${
+                      darkMode ? 'bg-gray-800/80 backdrop-blur-sm' : 'bg-white'
+                    }`} style={darkMode ? {filter: 'none'} : {}}></div>
                   </div>
                   
                   {/* Logo */}
@@ -117,13 +142,17 @@ export default function Landing() {
                       className="w-80 h-80 object-contain filter drop-shadow-2xl transition-all duration-500 hover:scale-105 hover:drop-shadow-3xl"
                       fetchPriority="high"
                       decoding="async"
-                      style={{filter: 'drop-shadow(0 25px 25px rgb(0 0 0 / 0.15)) !important'}}
+                      style={{filter: darkMode ? 'drop-shadow(0 25px 25px rgba(0, 0, 0, 0.5)) brightness(1.1)' : 'drop-shadow(0 25px 25px rgb(0 0 0 / 0.15)) !important'}}
                     />
                   </div>
                   
                   {/* Glow effect behind logo */}
                   <div className="absolute inset-0 flex items-center justify-center -z-10">
-                    <div className="w-72 h-72 bg-gradient-to-br from-indigo-400/20 to-blue-400/20 rounded-full blur-2xl animate-pulse-slow"></div>
+                    <div className={`w-72 h-72 rounded-full blur-2xl animate-pulse-slow ${
+                      darkMode
+                        ? 'bg-gradient-to-br from-indigo-500/30 to-blue-500/30'
+                        : 'bg-gradient-to-br from-indigo-400/20 to-blue-400/20'
+                    }`}></div>
                   </div>
                 </div>
               </div>
