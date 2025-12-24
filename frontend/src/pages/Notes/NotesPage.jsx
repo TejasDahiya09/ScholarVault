@@ -888,18 +888,20 @@ export default function NotesPage() {
                     <span className="sm:hidden">⬇</span>
                   </button>
 
-                  <button
-                    onClick={(e) => handleMarkComplete(e, selectedNote?.id)}
-                    className={`px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm whitespace-nowrap font-medium transition-all ${
-                      completedNotes.has(selectedNote?.id)
-                        ? "bg-green-600 hover:bg-green-700 text-white"
-                        : "bg-amber-500 hover:bg-amber-600 text-white"
-                    }`}
-                    title="Mark as complete"
-                  >
-                    <span className="hidden sm:inline">{completedNotes.has(selectedNote?.id) ? "✓ Completed" : "Mark Complete"}</span>
-                    <span className="sm:hidden">{completedNotes.has(selectedNote?.id) ? "✓" : "Done"}</span>
-                  </button>
+                  {isNote && (
+                    <button
+                      onClick={(e) => handleMarkComplete(e, selectedNote?.id)}
+                      className={`px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm whitespace-nowrap font-medium transition-all ${
+                        completedNotes.has(selectedNote?.id)
+                          ? "bg-green-600 hover:bg-green-700 text-white"
+                          : "bg-amber-500 hover:bg-amber-600 text-white"
+                      }`}
+                      title="Mark as complete"
+                    >
+                      <span className="hidden sm:inline">{completedNotes.has(selectedNote?.id) ? "✓ Completed" : "Mark Complete"}</span>
+                      <span className="sm:hidden">{completedNotes.has(selectedNote?.id) ? "✓" : "Done"}</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={handleOpenNewTab}
