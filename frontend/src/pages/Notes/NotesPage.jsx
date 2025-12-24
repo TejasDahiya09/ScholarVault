@@ -646,12 +646,13 @@ export default function NotesPage() {
         subjectId: subjectId,
         completed: !isCompleted,
       });
-      // Re-fetch completion status from backend
-      if (subjectId) {
-        const res = await client.get(`/api/subjects/${subjectId}/progress`);
-        const completedIds = res.data?.completed_note_ids || [];
-        setCompletedNotes(new Set(completedIds));
-      }
+      // Re-fetch both bookmarks and completion status from backend
+      const [bookmarksRes, completionRes] = await Promise.all([
+        client.get('/api/bookmarks'),
+        subjectId ? client.get(`/api/subjects/${subjectId}/progress`) : Promise.resolve({ data: { completed_note_ids: [] } })
+      ]);
+      setBookmarkedNotes(new Set(bookmarksRes.data?.bookmarks || []));
+      setCompletedNotes(new Set(completionRes.data?.completed_note_ids || []));
       // Signal dashboard/progress to refresh
       localStorage.setItem('sv_refresh_dashboard', '1');
       window.dispatchEvent(new Event('sv_refresh_dashboard'));
@@ -676,10 +677,13 @@ export default function NotesPage() {
     try {
       const isBookmarked = bookmarkedNotes.has(noteId);
       await client.post(`/api/notes/${noteId}/bookmark`);
-      // Re-fetch bookmarks from backend
-      const res = await client.get('/api/bookmarks');
-      const bookmarkIds = res.data?.bookmarks || [];
-      setBookmarkedNotes(new Set(bookmarkIds));
+      // Re-fetch both bookmarks and completion status from backend
+      const [bookmarksRes, completionRes] = await Promise.all([
+        client.get('/api/bookmarks'),
+        subjectId ? client.get(`/api/subjects/${subjectId}/progress`) : Promise.resolve({ data: { completed_note_ids: [] } })
+      ]);
+      setBookmarkedNotes(new Set(bookmarksRes.data?.bookmarks || []));
+      setCompletedNotes(new Set(completionRes.data?.completed_note_ids || []));
       // Signal dashboard/progress to refresh
       localStorage.setItem('sv_refresh_dashboard', '1');
       window.dispatchEvent(new Event('sv_refresh_dashboard'));

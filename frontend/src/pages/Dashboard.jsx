@@ -26,20 +26,14 @@ export default function Dashboard() {
   const SUBJECTS_PER_PAGE = 5;
 
   useEffect(() => {
-    // If coming back from NotesPage, refresh if needed
-    if (localStorage.getItem('sv_refresh_dashboard') === '1') {
-      fetchDashboardData();
-      localStorage.removeItem('sv_refresh_dashboard');
-    } else {
-      fetchDashboardData();
-    }
-    // Listen for instant refresh event
-    const refreshHandler = () => {
+    const fetchAll = () => {
       fetchDashboardData();
       localStorage.removeItem('sv_refresh_dashboard');
     };
-    window.addEventListener('sv_refresh_dashboard', refreshHandler);
-    return () => window.removeEventListener('sv_refresh_dashboard', refreshHandler);
+    fetchAll();
+    // Listen for instant refresh event
+    window.addEventListener('sv_refresh_dashboard', fetchAll);
+    return () => window.removeEventListener('sv_refresh_dashboard', fetchAll);
   }, [user?.selected_year]);
 
   // Stay on Dashboard even if there are no bookmarks
