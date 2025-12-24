@@ -89,7 +89,10 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="flex-1 flex justify-center w-full" style={darkMode ? {filter: 'invert(0.93) hue-rotate(180deg)'} : {}}>
+        <div 
+          className="flex-1 flex justify-center w-full dark-mode-exclude" 
+          style={darkMode ? {filter: 'invert(0.93) hue-rotate(180deg) !important'} : {}}
+        >
           <div className="relative w-full max-w-md">
             {/* Main container with glass effect - always light mode styling */}
             <div className="relative h-[420px] bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-3xl hover:scale-[1.02]">
