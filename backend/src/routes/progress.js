@@ -97,10 +97,11 @@ router.get("/analytics", authenticate, async (req, res, next) => {
       .select("session_start")
       .eq("user_id", userId);
 
+    // Always return null for peakTime if sessions are less than 3
     let peakTime = null;
-    if ((sessions?.length || 0) >= 3) {
+    if (Array.isArray(sessions) && sessions.length >= 3) {
       const timeBlocks = { morning: 0, afternoon: 0, evening: 0, night: 0 };
-      for (const s of sessions || []) {
+      for (const s of sessions) {
         const hour = new Date(s.session_start).getHours();
         if (hour >= 5 && hour < 12) timeBlocks.morning++;
         else if (hour >= 12 && hour < 17) timeBlocks.afternoon++;
@@ -109,6 +110,8 @@ router.get("/analytics", authenticate, async (req, res, next) => {
       }
       peakTime = Object.entries(timeBlocks)
         .sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    } else {
+      peakTime = null; // Explicitly set null if not enough sessions
     }
 
     // Study velocity (notes completed per week, last 8 weeks)
