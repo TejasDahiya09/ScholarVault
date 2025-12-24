@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, Suspense, lazy } from "react";
 import { createPortal } from "react-dom";
+import useDarkMode from "../../store/useDarkMode";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Switch } from "@headlessui/react";
 import Breadcrumbs from "../../components/Breadcrumbs";
@@ -72,6 +73,7 @@ export default function NotesPage() {
   const dividerRef = useRef(null);
   const animationFrameRef = useRef(null);
   const [portalEl, setPortalEl] = useState(null);
+  const { darkMode, setDarkMode } = useDarkMode();
 
   // Ensure a portal container exists outside #root to bypass global dark-mode filter
   useEffect(() => {
@@ -471,15 +473,20 @@ export default function NotesPage() {
   // Temporarily disable global dark mode while viewer is open to keep it light
   useEffect(() => {
     const root = document.documentElement;
-    const hadDark = root.classList.contains('dark');
-    if (selectedNote && hadDark) {
-      root.classList.remove('dark');
+    const hadDarkClass = root.classList.contains('dark');
+    const hadDarkMode = darkMode === true;
+
+    if (selectedNote) {
+      // Suspend Tailwind dark class
+      if (hadDarkClass) root.classList.remove('dark');
+      // Suspend invert-based dark mode globally
+      if (hadDarkMode) setDarkMode(false);
     }
 
     return () => {
-      if (hadDark) {
-        root.classList.add('dark');
-      }
+      // Restore previous dark states when viewer closes
+      if (hadDarkClass) root.classList.add('dark');
+      if (hadDarkMode) setDarkMode(true);
     };
   }, [selectedNote]);
 
