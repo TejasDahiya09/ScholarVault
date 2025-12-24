@@ -161,6 +161,41 @@ export default function Landing() {
 
                 {/* Inner illustration overlay */}
                 <div className="absolute inset-0 flex items-center justify-center">
+                  {innerIndex === 3 && (
+                    <svg className="w-4/5 h-4/5" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <linearGradient id="bookGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" style={{stopColor:"#005691",stopOpacity:1}} />
+                          <stop offset="100%" style={{stopColor:"#0087d9",stopOpacity:1}} />
+                        </linearGradient>
+                        <radialGradient id="brainGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                          <stop offset="0%" style={{stopColor:"#a0d8ff",stopOpacity:1}} />
+                          <stop offset="100%" style={{stopColor:"#00a0ff",stopOpacity:0}} />
+                        </radialGradient>
+                      </defs>
+
+                      <path d="M100,190 C50,160 30,120 30,60 L100,20 L170,60 C170,120 150,160 100,190 Z" fill="#0a2442"/>
+                      <path d="M100,185 C55,157 37,118 37,63 L100,27 L163,63 C163,118 145,157 100,185 Z" fill="#ffffff"/>
+
+                      <path d="M45,75 C45,75 55,85 100,85 C145,85 155,75 155,75 L155,140 C155,140 145,150 100,150 C55,150 45,140 45,140 L45,75 Z" fill="url(#bookGrad)"/>
+                      <path d="M50,80 C50,80 58,88 100,88 C142,88 150,80 150,80 L150,135 C150,135 142,143 100,143 C58,143 50,135 50,135 L50,80 Z" fill="#00406e"/>
+                      <path d="M55,85 C55,85 62,92 100,92 L100,138 C62,138 55,130 55,130 L55,85 Z" fill="#00335c"/>
+                      <path d="M100,92 C138,92 145,85 145,85 L145,130 C145,130 138,138 100,138 L100,92 Z" fill="#00335c"/>
+
+                      <path d="M55,85 C55,85 62,92 100,92 L100,138 C62,138 55,130 55,130 L55,85 Z" fill="none" stroke="#3399ff" strokeWidth="1" opacity="0.7">
+                        <animate attributeName="opacity" values="0.7;1;0.7" dur="3s" repeatCount="indefinite"/>
+                      </path>
+                      <circle cx="100" cy="115" r="25" fill="url(#brainGlow)"/>
+                      <path d="M100,115 M90,105 Q100,95 110,105 M90,125 Q100,135 110,125 M85,115 Q95,105 105,115 M85,115 Q95,125 105,115" stroke="#ffffff" strokeWidth="1.5" fill="none" opacity="0.8"/>
+
+                      <path d="M100,40 L160,60 L100,80 L40,60 L100,40 Z" fill="#005691"/>
+                      <path d="M40,60 L100,80 L100,100 C80,95 60,85 40,60 Z" fill="#00406e"/>
+                      <path d="M100,80 L160,60 L160,85 C140,100 120,105 100,100 L100,80 Z" fill="#00406e"/>
+                      <rect x="98" y="55" width="4" height="25" fill="#00406e"/>
+                      <circle cx="100" cy="55" r="3" fill="#00335c"/>
+                      <path d="M100,55 L100,80 M96,75 L100,80 L104,75" stroke="#00335c" strokeWidth="2" fill="none"/>
+                    </svg>
+                  )}
                   {innerIndex === 0 && (
                     <svg className="w-4/5 h-4/5" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <rect x="20" y="40" width="360" height="240" rx="16" fill="#fff" stroke="#E5E7EB" strokeWidth="2"/>
@@ -246,6 +281,11 @@ export default function Landing() {
                     onClick={() => setInnerIndex(2)} 
                     className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${innerIndex===2? 'bg-indigo-600 scale-125' : 'bg-gray-300 hover:bg-gray-400'}`} 
                     aria-label="Use inner option 2"
+                  />
+                  <button 
+                    onClick={() => setInnerIndex(3)} 
+                    className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${innerIndex===3? 'bg-indigo-600 scale-125' : 'bg-gray-300 hover:bg-gray-400'}`} 
+                    aria-label="Use inner book icon"
                   />
                 </div>
               </div>
