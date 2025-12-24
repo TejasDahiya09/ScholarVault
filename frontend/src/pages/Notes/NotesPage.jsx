@@ -135,6 +135,7 @@ export default function NotesPage() {
     try {
       const res = await client.get('/api/bookmarks');
       const bookmarkIds = res.data?.bookmarks || [];
+      // Always create a new Set to trigger React state update
       setBookmarkedNotes(new Set(bookmarkIds));
     } catch (err) {
       console.error("Failed to fetch bookmarks:", err);
@@ -198,6 +199,7 @@ export default function NotesPage() {
     try {
       const res = await client.get(`/api/subjects/${subjectId}/progress`);
       const completedIds = res.data?.completed_note_ids || [];
+      // Always create a new Set to trigger React state update
       setCompletedNotes(new Set(completedIds));
     } catch (err) {
       console.error("Failed to load completion status:", err);
@@ -662,6 +664,7 @@ export default function NotesPage() {
       await client.post(`/api/notes/${noteId}/bookmark`);
       // Refetch bookmarks from backend for accuracy
       await fetchBookmarks();
+      // After refetch, check if note is now bookmarked
       setToast({ show: true, message: bookmarkedNotes.has(noteId) ? "Bookmark removed" : "Bookmarked!", type: bookmarkedNotes.has(noteId) ? "info" : "success" });
       if (!bookmarkedNotes.has(noteId)) {
         setBookmarkPopup({ show: true, noteId });
