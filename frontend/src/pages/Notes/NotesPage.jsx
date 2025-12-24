@@ -647,16 +647,7 @@ export default function NotesPage() {
     e.stopPropagation();
     try {
       const isCompleted = completedNotes.has(noteId);
-      // Optimistically update UI
-      setCompletedNotes(prev => {
-        const updated = new Set(prev);
-        if (isCompleted) {
-          updated.delete(noteId);
-        } else {
-          updated.add(noteId);
-        }
-        return updated;
-      });
+      // Do not update UI until after confirmation
       await client.post(`/api/notes/${noteId}/complete`, {
         subjectId: subjectId,
         completed: !isCompleted,
