@@ -888,7 +888,6 @@ export default function NotesPage() {
                     <span className="sm:hidden">⬇</span>
                   </button>
 
-                  {/* Hide Mark as Complete in PPT, Book, PYQ, and Syllabus viewers */}
                   {isNote && (
                     <button
                       onClick={(e) => handleMarkComplete(e, selectedNote?.id)}
