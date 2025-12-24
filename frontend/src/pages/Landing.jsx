@@ -89,9 +89,9 @@ export default function Landing() {
         <div className="flex-1 flex justify-center w-full">
           <div className="relative w-full max-w-md">
             {/* Main container with glass effect */}
-            <div className="relative h-[420px] bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
+            <div className="relative h-[420px] bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 hover:shadow-3xl hover:scale-[1.02]">
               {/* Gradient background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/50 via-blue-50/30 to-purple-100/50"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/50 via-blue-50/30 to-purple-100/50 transition-opacity duration-700"></div>
               
               {/* Animated background elements */}
               <div className="absolute inset-0 overflow-hidden opacity-40">
@@ -103,26 +103,27 @@ export default function Landing() {
               {/* Content container */}
               <div className="relative h-full flex items-center justify-center p-6">
                 {/* Logo with solid background circle */}
-                <div className="relative">
+                <div className="relative animate-float">
                   {/* White circle background for logo */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-80 h-80 bg-white rounded-full shadow-xl"></div>
+                    <div className="w-80 h-80 bg-white rounded-full shadow-xl transition-all duration-500 hover:shadow-2xl"></div>
                   </div>
                   
                   {/* Logo */}
-                  <div className="relative z-10 flex items-center justify-center">
+                  <div className="relative z-10 flex items-center justify-center [filter:none]" style={{filter: 'none !important'}}>
                     <img 
                       src={logoImg} 
                       alt="ScholarVault Logo" 
-                      className="w-80 h-80 object-contain filter drop-shadow-2xl"
+                      className="w-80 h-80 object-contain filter drop-shadow-2xl transition-all duration-500 hover:scale-105 hover:drop-shadow-3xl"
                       fetchPriority="high"
                       decoding="async"
+                      style={{filter: 'drop-shadow(0 25px 25px rgb(0 0 0 / 0.15)) !important'}}
                     />
                   </div>
                   
                   {/* Glow effect behind logo */}
                   <div className="absolute inset-0 flex items-center justify-center -z-10">
-                    <div className="w-72 h-72 bg-gradient-to-br from-indigo-400/20 to-blue-400/20 rounded-full blur-2xl"></div>
+                    <div className="w-72 h-72 bg-gradient-to-br from-indigo-400/20 to-blue-400/20 rounded-full blur-2xl animate-pulse-slow"></div>
                   </div>
                 </div>
               </div>
