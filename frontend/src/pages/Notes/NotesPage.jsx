@@ -829,8 +829,13 @@ export default function NotesPage() {
       {selectedNote && (
         <ErrorBoundary>
           <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"><div className="bg-white rounded-lg p-6 shadow-2xl"><p className="text-gray-700 font-semibold">Loading PDF viewer...</p><div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full bg-indigo-600 animate-pulse"></div></div></div></div>}>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-2" data-viewer-modal="true">
-          <div className="bg-white w-full h-full max-w-full rounded-none sm:rounded-lg shadow-xl flex flex-col overflow-hidden mx-0 sm:mx-2">
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-2 viewer-light-mode"
+              data-viewer-modal="true"
+              data-theme="light"
+              style={{ colorScheme: 'light', backgroundColor: '#f8fafc' }}
+            >
+          <div className="bg-white w-full h-full max-w-full rounded-none sm:rounded-lg shadow-xl flex flex-col overflow-hidden mx-0 sm:mx-2" style={{ colorScheme: 'light', backgroundColor: '#ffffff' }}>
 
             {/* Header */}
             <div className="flex justify-between items-center px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b bg-gray-50">
@@ -953,6 +958,27 @@ export default function NotesPage() {
               {/* Resizable Divider with Preset Buttons */}
               {isPDF && isNote && (
                 <>
+                  <style>{`
+                    /* Keep viewer light even when app is in dark mode */
+                    .viewer-light-mode, .viewer-light-mode * {
+                      color-scheme: light !important;
+                    }
+                    .viewer-light-mode {
+                      background: #f8fafc !important;
+                    }
+                    .viewer-light-mode .bg-white,
+                    .viewer-light-mode .bg-gray-50,
+                    .viewer-light-mode .bg-slate-50 {
+                      background: #ffffff !important;
+                    }
+                    .viewer-light-mode .text-gray-900,
+                    .viewer-light-mode .text-gray-800,
+                    .viewer-light-mode .text-gray-700,
+                    .viewer-light-mode .text-gray-600,
+                    .viewer-light-mode .text-gray-500 {
+                      color: #0f172a !important;
+                    }
+                  `}</style>
                   <div className="flex flex-col items-center gap-1 bg-gray-50 py-2 px-0.5">
                     {/* Preset Layout Buttons */}
                     <div className="flex gap-0.5 flex-col w-full">
