@@ -144,45 +144,48 @@ export default function NotesPage() {
   useEffect(() => { fetchBookmarks(); }, []);
 
   // Fetch subject data (can be called after update)
-  const fetchSubjectData = async () => {
-    try {
-      setLoading(true);
-      if (subjectId) {
-        const subjectRes = await client.get(`/api/subjects/${subjectId}`);
-        const subject = subjectRes.data;
-        setSubjectDetails(subject);
-        const allNotes = subject.notes || [];
-        const isPptFile = (item) => {
-          const name = (item.file_name || "").toLowerCase();
-          const url = (item.s3_url || "").toLowerCase();
-          const key = (item.s3_key || "").toLowerCase();
-          return name.includes('.ppt') || url.includes('.ppt') || key.includes('.ppt') || 
-                 name.includes('ppt') || url.includes('ppt') || key.includes('ppt');
-        };
-        const pptItems = allNotes.filter(isPptFile);
-        const regularNotes = allNotes.filter((n) => !isPptFile(n));
-        setNotesList(sortByUnitNumber(regularNotes));
-        setPptList(sortByUnitNumber(pptItems));
-        setBooksList(subject.books || []);
-        setPyqList(subject.pyqs || []);
-        setSyllabusList(subject.syllabus || []);
-        // Auto-select note if noteId is provided in URL
-        if (noteId && subject.notes) {
-          const noteToOpen = subject.notes.find(n => n.id === noteId);
-          if (noteToOpen) {
-            setSelectedNote(noteToOpen);
-            setActiveTab('viewer');
+  // Fetch subject data
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true);
+        if (subjectId) {
+          const subjectRes = await client.get(`/api/subjects/${subjectId}`);
+          const subject = subjectRes.data;
+          setSubjectDetails(subject);
+          const allNotes = subject.notes || [];
+          const isPptFile = (item) => {
+            const name = (item.file_name || "").toLowerCase();
+            const url = (item.s3_url || "").toLowerCase();
+            const key = (item.s3_key || "").toLowerCase();
+            return name.includes('.ppt') || url.includes('.ppt') || key.includes('.ppt') || 
+                   name.includes('ppt') || url.includes('ppt') || key.includes('ppt');
+          };
+          const pptItems = allNotes.filter(isPptFile);
+          const regularNotes = allNotes.filter((n) => !isPptFile(n));
+          setNotesList(sortByUnitNumber(regularNotes));
+          setPptList(sortByUnitNumber(pptItems));
+          setBooksList(subject.books || []);
+          setPyqList(subject.pyqs || []);
+          setSyllabusList(subject.syllabus || []);
+          // Auto-select note if noteId is provided in URL
+          if (noteId && subject.notes) {
+            const noteToOpen = subject.notes.find(n => n.id === noteId);
+            if (noteToOpen) {
+              setSelectedNote(noteToOpen);
+              setActiveTab('viewer');
+            }
           }
         }
+      } catch (err) {
+        console.error("Load error:", err);
+        setError(err.response?.data?.error || err.message);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Load error:", err);
-      setError(err.response?.data?.error || err.message);
-    } finally {
-      setLoading(false);
     }
-  };
-  useEffect(() => { fetchSubjectData(); }, [subjectId, noteId]);
+    load();
+  }, [subjectId, noteId]);
 
   // Fetch completion status for current subject (can be called after update)
   const fetchCompletion = async () => {
@@ -638,9 +641,8 @@ export default function NotesPage() {
         completed: !isCompleted,
       });
       console.log('[DEBUG] Mark Complete: response', response?.data);
-      // Refetch completion state and subject data for accuracy
+      // Refetch completion state for accuracy
       await fetchCompletion();
-      await fetchSubjectData();
       setToast({ show: true, message: isCompleted ? "Marked as incomplete" : "✓ Marked as complete!", type: isCompleted ? "info" : "success" });
       if (!isCompleted) {
         setCompletePopup({ show: true, noteId });
@@ -663,9 +665,8 @@ export default function NotesPage() {
       });
       const response = await client.post(`/api/notes/${noteId}/bookmark`);
       console.log('[DEBUG] Toggle Bookmark: response', response?.data);
-      // Refetch bookmarks and subject data for accuracy
+      // Refetch bookmarks for accuracy
       await fetchBookmarks();
-      await fetchSubjectData();
       // After refetch, check if note is now bookmarked
       setToast({ show: true, message: bookmarkedNotes.has(noteId) ? "Bookmark removed" : "Bookmarked!", type: bookmarkedNotes.has(noteId) ? "info" : "success" });
       if (!bookmarkedNotes.has(noteId)) {
