@@ -99,15 +99,6 @@ export default function Dashboard() {
         console.error("Failed to fetch subjects:", err);
         setError("Failed to load subjects. Please try refreshing.");
       }
-            });
-          } catch (err) {
-            console.error(`Error fetching progress for ${subject.id}:`, err);
-          }
-        });
-      } catch (err) {
-        console.error("Failed to fetch subjects:", err);
-        setError("Failed to load subjects. Please try refreshing.");
-      }
 
       // Fetch analytics (time, streaks, weekly activity)
       try {
