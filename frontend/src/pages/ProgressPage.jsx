@@ -5,6 +5,18 @@ import client from "../api/client";
 import useAuth from "../store/useAuth";
 
 export default function ProgressPage() {
+    // Pagination for subjects
+    const SUBJECTS_PER_PAGE = 5;
+    const [subjectsPage, setSubjectsPage] = useState(0);
+    const sortedSubjects = React.useMemo(() => {
+      return [...subjects.filter(s => (s.progress || 0) > 0), ...subjects.filter(s => (s.progress || 0) <= 0)];
+    }, [subjects]);
+    const paginatedSubjects = React.useMemo(() => {
+      return sortedSubjects.slice(
+        subjectsPage * SUBJECTS_PER_PAGE,
+        (subjectsPage + 1) * SUBJECTS_PER_PAGE
+      );
+    }, [sortedSubjects, subjectsPage]);
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -283,46 +295,33 @@ export default function ProgressPage() {
                 </div>
               ) : (
                 <>
-                  {(() => {
-                    const SUBJECTS_PER_PAGE = 5;
-                    const [subjectsPage, setSubjectsPage] = React.useState(0);
-                    const sortedSubjects = [...subjects.filter(s => (s.progress || 0) > 0), ...subjects.filter(s => (s.progress || 0) <= 0)];
-                    const paginatedSubjects = sortedSubjects.slice(
-                      subjectsPage * SUBJECTS_PER_PAGE,
-                      (subjectsPage + 1) * SUBJECTS_PER_PAGE
-                    );
-                    return (
-                      <>
-                        <div className="space-y-3 mb-3">
-                          {paginatedSubjects.map((subject) => (
-                            <div key={subject.id} className="min-h-touch flex flex-col justify-center border border-gray-200 rounded-lg p-3 hover:border-indigo-300 transition-all">
-                              <div className="flex items-center justify-between mb-2 gap-2">
-                                <h3 className="font-medium text-xs text-gray-900 truncate flex-1 min-w-0">{subject.name}</h3>
-                                <span className="text-xs font-semibold text-gray-900 whitespace-nowrap shrink-0">
-                                  {subject.progress >= 0 ? `${Math.round(subject.progress)}%` : '...'}
-                                </span>
-                              </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div
-                                  className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                                  style={{ width: subject.progress >= 0 ? `${subject.progress}%` : '30%', opacity: subject.progress >= 0 ? 1 : 0.5 }}
-                                />
-                              </div>
-                            </div>
-                          ))}
+                  <div className="space-y-3 mb-3">
+                    {paginatedSubjects.map((subject) => (
+                      <div key={subject.id} className="min-h-touch flex flex-col justify-center border border-gray-200 rounded-lg p-3 hover:border-indigo-300 transition-all">
+                        <div className="flex items-center justify-between mb-2 gap-2">
+                          <h3 className="font-medium text-xs text-gray-900 truncate flex-1 min-w-0">{subject.name}</h3>
+                          <span className="text-xs font-semibold text-gray-900 whitespace-nowrap shrink-0">
+                            {subject.progress >= 0 ? `${Math.round(subject.progress)}%` : '...'}
+                          </span>
                         </div>
-                        {sortedSubjects.length > SUBJECTS_PER_PAGE && (
-                          <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-2 text-xs">
-                            <span className="text-gray-500 whitespace-nowrap">Page {subjectsPage + 1} of {Math.ceil(sortedSubjects.length / SUBJECTS_PER_PAGE)}</span>
-                            <div className="flex gap-2 w-full xs:w-auto">
-                              <button onClick={() => setSubjectsPage(Math.max(0, subjectsPage - 1))} disabled={subjectsPage === 0} className="min-h-touch flex-1 xs:flex-none px-3 py-2 bg-gray-100 rounded disabled:opacity-50 hover:bg-gray-200 transition-colors whitespace-nowrap">← Prev</button>
-                              <button onClick={() => setSubjectsPage(Math.min(Math.ceil(sortedSubjects.length / SUBJECTS_PER_PAGE) - 1, subjectsPage + 1))} disabled={subjectsPage >= Math.ceil(sortedSubjects.length / SUBJECTS_PER_PAGE) - 1} className="min-h-touch flex-1 xs:flex-none px-3 py-2 bg-gray-100 rounded disabled:opacity-50 hover:bg-gray-200 transition-colors whitespace-nowrap">Next →</button>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: subject.progress >= 0 ? `${subject.progress}%` : '30%', opacity: subject.progress >= 0 ? 1 : 0.5 }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {sortedSubjects.length > SUBJECTS_PER_PAGE && (
+                    <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-2 text-xs">
+                      <span className="text-gray-500 whitespace-nowrap">Page {subjectsPage + 1} of {Math.ceil(sortedSubjects.length / SUBJECTS_PER_PAGE)}</span>
+                      <div className="flex gap-2 w-full xs:w-auto">
+                        <button onClick={() => setSubjectsPage(Math.max(0, subjectsPage - 1))} disabled={subjectsPage === 0} className="min-h-touch flex-1 xs:flex-none px-3 py-2 bg-gray-100 rounded disabled:opacity-50 hover:bg-gray-200 transition-colors whitespace-nowrap">← Prev</button>
+                        <button onClick={() => setSubjectsPage(Math.min(Math.ceil(sortedSubjects.length / SUBJECTS_PER_PAGE) - 1, subjectsPage + 1))} disabled={subjectsPage >= Math.ceil(sortedSubjects.length / SUBJECTS_PER_PAGE) - 1} className="min-h-touch flex-1 xs:flex-none px-3 py-2 bg-gray-100 rounded disabled:opacity-50 hover:bg-gray-200 transition-colors whitespace-nowrap">Next →</button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
