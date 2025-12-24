@@ -1134,7 +1134,8 @@ export default function NotesPage() {
               )}
 
 
-              {/* AI PANEL (NOTES & PPT) */}
+
+              {/* AI PANEL (NOTES & PPT) - unified panel, hide Summarize and RAG for PPTs */}
               {selectedNote && (isNote || isPpt) && (
                 <div style={{ width: `${100 - viewerWidth}%` }} className="border-l bg-white flex flex-col overflow-hidden">
                   {/* Tabs */}
@@ -1231,7 +1232,7 @@ export default function NotesPage() {
 
                   {/* Input */}
                   <div className="p-3 sm:p-4 border-t bg-gray-50">
-                    {aiMode === "summary" ? (
+                    {isNote && aiMode === "summary" ? (
                       <button
                         onClick={handleSummarize}
                         className="w-full py-2 sm:py-2.5 bg-indigo-600 text-white rounded text-sm sm:text-base font-medium hover:bg-indigo-700 transition-colors"
@@ -1262,7 +1263,7 @@ export default function NotesPage() {
                     )}
                   </div>
                 </div>
-                )}
+              )}
 
             </div>
           </div>
