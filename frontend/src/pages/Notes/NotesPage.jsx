@@ -847,12 +847,12 @@ export default function NotesPage() {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex overflow-hidden viewer-container bg-white dark:bg-white" data-theme="light">
+            <div className="flex-1 flex overflow-hidden viewer-container bg-white" data-theme="light">
 
               {/* Viewer */}
               <div 
                 style={{ width: isNote ? `${viewerWidth}%` : '100%' }} 
-                className={`flex flex-col overflow-hidden bg-white dark:bg-white ${!isNote ? 'mx-auto max-w-6xl' : ''}`}
+                className={`flex flex-col overflow-hidden bg-white ${!isNote ? 'mx-auto max-w-6xl' : ''}`}
               >
 
                 {/* Toolbar */}
@@ -913,7 +913,7 @@ export default function NotesPage() {
                 </div>
 
                 {/* Viewer area - force light theme */}
-                <div className="flex-1 overflow-auto p-2 bg-white dark:bg-white" style={{ colorScheme: 'light' }}>
+                <div className="flex-1 overflow-auto p-2 bg-white" style={{ colorScheme: 'light' }}>
 
                   {/* PDF VIEW */}
                   {isPDF && (
@@ -926,7 +926,7 @@ export default function NotesPage() {
                     >
                       <iframe
                         src={signedViewUrl || "about:blank"}
-                        className="w-full h-screen bg-white dark:bg-white"
+                        className="w-full h-screen bg-white"
                         style={{ border: "none", background: '#ffffff', colorScheme: 'light' }}
                         allow="fullscreen"
                         title="PDF Viewer"
@@ -945,7 +945,7 @@ export default function NotesPage() {
                           transformOrigin: "top left",
                           filter: 'none',
                         }}
-                        className="max-w-none dark:invert-0"
+                        className="max-w-none"
                       />
                     </div>
                   )}
@@ -1225,7 +1225,7 @@ export default function NotesPage() {
                       </div>
                     ) : (
                       <div className="text-gray-400 text-center py-6 sm:py-8 text-xs">
-                        {aiMode === "summary" ? "Click summarize to begin" : "Ask a question"}
+                        {"Ask a question"}
                       </div>
                     )}
                   </div>
