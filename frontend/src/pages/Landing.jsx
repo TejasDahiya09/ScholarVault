@@ -127,14 +127,12 @@ export default function Landing() {
               <div className="relative h-full flex items-center justify-center p-6">
                 {/* Logo with solid background circle */}
                 <div className="relative animate-float">
-                  {/* Background circle - dark mode aware */}
+                  {/* White circle background for logo - always white */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className={`w-80 h-80 rounded-full shadow-xl transition-all duration-500 hover:shadow-2xl ${
-                      darkMode ? 'bg-gray-800/80 backdrop-blur-sm' : 'bg-white'
-                    }`} style={darkMode ? {filter: 'none'} : {}}></div>
+                    <div className="w-80 h-80 bg-white rounded-full shadow-xl transition-all duration-500 hover:shadow-2xl" style={{filter: 'none'}}></div>
                   </div>
                   
-                  {/* Logo */}
+                  {/* Logo - always original colors */}
                   <div className="relative z-10 flex items-center justify-center [filter:none]" style={{filter: 'none !important'}}>
                     <img 
                       src={logoImg} 
@@ -142,7 +140,7 @@ export default function Landing() {
                       className="w-80 h-80 object-contain filter drop-shadow-2xl transition-all duration-500 hover:scale-105 hover:drop-shadow-3xl"
                       fetchPriority="high"
                       decoding="async"
-                      style={{filter: darkMode ? 'drop-shadow(0 25px 25px rgba(0, 0, 0, 0.5)) brightness(1.1)' : 'drop-shadow(0 25px 25px rgb(0 0 0 / 0.15)) !important'}}
+                      style={{filter: 'drop-shadow(0 25px 25px rgb(0 0 0 / 0.15))'}}
                     />
                   </div>
                   
