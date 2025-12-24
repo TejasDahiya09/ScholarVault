@@ -81,7 +81,7 @@ export default function NotesPage() {
 
   
   // Document type tracking
-  const isNote = !selectedNote?.isBook && !selectedNote?.isPyQ && !selectedNote?.isSyllabus && !selectedNote?.isPpt;
+  const isNote = !selectedNote?.isBook && !selectedNote?.isPyQ && !selectedNote?.isSyllabus && !isPpt;
   const isBook = selectedNote?.isBook;
   const isPyQ = selectedNote?.isPyQ;
   const isSyllabus = selectedNote?.isSyllabus;
