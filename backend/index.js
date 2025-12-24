@@ -91,7 +91,7 @@ app.use("/api/notes", notesRoutes);
 app.use("/api/subjects", subjectsRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/files", filesRoutes);
-app.use("/api/bookmarks", bookmarksRoutes);
+// app.use("/api/bookmarks", bookmarksRoutes); // Bookmarks routes removed
 // Bookmarks routes removed
 app.use("/api/progress", progressRoutes);
 

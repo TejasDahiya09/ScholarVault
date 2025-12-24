@@ -92,6 +92,16 @@ export const progressDB = {
     const actualNotes = (allNotes || []).filter(note => {
       const s3Url = (note.s3_url || "").toLowerCase();
       const fileName = (note.file_name || "").toLowerCase();
-      
       // Mark as completed feature removed
-      if (
+      // Add your filter logic here or return true for all notes
+      return true;
+    });
+
+    // Add logic to calculate completion percentage if needed
+    return {
+      totalNotes: actualNotes.length,
+      completedNotes: 0 // Placeholder, update with actual completed notes logic
+    };
+  }
+};
+export default progressDB;

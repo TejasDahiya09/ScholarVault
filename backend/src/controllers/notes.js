@@ -176,10 +176,11 @@ export const markAsCompleted = async (req, res, next) => {
 
     // Use atomic upsert for completion
 
-  res.status(410).json({ error: "Mark as completed feature has been removed." });
+    res.status(410).json({ error: "Mark as completed feature has been removed." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  }
-};
+}
 
 /**
  * Toggle bookmark for a note
@@ -199,11 +200,11 @@ export const toggleBookmark = async (req, res, next) => {
 
     // Check if already bookmarked
 
-
-  res.status(410).json({ error: "Bookmark feature has been removed." });
+    res.status(410).json({ error: "Bookmark feature has been removed." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  }
-};
+}
 
 /**
  * Get notes metadata for client-side search
