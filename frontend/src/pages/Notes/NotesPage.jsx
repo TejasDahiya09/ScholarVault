@@ -697,7 +697,7 @@ export default function NotesPage() {
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
 
   return (
-    <>
+    <div data-no-dark-mode="true" style={{ colorScheme: 'light' }} className="light">
       {/* Bookmark Saved Popup */}
       {bookmarkPopup.show && (
         <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
@@ -1259,7 +1259,7 @@ export default function NotesPage() {
         </ErrorBoundary>
       )}
 
-    </>
+    </div>
   );
 }
 

@@ -17,21 +17,21 @@ const useDarkMode = create((set) => ({
         document.body.style.filter = 'invert(0.93) hue-rotate(180deg)';
         document.body.style.backgroundColor = '#0a0a0a';
         
-        // Exclude viewer modal from dark mode (keep it in light mode)
-        const viewerModal = document.querySelector('[data-viewer-modal="true"]');
-        if (viewerModal) {
-          viewerModal.style.filter = 'invert(0.93) hue-rotate(180deg)';
-          viewerModal.style.isolation = 'isolate';
-        }
+        // Exclude elements marked with data-no-dark-mode (e.g., NotesPage viewer)
+        const noDarkModeElements = document.querySelectorAll('[data-no-dark-mode="true"]');
+        noDarkModeElements.forEach(el => {
+          el.style.filter = 'invert(0.93) hue-rotate(180deg)';
+          el.style.isolation = 'isolate';
+        });
       } else {
         document.body.style.filter = 'none';
         document.body.style.backgroundColor = '';
         
-        const viewerModal = document.querySelector('[data-viewer-modal="true"]');
-        if (viewerModal) {
-          viewerModal.style.filter = 'none';
-          viewerModal.style.isolation = 'auto';
-        }
+        const noDarkModeElements = document.querySelectorAll('[data-no-dark-mode="true"]');
+        noDarkModeElements.forEach(el => {
+          el.style.filter = 'none';
+          el.style.isolation = 'auto';
+        });
       }
     }, 0);
     
@@ -50,21 +50,21 @@ const useDarkMode = create((set) => ({
         document.body.style.filter = 'invert(0.93) hue-rotate(180deg)';
         document.body.style.backgroundColor = '#0a0a0a';
         
-        // Exclude viewer modal from dark mode (keep it in light mode)
-        const viewerModal = document.querySelector('[data-viewer-modal="true"]');
-        if (viewerModal) {
-          viewerModal.style.filter = 'invert(0.93) hue-rotate(180deg)';
-          viewerModal.style.isolation = 'isolate';
-        }
+        // Exclude elements marked with data-no-dark-mode (e.g., NotesPage viewer)
+        const noDarkModeElements = document.querySelectorAll('[data-no-dark-mode="true"]');
+        noDarkModeElements.forEach(el => {
+          el.style.filter = 'invert(0.93) hue-rotate(180deg)';
+          el.style.isolation = 'isolate';
+        });
       } else {
         document.body.style.filter = 'none';
         document.body.style.backgroundColor = '';
         
-        const viewerModal = document.querySelector('[data-viewer-modal="true"]');
-        if (viewerModal) {
-          viewerModal.style.filter = 'none';
-          viewerModal.style.isolation = 'auto';
-        }
+        const noDarkModeElements = document.querySelectorAll('[data-no-dark-mode="true"]');
+        noDarkModeElements.forEach(el => {
+          el.style.filter = 'none';
+          el.style.isolation = 'auto';
+        });
       }
     }, 0);
     
