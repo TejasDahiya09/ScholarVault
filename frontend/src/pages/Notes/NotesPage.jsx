@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, Suspense, lazy } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Switch } from "@headlessui/react";
 import Breadcrumbs from "../../components/Breadcrumbs";
@@ -70,6 +71,21 @@ export default function NotesPage() {
   const containerWidthRef = useRef(0);
   const dividerRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const [portalEl, setPortalEl] = useState(null);
+
+  // Ensure a portal container exists outside #root to bypass global dark-mode filter
+  useEffect(() => {
+    let el = document.getElementById('sv-viewer-portal');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'sv-viewer-portal';
+      document.body.appendChild(el);
+    }
+    setPortalEl(el);
+    return () => {
+      // Keep portal for reuse; do not remove to avoid flicker across opens
+    };
+  }, []);
 
   // Detect file type - Check both filename and S3 URL for robustness
   const fileName = selectedNote?.file_name?.toLowerCase() || "";
@@ -840,8 +856,9 @@ export default function NotesPage() {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"></div>
       )}
 
-      {/* VIEWER MODAL */}
-      {selectedNote && (
+      {/* VIEWER MODAL (rendered through portal outside #root) */}
+      {selectedNote && portalEl && createPortal(
+        (
         <ErrorBoundary>
           <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"><div className="bg-white rounded-lg p-6 shadow-2xl"><p className="text-gray-700 font-semibold">Loading PDF viewer...</p><div className="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden"><div className="h-full bg-indigo-600 animate-pulse"></div></div></div></div>}>
             <div
@@ -1313,7 +1330,8 @@ export default function NotesPage() {
         </div>
           </Suspense>
         </ErrorBoundary>
-      )}
+        ), portalEl)
+      }
 
     </>
   );
