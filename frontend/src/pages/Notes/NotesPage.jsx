@@ -1243,15 +1243,7 @@ export default function NotesPage() {
                       </div>
                     ) : aiResponse ? (
                       <div
-                        className={
-                          `prose prose-sm max-w-none text-xs sm:text-sm leading-relaxed ` +
-                          (viewerWidth >= 78
-                            ? 'text-left pl-2 sm:pl-4' // Notes focus
-                            : viewerWidth <= 42
-                              ? 'text-right pr-2 sm:pr-4' // AI focus
-                              : 'text-center px-2 sm:px-4' // Split
-                          )
-                        }
+                        className="prose prose-sm max-w-none text-xs sm:text-sm leading-relaxed text-left pl-2 sm:pl-4"
                       >
                         <div className="whitespace-pre-wrap text-gray-700">{aiResponse}</div>
                       </div>
