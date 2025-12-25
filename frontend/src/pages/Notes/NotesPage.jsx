@@ -1247,7 +1247,7 @@ export default function NotesPage() {
                       </div>
                     ) : (
                       <div className="text-gray-400 text-center py-6 sm:py-8 text-xs">
-                        {"Ask a question"}
+                        {aiMode === "summary" ? "Summarize now" : "Ask a question"}
                       </div>
                     )}
                   </div>
@@ -1265,7 +1265,7 @@ export default function NotesPage() {
                       <>
                         <input
                           className="w-full px-2 sm:px-3 py-1.5 sm:py-2 border rounded mb-2 text-sm sm:text-base"
-                          placeholder="Ask a question..."
+                          placeholder={aiMode === "summary" ? "Summarize now..." : "Ask a question..."}
                           value={question}
                           onChange={(e) => setQuestion(e.target.value)}
                           onKeyDown={(e) => {
