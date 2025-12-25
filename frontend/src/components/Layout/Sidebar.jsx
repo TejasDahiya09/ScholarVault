@@ -1,10 +1,13 @@
 // src/components/Layout/Sidebar.jsx
+
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import DarkModeToggle from "../DarkModeToggle";
+import useAuth from "../../store/useAuth";
 
 export default function Sidebar({ isOpen = true, onClose }) {
   const navigate = useNavigate();
+  const logout = useAuth((state) => state.logout);
 
   const items = [
     { name: "Subjects", to: "/home", icon: "🏠" },
@@ -15,9 +18,8 @@ export default function Sidebar({ isOpen = true, onClose }) {
     { name: "Profile", to: "/profile", icon: "👤" },
   ];
 
-  function handleLogout() {
-    localStorage.removeItem("sv_token");
-    localStorage.removeItem("sv_user");
+  async function handleLogout() {
+    await logout();
     // After logout, go to landing page (/) by default
     navigate("/");
   }
