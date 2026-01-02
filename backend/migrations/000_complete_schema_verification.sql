@@ -385,22 +385,30 @@ ALTER TABLE public.user_bookmarks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_study_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_study_sessions ENABLE ROW LEVEL SECURITY;
 
--- Policy: Users can only view/edit their own data
+-- Policy: Service role + user ownership access
 DROP POLICY IF EXISTS users_own_data ON public.users;
 CREATE POLICY users_own_data ON public.users
-    FOR ALL USING (auth.uid() = id);
+    FOR ALL 
+    USING (auth.role() = 'service_role' OR auth.uid() = id)
+    WITH CHECK (auth.role() = 'service_role' OR auth.uid() = id);
 
 DROP POLICY IF EXISTS bookmarks_own_data ON public.user_bookmarks;
 CREATE POLICY bookmarks_own_data ON public.user_bookmarks
-    FOR ALL USING (auth.uid() = user_id);
+    FOR ALL 
+    USING (auth.role() = 'service_role' OR auth.uid() = user_id)
+    WITH CHECK (auth.role() = 'service_role' OR auth.uid() = user_id);
 
 DROP POLICY IF EXISTS progress_own_data ON public.user_study_progress;
 CREATE POLICY progress_own_data ON public.user_study_progress
-    FOR ALL USING (auth.uid() = user_id);
+    FOR ALL 
+    USING (auth.role() = 'service_role' OR auth.uid() = user_id)
+    WITH CHECK (auth.role() = 'service_role' OR auth.uid() = user_id);
 
 DROP POLICY IF EXISTS sessions_own_data ON public.user_study_sessions;
 CREATE POLICY sessions_own_data ON public.user_study_sessions
-    FOR ALL USING (auth.uid() = user_id);
+    FOR ALL 
+    USING (auth.role() = 'service_role' OR auth.uid() = user_id)
+    WITH CHECK (auth.role() = 'service_role' OR auth.uid() = user_id);
 
 -- Public read access for subjects, notes, books (all students can view)
 ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;

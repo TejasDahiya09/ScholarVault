@@ -170,12 +170,15 @@ export const markAsCompleted = async (req, res, next) => {
     const { id: noteId } = req.params;
     const { subjectId, completed } = req.body;
 
+    console.log("🎯 Mark as completed called:", { userId, noteId, subjectId, completed });
+
     if (!subjectId) {
       return res.status(400).json({ error: "subjectId is required" });
     }
 
     // Use atomic upsert for completion
-    await progressDB.setNoteCompletion(userId, noteId, subjectId, completed);
+    const result = await progressDB.setNoteCompletion(userId, noteId, subjectId, completed);
+    console.log("✅ Progress updated:", result);
 
     res.json({ 
       success: true, 
@@ -183,6 +186,7 @@ export const markAsCompleted = async (req, res, next) => {
       message: completed ? "Note marked as completed" : "Note marked as incomplete"
     });
   } catch (err) {
+    console.error("❌ Mark as completed error:", err);
     res.status(500).json({ error: err.message });
   }
 }
@@ -195,6 +199,8 @@ export const toggleBookmark = async (req, res, next) => {
     const userId = req.user?.userId;
     const { id: noteId } = req.params;
 
+    console.log("⭐ Toggle bookmark called:", { userId, noteId });
+
     if (!userId) {
       return res.status(401).json({ error: "User not authenticated" });
     }
@@ -205,6 +211,7 @@ export const toggleBookmark = async (req, res, next) => {
 
     // Toggle bookmark
     const result = await bookmarksDB.toggleBookmark(userId, noteId);
+    console.log("✅ Bookmark toggled:", result);
 
     res.json({ 
       success: true,
@@ -212,6 +219,7 @@ export const toggleBookmark = async (req, res, next) => {
       message: result.bookmarked ? "Note bookmarked" : "Bookmark removed"
     });
   } catch (err) {
+    console.error("❌ Toggle bookmark error:", err);
     res.status(500).json({ error: err.message });
   }
 }

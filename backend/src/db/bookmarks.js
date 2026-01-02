@@ -75,6 +75,8 @@ export const bookmarksDB = {
    * Add a bookmark
    */
   async addBookmark(userId, noteId) {
+    console.log("  ➕ Adding bookmark:", { userId, noteId });
+    
     const { data, error } = await supabase
       .from("user_bookmarks")
       .insert([{ user_id: userId, note_id: noteId }])
@@ -82,6 +84,7 @@ export const bookmarksDB = {
       .single();
 
     if (error) {
+      console.error("  ❌ Insert failed:", error);
       // Check if it's a duplicate error
       if (error.code === "23505") {
         return { alreadyExists: true };
@@ -89,6 +92,7 @@ export const bookmarksDB = {
       throw new Error(`Failed to add bookmark: ${error.message}`);
     }
 
+    console.log("  ✓ Insert successful:", data);
     return data;
   },
 
@@ -96,6 +100,8 @@ export const bookmarksDB = {
    * Remove a bookmark
    */
   async removeBookmark(userId, noteId) {
+    console.log("  ➖ Removing bookmark:", { userId, noteId });
+    
     const { error } = await supabase
       .from("user_bookmarks")
       .delete()
@@ -103,9 +109,11 @@ export const bookmarksDB = {
       .eq("note_id", noteId);
 
     if (error) {
+      console.error("  ❌ Delete failed:", error);
       throw new Error(`Failed to remove bookmark: ${error.message}`);
     }
 
+    console.log("  ✓ Delete successful");
     return true;
   },
 
@@ -113,13 +121,18 @@ export const bookmarksDB = {
    * Toggle bookmark (add if not exists, remove if exists)
    */
   async toggleBookmark(userId, noteId) {
-    const isBookmarked = await this.isBookmarked(userId, noteId);
+    console.log("📌 toggleBookmark:", { userId, noteId });
+    
+    const isCurrentlyBookmarked = await this.isBookmarked(userId, noteId);
+    console.log("  Current state:", isCurrentlyBookmarked ? "bookmarked" : "not bookmarked");
 
-    if (isBookmarked) {
+    if (isCurrentlyBookmarked) {
       await this.removeBookmark(userId, noteId);
+      console.log("  ✓ Bookmark removed");
       return { bookmarked: false };
     } else {
       await this.addBookmark(userId, noteId);
+      console.log("  ✓ Bookmark added");
       return { bookmarked: true };
     }
   },

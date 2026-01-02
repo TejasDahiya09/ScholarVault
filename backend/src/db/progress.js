@@ -15,6 +15,8 @@ export const progressDB = {
    * Set note completion status (atomic upsert)
    */
   async setNoteCompletion(userId, noteId, subjectId, completed) {
+    console.log("📝 setNoteCompletion:", { userId, noteId, subjectId, completed });
+    
     // Try upsert for atomicity
     const { data, error } = await supabase
       .from("user_study_progress")
@@ -29,9 +31,13 @@ export const progressDB = {
       ], { onConflict: ["user_id", "note_id"] })
       .select()
       .single();
+    
     if (error) {
+      console.error("  ❌ Upsert failed:", error);
       throw new Error(`Failed to set note completion: ${error.message}`);
     }
+    
+    console.log("  ✓ Upsert successful:", data);
     return data;
   },
 
