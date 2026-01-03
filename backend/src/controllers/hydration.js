@@ -1,5 +1,7 @@
 import { supabase } from "../lib/services.js";
 import { assertNoError } from "../db/assertWrite.js";
+import { assertAllInvariants } from "../db/invariants.js";
+import config from "../config.js";
 
 /**
  * State Hydration Controller
@@ -11,6 +13,8 @@ import { assertNoError } from "../db/assertWrite.js";
  * - One API call instead of N
  * - Faster page load
  * - Cleaner frontend logic
+ * 
+ * In development mode, runs invariant checks to catch drift early.
  */
 
 /**
@@ -22,6 +26,16 @@ export const getHydration = async (req, res) => {
     const userId = req.user.userId;
 
     console.log("[HYDRATION] Fetching state for user:", userId);
+
+    // In development, check invariants before returning data
+    if (config.NODE_ENV === 'development') {
+      try {
+        await assertAllInvariants(userId);
+      } catch (invariantError) {
+        // Log but don't break the request
+        console.error("[HYDRATION] Invariant check failed (non-blocking):", invariantError.message);
+      }
+    }
 
     // Fetch bookmarks and progress in parallel
     const [bookmarksResult, progressResult] = await Promise.all([
