@@ -7,6 +7,8 @@ import InPDFSearch from "../../components/InPDFSearch";
 import ErrorBoundary from "../../components/ErrorBoundary";
 import client from "../../api/client";
 import { getSignedPdfUrl, resolveKeyFromUrl } from "../../api/files";
+import { toggleCompletion } from "../../api/progress";
+import { toggleBookmark, getUserBookmarks } from "../../api/bookmarks";
 
 // Lazy load PDF viewer component for performance
 // Reduces initial bundle size and speeds up page load
@@ -656,10 +658,7 @@ export default function NotesPage() {
         else updated.add(noteId);
         return updated;
       });
-      await client.post(`/api/notes/${noteId}/complete`, {
-        subjectId: subjectId,
-        completed: !isCompleted,
-      });
+      const res = await toggleCompletion(noteId, subjectId);
       // Only re-fetch completion status (not bookmarks, which are unaffected)
       if (subjectId) {
         const completionRes = await client.get(`/api/subjects/${subjectId}/progress`);
@@ -694,9 +693,9 @@ export default function NotesPage() {
         else updated.add(noteId);
         return updated;
       });
-      await client.post(`/api/notes/${noteId}/bookmark`);
+      const res = await toggleBookmark(noteId);
       // Only re-fetch bookmarks (not completion, which is unaffected)
-      const bookmarksRes = await client.get('/api/bookmarks');
+      const bookmarksRes = await getUserBookmarks();
       setBookmarkedNotes(new Set(bookmarksRes.data?.bookmarks || []));
       localStorage.setItem('sv_refresh_dashboard', '1');
       window.dispatchEvent(new Event('sv_refresh_dashboard'));

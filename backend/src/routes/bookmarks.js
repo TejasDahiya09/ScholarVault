@@ -1,52 +1,25 @@
 import { Router } from "express";
 import bookmarksDB from "../db/bookmarks.js";
 import { authenticate } from "../middlewares/auth.js";
+import { toggleBookmark } from "../controllers/bookmarks.js";
 
 const router = Router();
 
-// Protect all bookmark routes
-router.use(authenticate);
+/**
+ * Toggle bookmark for a note
+ */
+router.post("/notes/:noteId", authenticate, toggleBookmark);
 
 /**
- * Get user's bookmarked note IDs
- * GET /api/bookmarks
+ * Get all bookmarks for the authenticated user
  */
-router.get("/", async (req, res) => {
+router.get("/", authenticate, async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const bookmarks = await bookmarksDB.getUserBookmarks(userId);
     res.json({ bookmarks });
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * Get user's bookmarked notes with full details
- * GET /api/bookmarks/details
- */
-router.get("/details", async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const bookmarks = await bookmarksDB.getUserBookmarksWithDetails(userId);
-    res.json({ bookmarks });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * Check if a specific note is bookmarked
- * GET /api/bookmarks/check/:noteId
- */
-router.get("/check/:noteId", async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { noteId } = req.params;
-    const isBookmarked = await bookmarksDB.isBookmarked(userId, noteId);
-    res.json({ bookmarked: isBookmarked });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
