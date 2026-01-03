@@ -83,9 +83,19 @@ COMMENT ON COLUMN public.user_study_progress.updated_at IS 'Last update timestam
 DROP INDEX IF EXISTS idx_user_study_progress_user_note;
 
 -- Add a proper UNIQUE CONSTRAINT (required for Supabase upsert)
-ALTER TABLE public.user_study_progress
-ADD CONSTRAINT user_study_progress_user_note_unique
-UNIQUE (user_id, note_id);
+-- Use DO block to make idempotent (safe to run multiple times)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints 
+    WHERE table_name = 'user_study_progress' 
+    AND constraint_name = 'user_study_progress_user_note_unique'
+  ) THEN
+    ALTER TABLE public.user_study_progress
+    ADD CONSTRAINT user_study_progress_user_note_unique
+    UNIQUE (user_id, note_id);
+  END IF;
+END $$;
 
 -- =============================================================================
 -- 6. CREATE INDEXES FOR user_study_progress QUERIES
