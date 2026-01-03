@@ -14,7 +14,7 @@ BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.user_bookmarks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL,
     note_id UUID NOT NULL REFERENCES public.notes(id) ON DELETE CASCADE,
     bookmarked_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -116,7 +116,7 @@ WITH CHECK (auth.uid() = user_id);
 -- 8. CREATE TRIGGER FOR auto-updating updated_at (if not exists)
 -- =============================================================================
 
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+CREATE OR REPLACE FUNCTION update_user_study_progress_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = CURRENT_TIMESTAMP;
@@ -132,19 +132,16 @@ DROP TRIGGER IF EXISTS update_user_study_progress_updated_at
 CREATE TRIGGER update_user_study_progress_updated_at
 BEFORE UPDATE ON public.user_study_progress
 FOR EACH ROW
-EXECUTE FUNCTION update_updated_at_column();
+EXECUTE FUNCTION update_user_study_progress_updated_at();
 
 -- =============================================================================
--- 9. GRANT PERMISSIONS (Supabase service role)
+-- 9. RLS POLICIES ARE SUFFICIENT (GRANT statements not needed)
 -- =============================================================================
 
--- Allow authenticated users to read/write their own bookmarks
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_bookmarks 
-  TO authenticated;
-
--- Allow authenticated users to read/write their own progress
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.user_study_progress 
-  TO authenticated;
+-- Note: GRANT statements are intentionally omitted.
+-- Supabase ignores GRANT for RLS-protected tables.
+-- Access is controlled entirely by RLS policies above.
+-- This is the recommended Supabase pattern.
 
 -- =============================================================================
 -- 10. VERIFICATION & SUMMARY
