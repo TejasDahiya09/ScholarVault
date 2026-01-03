@@ -58,6 +58,7 @@ export const progressDB = {
     // Step 3: Insert or update explicitly (NO upsert)
     if (existing) {
       // Record exists, update it
+      console.log("[PROGRESS] Updating:", { userId, noteId, newValue });
       const { data, error } = await supabase
         .from("user_study_progress")
         .update({
@@ -69,11 +70,14 @@ export const progressDB = {
         .single();
 
       if (error) {
+        console.error("[PROGRESS] Update failed:", error);
         throw new Error(`Failed to update completion: ${error.message}`);
       }
+      console.log("[PROGRESS] Updated successfully");
       return data;
     } else {
       // Record doesn't exist, insert it
+      console.log("[PROGRESS] Inserting:", { userId, noteId, subjectId });
       const { data, error } = await supabase
         .from("user_study_progress")
         .insert({
@@ -87,8 +91,10 @@ export const progressDB = {
         .single();
 
       if (error) {
+        console.error("[PROGRESS] Insert failed:", error);
         throw new Error(`Failed to insert progress: ${error.message}`);
       }
+      console.log("[PROGRESS] Inserted successfully");
       return data;
     }
   },

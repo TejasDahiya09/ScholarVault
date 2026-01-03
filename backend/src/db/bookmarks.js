@@ -19,6 +19,7 @@ const bookmarksDB = {
 
     if (existing) {
       // Remove bookmark
+      console.log("[BOOKMARK] Removing:", { userId, noteId });
       const { error } = await supabase
         .from("user_bookmarks")
         .delete()
@@ -26,11 +27,14 @@ const bookmarksDB = {
         .eq("note_id", noteId);
 
       if (error) {
+        console.error("[BOOKMARK] Delete failed:", error);
         throw new Error(`Failed to remove bookmark: ${error.message}`);
       }
+      console.log("[BOOKMARK] Removed successfully");
       return false;
     } else {
       // Add bookmark
+      console.log("[BOOKMARK] Adding:", { userId, noteId });
       const { error } = await supabase
         .from("user_bookmarks")
         .insert({
@@ -40,8 +44,10 @@ const bookmarksDB = {
         });
 
       if (error) {
+        console.error("[BOOKMARK] Insert failed:", error);
         throw new Error(`Failed to add bookmark: ${error.message}`);
       }
+      console.log("[BOOKMARK] Added successfully");
       return true;
     }
   },
