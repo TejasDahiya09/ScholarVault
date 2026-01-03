@@ -46,7 +46,7 @@ export const progressDB = {
       .select("is_completed")
       .eq("user_id", userId)
       .eq("note_id", noteId)
-      .single();
+      .maybeSingle();
 
     // Toggle value: if exists, flip it; if not, set to true
     const newValue = existing ? !existing.is_completed : true;

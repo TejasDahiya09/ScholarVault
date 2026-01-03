@@ -15,7 +15,7 @@ const bookmarksDB = {
       .select("id")
       .eq("user_id", userId)
       .eq("note_id", noteId)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       // Remove bookmark
