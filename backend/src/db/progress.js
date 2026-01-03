@@ -1,4 +1,5 @@
 import { supabase } from "../lib/services.js";
+import { assertNoError } from "./assertWrite.js";
 
 /**
  * Progress Database Operations
@@ -69,10 +70,7 @@ export const progressDB = {
         .select()
         .single();
 
-      if (error) {
-        console.error("[PROGRESS] Update failed:", error);
-        throw new Error(`Failed to update completion: ${error.message}`);
-      }
+      assertNoError(error, `Update completion for user ${userId} note ${noteId}`);
       console.log("[PROGRESS] Updated successfully");
       return data;
     } else {
@@ -90,10 +88,7 @@ export const progressDB = {
         .select()
         .single();
 
-      if (error) {
-        console.error("[PROGRESS] Insert failed:", error);
-        throw new Error(`Failed to insert progress: ${error.message}`);
-      }
+      assertNoError(error, `Insert progress for user ${userId} note ${noteId}`);
       console.log("[PROGRESS] Inserted successfully");
       return data;
     }

@@ -15,6 +15,18 @@ import filesRoutes from "./src/routes/files.js";
 import bookmarksRoutes from "./src/routes/bookmarks.js";
 import progressRoutes from "./src/routes/progress.js";
 
+/**
+ * CRITICAL STARTUP ASSERTION
+ * Backend requires service role key to bypass RLS for writes
+ * This prevents silent failures where UI shows success but DB never changes
+ */
+if (!config.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("❌ FATAL ERROR: SUPABASE_SERVICE_ROLE_KEY is missing");
+  console.error("❌ Backend cannot write to database under RLS protection");
+  console.error("❌ Add SUPABASE_SERVICE_ROLE_KEY to .env file");
+  process.exit(1);
+}
+
 const app = express();
 
 // Trust Render's proxy for correct client IPs and rate limiting

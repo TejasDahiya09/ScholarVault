@@ -1,4 +1,5 @@
 import { supabase } from "../lib/services.js";
+import { assertNoError } from "./assertWrite.js";
 
 /**
  * Bookmarks Database Operations
@@ -26,10 +27,7 @@ const bookmarksDB = {
         .eq("user_id", userId)
         .eq("note_id", noteId);
 
-      if (error) {
-        console.error("[BOOKMARK] Delete failed:", error);
-        throw new Error(`Failed to remove bookmark: ${error.message}`);
-      }
+      assertNoError(error, `Remove bookmark for user ${userId} note ${noteId}`);
       console.log("[BOOKMARK] Removed successfully");
       return false;
     } else {
@@ -43,10 +41,7 @@ const bookmarksDB = {
           bookmarked_at: new Date().toISOString()
         });
 
-      if (error) {
-        console.error("[BOOKMARK] Insert failed:", error);
-        throw new Error(`Failed to add bookmark: ${error.message}`);
-      }
+      assertNoError(error, `Add bookmark for user ${userId} note ${noteId}`);
       console.log("[BOOKMARK] Added successfully");
       return true;
     }
