@@ -30,6 +30,19 @@ const bookmarksDB = {
 
       assertNoError(error, `RPC toggle_bookmark for user ${userId} note ${noteId}`);
       console.log("[BOOKMARK RPC] Success, bookmarked:", data);
+      
+      // Audit log: Track bookmark changes
+      const auditAction = data ? 'add' : 'remove';
+      await supabase.rpc("log_audit_event", {
+        p_user_id: userId,
+        p_entity_type: 'bookmark',
+        p_entity_id: noteId,
+        p_action: auditAction
+      }).catch(err => {
+        // Audit logging failure should not break the operation
+        console.error("[AUDIT] Failed to log bookmark event:", err);
+      });
+      
       return data;
     }
 

@@ -63,6 +63,19 @@ export const progressDB = {
       assertNoError(error, `RPC toggle_completion for user ${userId} note ${noteId}`);
       console.log("[PROGRESS RPC] Success, completed:", data);
       
+      // Audit log: Track completion changes
+      const auditAction = data ? 'complete' : 'uncomplete';
+      await supabase.rpc("log_audit_event", {
+        p_user_id: userId,
+        p_entity_type: 'completion',
+        p_entity_id: noteId,
+        p_action: auditAction,
+        p_metadata: JSON.stringify({ subject_id: subjectId })
+      }).catch(err => {
+        // Audit logging failure should not break the operation
+        console.error("[AUDIT] Failed to log completion event:", err);
+      });
+      
       // Return in same format as before for backward compatibility
       return { is_completed: data };
     }
