@@ -14,6 +14,7 @@ import searchRoutes from "./src/routes/search.js";
 import filesRoutes from "./src/routes/files.js";
 import bookmarksRoutes from "./src/routes/bookmarks.js";
 import progressRoutes from "./src/routes/progress.js";
+import stateRoutes from "./src/routes/state.js";
 
 /**
  * CRITICAL STARTUP ASSERTION
@@ -105,6 +106,7 @@ app.use("/api/search", searchRoutes);
 app.use("/api/files", filesRoutes);
 app.use("/api/bookmarks", bookmarksRoutes);
 app.use("/api/progress", progressRoutes);
+app.use("/api/state", stateRoutes);
 
 /**
  * 404 Handler
