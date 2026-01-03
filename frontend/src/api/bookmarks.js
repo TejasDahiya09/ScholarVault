@@ -6,7 +6,7 @@ import client from "./client";
  * @returns {Promise} Response with isBookmarked status
  */
 export const toggleBookmark = async (noteId) => {
-  return client.post(`/bookmarks/notes/${noteId}`);
+  return client.post(`/api/bookmarks/notes/${noteId}`);
 };
 
 /**
@@ -14,5 +14,5 @@ export const toggleBookmark = async (noteId) => {
  * @returns {Promise} Response with bookmarks array
  */
 export const getUserBookmarks = async () => {
-  return client.get("/bookmarks");
+  return client.get("/api/bookmarks");
 };

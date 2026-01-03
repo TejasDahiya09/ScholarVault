@@ -11,7 +11,7 @@ const bookmarksDB = {
   async toggleBookmark(userId, noteId) {
     // Check if bookmark exists
     const { data: existing } = await supabase
-      .from("bookmarks")
+      .from("user_bookmarks")
       .select("id")
       .eq("user_id", userId)
       .eq("note_id", noteId)
@@ -20,7 +20,7 @@ const bookmarksDB = {
     if (existing) {
       // Remove bookmark
       const { error } = await supabase
-        .from("bookmarks")
+        .from("user_bookmarks")
         .delete()
         .eq("user_id", userId)
         .eq("note_id", noteId);
@@ -32,11 +32,11 @@ const bookmarksDB = {
     } else {
       // Add bookmark
       const { error } = await supabase
-        .from("bookmarks")
+        .from("user_bookmarks")
         .insert({
           user_id: userId,
           note_id: noteId,
-          bookmark_date: new Date().toISOString()
+          bookmarked_at: new Date().toISOString()
         });
 
       if (error) {
@@ -51,7 +51,7 @@ const bookmarksDB = {
    */
   async getUserBookmarks(userId) {
     const { data, error } = await supabase
-      .from("bookmarks")
+      .from("user_bookmarks")
       .select("note_id")
       .eq("user_id", userId);
 

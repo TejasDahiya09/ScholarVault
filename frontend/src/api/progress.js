@@ -7,5 +7,5 @@ import client from "./client";
  * @returns {Promise} Response with isCompleted status
  */
 export const toggleCompletion = async (noteId, subjectId) => {
-  return client.post(`/progress/notes/${noteId}/complete`, { subjectId });
+  return client.post(`/api/progress/notes/${noteId}/complete`, { subjectId });
 };
