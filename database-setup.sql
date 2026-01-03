@@ -79,9 +79,13 @@ COMMENT ON COLUMN public.user_study_progress.updated_at IS 'Last update timestam
 -- 5. CREATE UNIQUE CONSTRAINT ON user_study_progress IF NOT EXISTS
 -- =============================================================================
 
--- This creates an index that also serves as a unique constraint
-CREATE UNIQUE INDEX IF NOT EXISTS idx_user_study_progress_user_note
-ON public.user_study_progress(user_id, note_id);
+-- Drop the unique index if it exists (replacing with constraint)
+DROP INDEX IF EXISTS idx_user_study_progress_user_note;
+
+-- Add a proper UNIQUE CONSTRAINT (required for Supabase upsert)
+ALTER TABLE public.user_study_progress
+ADD CONSTRAINT user_study_progress_user_note_unique
+UNIQUE (user_id, note_id);
 
 -- =============================================================================
 -- 6. CREATE INDEXES FOR user_study_progress QUERIES

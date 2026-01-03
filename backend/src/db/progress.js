@@ -37,36 +37,60 @@ export const progressDB = {
 
   /**
    * Toggle note completion status
-   * Checks existing state and toggles it
+   * Deterministic logic: No upsert, explicit select-then-insert/update
    */
   async toggleCompletion(userId, noteId, subjectId) {
-    // Check existing completion status
-    const { data: existing } = await supabase
+    // Step 1: Check if record exists
+    const { data: existing, error: fetchError } = await supabase
       .from("user_study_progress")
-      .select("is_completed")
+      .select("id, is_completed")
       .eq("user_id", userId)
       .eq("note_id", noteId)
       .maybeSingle();
 
-    // Toggle value: if exists, flip it; if not, set to true
+    if (fetchError) {
+      throw new Error(`Failed to fetch progress: ${fetchError.message}`);
+    }
+
+    // Step 2: Toggle value
     const newValue = existing ? !existing.is_completed : true;
 
-    const { data, error } = await supabase
-      .from("user_study_progress")
-      .upsert({
-        user_id: userId,
-        note_id: noteId,
-        subject_id: subjectId,
-        is_completed: newValue,
-        updated_at: new Date().toISOString()
-      }, { onConflict: ["user_id", "note_id"] })
-      .select()
-      .single();
+    // Step 3: Insert or update explicitly (NO upsert)
+    if (existing) {
+      // Record exists, update it
+      const { data, error } = await supabase
+        .from("user_study_progress")
+        .update({
+          is_completed: newValue,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", existing.id)
+        .select()
+        .single();
 
-    if (error) {
-      throw new Error(`Failed to toggle completion: ${error.message}`);
+      if (error) {
+        throw new Error(`Failed to update completion: ${error.message}`);
+      }
+      return data;
+    } else {
+      // Record doesn't exist, insert it
+      const { data, error } = await supabase
+        .from("user_study_progress")
+        .insert({
+          user_id: userId,
+          note_id: noteId,
+          subject_id: subjectId,
+          is_completed: true,
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to insert progress: ${error.message}`);
+      }
+      return data;
     }
-    return data;
   },
 
   /**
