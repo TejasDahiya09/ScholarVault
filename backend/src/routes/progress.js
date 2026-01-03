@@ -2,7 +2,6 @@ import { Router } from "express";
 import { authenticate } from "../middlewares/auth.js";
 import studySessionsDB from "../db/studySessions.js";
 import { supabase } from "../lib/services.js";
-import { toggleNoteCompletion } from "../controllers/progress.js";
 
 const router = Router();
 
@@ -150,11 +149,6 @@ router.get("/analytics", authenticate, async (req, res, next) => {
     });
   } catch (err) { next(err); }
 });
-
-/**
- * Toggle note completion
- */
-router.post("/notes/:noteId/complete", authenticate, toggleNoteCompletion);
 
 /**
  * Start tracking time for a specific note (invisible to user)

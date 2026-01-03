@@ -10,7 +10,6 @@ export const config = {
   // Database
   SUPABASE_URL: process.env.SUPABASE_URL,
   SUPABASE_KEY: process.env.SUPABASE_KEY,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
 
   // Auth
   JWT_SECRET: process.env.JWT_SECRET,
