@@ -4,7 +4,17 @@ import { assertNoError } from "./assertWrite.js";
 /**
  * Progress Database Operations
  * Uses user_study_progress table for note-level completion tracking
+ * 
+ * Copilot:
+ * Use atomic RPC for toggles (eliminates race conditions).
+ * RPC function: toggle_completion(p_user_id, p_note_id, p_subject_id)
+ * Returns: boolean (TRUE if completed, FALSE if incomplete)
+ * Fallback to application logic if RPC not available.
  */
+
+// Feature flag: Use RPC-based atomic toggles
+const USE_RPC_TOGGLES = true;
+
 export const progressDB = {
 
   /**
@@ -37,11 +47,27 @@ export const progressDB = {
   },
 
   /**
-   * Toggle note completion status
-   * Deterministic logic: No upsert, explicit select-then-insert/update
+   * Toggle note completion status (ATOMIC via RPC)
+   * Deterministic logic: Database-side atomic operation
    */
   async toggleCompletion(userId, noteId, subjectId) {
-    // Step 1: Check if record exists
+    if (USE_RPC_TOGGLES) {
+      // Atomic RPC implementation
+      console.log("[PROGRESS RPC] Toggling:", { userId, noteId, subjectId });
+      const { data, error } = await supabase.rpc("toggle_completion", {
+        p_user_id: userId,
+        p_note_id: noteId,
+        p_subject_id: subjectId
+      });
+
+      assertNoError(error, `RPC toggle_completion for user ${userId} note ${noteId}`);
+      console.log("[PROGRESS RPC] Success, completed:", data);
+      
+      // Return in same format as before for backward compatibility
+      return { is_completed: data };
+    }
+
+    // Fallback: Original application-side logic
     const { data: existing, error: fetchError } = await supabase
       .from("user_study_progress")
       .select("id, is_completed")
@@ -53,12 +79,9 @@ export const progressDB = {
       throw new Error(`Failed to fetch progress: ${fetchError.message}`);
     }
 
-    // Step 2: Toggle value
     const newValue = existing ? !existing.is_completed : true;
 
-    // Step 3: Insert or update explicitly (NO upsert)
     if (existing) {
-      // Record exists, update it
       console.log("[PROGRESS] Updating:", { userId, noteId, newValue });
       const { data, error } = await supabase
         .from("user_study_progress")
@@ -74,7 +97,6 @@ export const progressDB = {
       console.log("[PROGRESS] Updated successfully");
       return data;
     } else {
-      // Record doesn't exist, insert it
       console.log("[PROGRESS] Inserting:", { userId, noteId, subjectId });
       const { data, error } = await supabase
         .from("user_study_progress")
