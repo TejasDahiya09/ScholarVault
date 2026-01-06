@@ -14,7 +14,7 @@ const router = Router();
  */
 router.get("/", authenticate, async (req, res, next) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.userId;
     const userOnly = req.query.userOnly === 'true';
     const filters = {
       branch: req.query.branch,
@@ -104,6 +104,60 @@ router.get("/:id/progress", authenticate, async (req, res, next) => {
       progress_percent: status.percentage,
       completed_note_ids: completedNoteIds,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Get units for a subject with completion flags
+ * GET /api/subjects/:id/units
+ */
+router.get("/:id/units", authenticate, async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const subjectId = req.params.id;
+
+    // Fetch all notes for subject
+    const { data: notes, error: notesError } = await supabase
+      .from("notes")
+      .select("id, unit_number")
+      .eq("subject_id", subjectId);
+    if (notesError) {
+      throw new Error(`Failed to fetch notes: ${notesError.message}`);
+    }
+
+    // Fetch completed notes for user
+    const { data: completedRows, error: completedError } = await supabase
+      .from("user_study_progress")
+      .select("note_id")
+      .eq("user_id", userId)
+      .eq("subject_id", subjectId)
+      .eq("is_completed", true);
+    if (completedError) {
+      throw new Error(`Failed to fetch completed notes: ${completedError.message}`);
+    }
+    const completedSet = new Set((completedRows || []).map(r => r.note_id));
+
+    // Group notes by unit_number
+    const unitsMap = new Map();
+    for (const n of notes || []) {
+      const unitNum = n.unit_number ?? null;
+      if (unitNum == null) continue;
+      const entry = unitsMap.get(unitNum) || { id: unitNum, name: `Unit ${unitNum}`, noteIds: [], is_completed: false };
+      entry.noteIds.push(n.id);
+      unitsMap.set(unitNum, entry);
+    }
+
+    // Determine unit completion: all notes in unit completed
+    for (const entry of unitsMap.values()) {
+      entry.is_completed = entry.noteIds.every(id => completedSet.has(id));
+      delete entry.noteIds;
+    }
+
+    // Return sorted units by unit number
+    const units = Array.from(unitsMap.values()).sort((a, b) => a.id - b.id);
+    res.json(units);
   } catch (err) {
     next(err);
   }

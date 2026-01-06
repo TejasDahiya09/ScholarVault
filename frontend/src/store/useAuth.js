@@ -11,7 +11,7 @@ const useAuth = create((set) => ({
 
     // Start study session on login
     try {
-      const API_BASE = import.meta.env.VITE_API_BASE_URL;
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
       await fetch(`${API_BASE}/api/progress/session/start`, {
         method: 'POST',
         headers: {
@@ -26,7 +26,7 @@ const useAuth = create((set) => ({
   logout: async () => {
     const token = localStorage.getItem("sv_token");
     try {
-      const API_BASE = import.meta.env.VITE_API_BASE_URL;
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
       await fetch(`${API_BASE}/api/progress/session/end`, {
         method: 'POST',
         headers: {

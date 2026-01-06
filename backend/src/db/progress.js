@@ -87,20 +87,37 @@ export const progressDB = {
       throw new Error(`Failed to fetch notes: ${notesError.message}`);
     }
 
-    // Filter to only count actual notes (not PYQs, syllabus)
-    // Match the same logic as getWithResources in subjects.js
+    // Filter to only count actual notes (exclude PYQs/syllabus if needed)
     const actualNotes = (allNotes || []).filter(note => {
       const s3Url = (note.s3_url || "").toLowerCase();
       const fileName = (note.file_name || "").toLowerCase();
-      // Mark as completed feature removed
-      // Add your filter logic here or return true for all notes
-      return true;
+      // Treat everything as a note unless clearly marked as syllabus or pyq
+      const isSyllabus = s3Url.includes("/syllabus/") || fileName.includes("syllabus");
+      const isPyq = s3Url.includes("/pyqs/") || fileName.includes("pyq") || fileName.includes("previous year");
+      return !isSyllabus && !isPyq;
     });
 
-    // Add logic to calculate completion percentage if needed
+    // Fetch completed notes for the user/subject
+    const { data: completedRows, error: completedError } = await supabase
+      .from("user_study_progress")
+      .select("note_id")
+      .eq("user_id", userId)
+      .eq("subject_id", subjectId)
+      .eq("is_completed", true);
+
+    if (completedError) {
+      throw new Error(`Failed to fetch completed notes: ${completedError.message}`);
+    }
+
+    const completedSet = new Set((completedRows || []).map(r => r.note_id));
+    const totalNotes = actualNotes.length;
+    const completedNotes = actualNotes.filter(n => completedSet.has(n.id)).length;
+    const percentage = totalNotes === 0 ? 0 : Math.round((completedNotes / totalNotes) * 100);
+
     return {
-      totalNotes: actualNotes.length,
-      completedNotes: 0 // Placeholder, update with actual completed notes logic
+      total_notes: totalNotes,
+      completed_notes: completedNotes,
+      percentage,
     };
   }
 };

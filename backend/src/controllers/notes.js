@@ -174,9 +174,9 @@ export const markAsCompleted = async (req, res, next) => {
       return res.status(400).json({ error: "subjectId is required" });
     }
 
-    // Use atomic upsert for completion
-
-    res.status(410).json({ error: "Mark as completed feature has been removed." });
+    // Atomic upsert for completion
+    const row = await progressDB.setNoteCompletion(userId, noteId, subjectId, !!completed);
+    res.json({ ok: true, noteId, subjectId, is_completed: !!row?.is_completed });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -198,9 +198,10 @@ export const toggleBookmark = async (req, res, next) => {
       return res.status(400).json({ error: "Note ID is required" });
     }
 
-    // Check if already bookmarked
-
-    res.status(410).json({ error: "Bookmark feature has been removed." });
+    // Toggle bookmark via DB
+    const { bookmarksDB } = await import("../db/bookmarks.js");
+    const result = await bookmarksDB.toggleBookmark(userId, noteId);
+    res.json({ ok: true, noteId, bookmarked: result.bookmarked });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
