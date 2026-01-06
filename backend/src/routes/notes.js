@@ -22,7 +22,7 @@ router.get("/subjects/:subjectId/units/:unitNumber", notesController.getNotesByU
 router.get("/:id/summary", notesController.getSummary);
 router.get("/:id/ask", notesController.askQuestion);
 router.post("/:id/ask", notesController.askQuestion);
-// Bookmark and mark as completed routes removed
+router.post(":id/complete", notesController.markAsCompleted);
 router.get("/:id/progress", notesController.getProgress);
 router.post("/:id/bookmark", notesController.toggleBookmark);
 router.get("/:id/search", searchController.searchInNote); // Search inside PDF

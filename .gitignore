@@ -134,3 +134,8 @@ lerna-debug.log*
 .prettierrc.backup
 # ========== AWS & SENSITIVE DIRECTORIES ==========
 AWS/
+
+# ========== LOCAL MEDIA ==========
+# Exclude uploaded screen recordings
+/2026-01-06 22-43-05.mp4
+*.mp4
