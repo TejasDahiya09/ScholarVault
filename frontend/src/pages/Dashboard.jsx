@@ -11,7 +11,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({
     totalTime: 0,
     unitsCompleted: 0,
-    longestStreak: 0
+    currentStreak: 0
   });
   const [subjects, setSubjects] = useState([]);
   const [weeklyActivity, setWeeklyActivity] = useState([]);
@@ -128,7 +128,7 @@ export default function Dashboard() {
           totalTime: a.stats?.totalTimeHours || 0,
           // Prefer backend analytics count for immediate consistency
           unitsCompleted: (a.stats?.completedUnitsTotal ?? totalCompleted),
-          longestStreak: a.stats?.longestStreak || 0
+          currentStreak: a.stats?.currentStreak || 0
         });
         
         setWeeklyActivity(Array.isArray(a.weekly) ? a.weekly : []);
@@ -258,7 +258,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-fluid-xs text-gray-500 mb-1 uppercase tracking-wide truncate">Study Streak</p>
-                <p className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 truncate">{stats.longestStreak} days</p>
+                <p className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 truncate">{stats.currentStreak} days</p>
               </div>
               <div className="text-fluid-xl sm:text-fluid-2xl shrink-0">🔥</div>
             </div>

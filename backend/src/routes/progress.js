@@ -114,12 +114,22 @@ router.get("/analytics", authenticate, async (req, res, next) => {
     // Aggregate total completed units (notes marked complete)
     const { data: completedAll } = await supabase
       .from("user_study_progress")
-      .select("id")
+      .select("id, updated_at")
       .eq("user_id", userId)
       .eq("is_completed", true);
     const completedUnitsTotal = (completedAll?.length || 0);
 
-    // Study velocity (notes completed per week, last 8 weeks)
+    // Study velocity (notes completed per week, last 8 weeks) - Single query + JS aggregation
+    const eightWeeksAgo = new Date();
+    eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56); // 8 * 7 days
+    eightWeeksAgo.setHours(0, 0, 0, 0);
+    
+    // Filter completedAll to last 8 weeks (already fetched above)
+    const recentCompleted = (completedAll || []).filter(c => 
+      c.updated_at && new Date(c.updated_at) >= eightWeeksAgo
+    );
+    
+    // Build velocity by aggregating in JS
     const velocity = [];
     for (let i = 7; i >= 0; i--) {
       const weekStart = new Date();
@@ -129,17 +139,14 @@ router.get("/analytics", authenticate, async (req, res, next) => {
       weekEnd.setDate(weekEnd.getDate() + 6);
       weekEnd.setHours(23, 59, 59, 999);
       
-      const { data: completed } = await supabase
-        .from("user_study_progress")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("is_completed", true)
-        .gte("updated_at", weekStart.toISOString())
-        .lte("updated_at", weekEnd.toISOString());
+      const count = recentCompleted.filter(c => {
+        const d = new Date(c.updated_at);
+        return d >= weekStart && d <= weekEnd;
+      }).length;
       
       velocity.push({
         week: `Week ${8 - i}`,
-        count: completed?.length || 0,
+        count,
       });
     }
 
