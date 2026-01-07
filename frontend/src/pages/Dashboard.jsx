@@ -72,12 +72,10 @@ export default function Dashboard() {
         setBookmarkedNotes([]);
       }
       
-      // Fetch subjects
+      // Fetch subjects (all), then filter by selected year
       let yearFilteredSubjects = [];
       try {
-        const subjectsRes = await client.get('/api/subjects', {
-          params: { userOnly: 'true' }
-        });
+        const subjectsRes = await client.get('/api/subjects');
         const allSubjects = subjectsRes.data || [];
         yearFilteredSubjects = filterSubjectsByYear(allSubjects);
         

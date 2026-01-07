@@ -53,10 +53,8 @@ export default function ProgressPage() {
     try {
       setLoading(true);
       
-      // Fetch subjects with progress
-      const subjectsRes = await client.get('/api/subjects', {
-        params: { userOnly: 'true' }
-      });
+      // Fetch all subjects, progress will be computed per subject
+      const subjectsRes = await client.get('/api/subjects');
       const allSubjects = subjectsRes.data || [];
       
       // Filter by selected year
