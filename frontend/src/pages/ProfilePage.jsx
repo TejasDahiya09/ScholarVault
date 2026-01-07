@@ -38,7 +38,9 @@ export default function ProfilePage() {
     if (!user?.selected_year) return subs;
     const yearToSemesters = {
       '1st Year': ['1', '2', '1st year'],
-      '2nd Year': ['3', '4', '2nd year']
+      '2nd Year': ['3', '4', '2nd year'],
+      '3rd Year': ['5', '6', '3rd year'],
+      '4th Year': ['7', '8', '4th year']
     };
     const valid = (yearToSemesters[user.selected_year] || []).map(s => String(s).trim().toLowerCase());
     return subs.filter(s => valid.includes(String(s.semester || '').trim().toLowerCase()));

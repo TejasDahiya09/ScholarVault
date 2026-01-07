@@ -646,6 +646,7 @@ export default function NotesPage() {
   // Handle mark as complete
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
+    const originalCompletedNotes = new Set(completedNotes); // Store for rollback
     try {
       const sid = subjectId || selectedNote?.subject_id;
       if (!sid) {
@@ -654,7 +655,6 @@ export default function NotesPage() {
         return;
       }
       const isCompleted = completedNotes.has(noteId);
-      // Do not update UI until after confirmation
       // Optimistically update UI
       setCompletedNotes(prev => {
         const updated = new Set(prev);
@@ -681,6 +681,7 @@ export default function NotesPage() {
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     } catch (err) {
       console.error("Failed to mark note complete:", err);
+      setCompletedNotes(originalCompletedNotes); // ROLLBACK on error
       setToast({ show: true, message: "Failed to update completion status", type: "error" });
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     }
@@ -689,6 +690,7 @@ export default function NotesPage() {
   // Handle bookmark toggle
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
+    const originalBookmarkedNotes = new Set(bookmarkedNotes); // Store for rollback
     try {
       const isBookmarked = bookmarkedNotes.has(noteId);
       // Optimistically update UI
@@ -713,6 +715,7 @@ export default function NotesPage() {
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     } catch (err) {
       console.error("Failed to toggle bookmark:", err);
+      setBookmarkedNotes(originalBookmarkedNotes); // ROLLBACK on error
       setToast({ show: true, message: "Failed to update bookmark", type: "error" });
       setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
     }

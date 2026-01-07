@@ -39,7 +39,9 @@ export default function ProgressPage() {
     // Map year to semesters: handle numeric and "1st Year" labels
     const yearToSemesters = {
       '1st Year': ['1', '2', '1st year'],
-      '2nd Year': ['3', '4', '2nd year']
+      '2nd Year': ['3', '4', '2nd year'],
+      '3rd Year': ['5', '6', '3rd year'],
+      '4th Year': ['7', '8', '4th year']
     };
     
     const validSemestersNorm = (yearToSemesters[user.selected_year] || [])
