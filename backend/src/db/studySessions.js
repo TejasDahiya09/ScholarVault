@@ -140,15 +140,14 @@ export const studySessionsDB = {
     return map; // date -> seconds
   },
 
-  /** Total hours (optimized aggregate) */
+  /** Total hours (fetch all and aggregate in JS) */
   async getTotalHours(userId) {
     const { data, error } = await supabase
       .from("user_study_sessions")
-      .select("SUM(duration_seconds)", { count: "exact", head: false })
+      .select("duration_seconds")
       .eq("user_id", userId);
     if (error) throw new Error(`Failed to fetch total time: ${error.message}`);
-    // Supabase returns [{ sum: value }]
-    const totalSeconds = (data && data[0] && (data[0].sum || data[0].sum_duration_seconds)) || 0;
+    const totalSeconds = (data || []).reduce((s, r) => s + (r.duration_seconds || 0), 0);
     return Math.round(totalSeconds / 3600);
   },
 
@@ -159,16 +158,15 @@ export const studySessionsDB = {
     const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const { data, error } = await supabase
       .from("user_study_sessions")
-      .select("session_date, SUM(duration_seconds) as total_seconds")
+      .select("session_date, duration_seconds")
       .eq("user_id", userId)
       .gte("session_date", since)
-      .group("session_date")
       .order("session_date", { ascending: true });
     if (error) throw new Error(`Failed to fetch streaks: ${error.message}`);
-    // Roll-up per day
+    // Roll-up per day in JS
     const perDay = new Map();
     for (const row of data || []) {
-      perDay.set(row.session_date, row.total_seconds || 0);
+      perDay.set(row.session_date, (perDay.get(row.session_date) || 0) + (row.duration_seconds || 0));
     }
     // ...existing code for streak calculation...
     const dates = Array.from(perDay.keys()).sort();
@@ -219,7 +217,26 @@ export const studySessionsDB = {
       .eq("user_id", userId)
       .gte("session_start", since);
     if (error) throw new Error(`Failed to fetch session hours: ${error.message}`);
-    return (data || []).map(r => new Date(r.session_start).getHours());
+    
+    // Aggregate sessions by hour of day
+    const hourCounts = new Array(24).fill(0);
+    for (const row of data || []) {
+      if (row.session_start) {
+        const hour = new Date(row.session_start).getUTCHours();
+        hourCounts[hour]++;
+      }
+    }
+    
+    // Find peak hour
+    let peakHour = 0;
+    let maxCount = 0;
+    for (let h = 0; h < 24; h++) {
+      if (hourCounts[h] > maxCount) {
+        maxCount = hourCounts[h];
+        peakHour = h;
+      }
+    }
+    return maxCount > 0 ? peakHour : null;
   },
 
   /** Completed units in last N days based on user_study_progress.updated_at */
