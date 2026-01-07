@@ -656,15 +656,13 @@ export default function NotesPage() {
         else updated.add(noteId);
         return updated;
       });
-      await client.post(`/api/notes/${noteId}/complete`, {
+      const resp = await client.post(`/api/notes/${noteId}/complete`, {
         subjectId: subjectId,
         completed: !isCompleted,
       });
-      // Only re-fetch completion status (not bookmarks, which are unaffected)
-      if (subjectId) {
-        const completionRes = await client.get(`/api/subjects/${subjectId}/progress`);
-        setCompletedNotes(new Set(completionRes.data?.completed_note_ids || []));
-      }
+      // Use fresh progress snapshot from response to avoid extra GET
+      const ids = resp.data?.progress?.completed_note_ids || [];
+      setCompletedNotes(new Set(ids));
       localStorage.setItem('sv_refresh_dashboard', '1');
       window.dispatchEvent(new Event('sv_refresh_dashboard'));
       if (isCompleted) {

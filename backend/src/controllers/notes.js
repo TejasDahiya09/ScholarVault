@@ -176,7 +176,23 @@ export const markAsCompleted = async (req, res, next) => {
 
     // Atomic upsert for completion
     const row = await progressDB.setNoteCompletion(userId, noteId, subjectId, !!completed);
-    res.json({ ok: true, noteId, subjectId, is_completed: !!row?.is_completed });
+
+    // Return fresh subject progress snapshot for immediate UI sync
+    const status = await progressDB.getSubjectCompletionStatus(userId, subjectId);
+    const completedIds = await progressDB.getCompletedNotes(userId, subjectId);
+
+    res.json({
+      ok: true,
+      noteId,
+      subjectId,
+      is_completed: !!row?.is_completed,
+      progress: {
+        total_units: status.total_notes,
+        completed_units: status.completed_notes,
+        progress_percent: status.percentage,
+        completed_note_ids: completedIds,
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -199,7 +215,6 @@ export const toggleBookmark = async (req, res, next) => {
     }
 
     // Toggle bookmark via DB
-    const { bookmarksDB } = await import("../db/bookmarks.js");
     const result = await bookmarksDB.toggleBookmark(userId, noteId);
     res.json({ ok: true, noteId, bookmarked: result.bookmarked });
   } catch (err) {
