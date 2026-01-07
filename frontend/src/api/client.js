@@ -39,10 +39,24 @@ client.interceptors.request.use((config) => {
 
   // Invalidate related caches on mutations
   if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
-    if (config.url.includes('/bookmarks')) invalidateCache('/bookmarks');
-    if (config.url.includes('/progress')) invalidateCache('/progress');
-    if (config.url.includes('/notes')) invalidateCache('/notes');
-    if (config.url.includes('/subjects')) invalidateCache('/subjects');
+    const url = config.url || '';
+
+    // Bookmark toggles affect bookmark lists
+    if (url.includes('/notes/') && url.includes('/bookmark')) {
+      invalidateCache('/bookmarks');
+    }
+
+    // Completion toggles affect subject progress and dashboard summaries
+    if (url.includes('/notes/') && url.includes('/complete')) {
+      invalidateCache('/subjects');
+      invalidateCache('/progress');
+    }
+
+    // Fallback broad invalidations
+    if (url.includes('/bookmarks')) invalidateCache('/bookmarks');
+    if (url.includes('/progress')) invalidateCache('/progress');
+    if (url.includes('/notes')) invalidateCache('/notes');
+    if (url.includes('/subjects')) invalidateCache('/subjects');
   }
 
   return config;
