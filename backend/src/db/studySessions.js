@@ -140,51 +140,48 @@ export const studySessionsDB = {
     return map; // date -> seconds
   },
 
-  /** Total hours */
+  /** Total hours (optimized aggregate) */
   async getTotalHours(userId) {
     const { data, error } = await supabase
       .from("user_study_sessions")
-      .select("duration_seconds")
+      .select("SUM(duration_seconds)", { count: "exact", head: false })
       .eq("user_id", userId);
-
     if (error) throw new Error(`Failed to fetch total time: ${error.message}`);
-    const totalSeconds = (data || []).reduce((s, r) => s + (r.duration_seconds || 0), 0);
+    // Supabase returns [{ sum: value }]
+    const totalSeconds = (data && data[0] && (data[0].sum || data[0].sum_duration_seconds)) || 0;
     return Math.round(totalSeconds / 3600);
   },
 
-  /** Compute streaks from activity days with threshold minutes */
+  /** Compute streaks from activity days with threshold minutes (optimized) */
   async getStreaks(userId, thresholdMinutes = 15) {
     const thresholdSeconds = thresholdMinutes * 60;
+    // Only fetch last 30 days for streaks
+    const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
     const { data, error } = await supabase
       .from("user_study_sessions")
-      .select("session_date, duration_seconds")
+      .select("session_date, SUM(duration_seconds) as total_seconds")
       .eq("user_id", userId)
+      .gte("session_date", since)
+      .group("session_date")
       .order("session_date", { ascending: true });
-
     if (error) throw new Error(`Failed to fetch streaks: ${error.message}`);
-
     // Roll-up per day
     const perDay = new Map();
     for (const row of data || []) {
-      perDay.set(row.session_date, (perDay.get(row.session_date) || 0) + (row.duration_seconds || 0));
+      perDay.set(row.session_date, row.total_seconds || 0);
     }
-
-    // Build sorted unique dates
+    // ...existing code for streak calculation...
     const dates = Array.from(perDay.keys()).sort();
     let longest = 0, current = 0;
     let prevDate = null;
-
     const todayStr = new Date().toISOString().slice(0, 10);
     const hasToday = perDay.get(todayStr) >= thresholdSeconds;
-
     for (const d of dates) {
       const studied = (perDay.get(d) || 0) >= thresholdSeconds;
-      if (!studied) continue; // skip non-study days entirely
-
+      if (!studied) continue;
       if (!prevDate) {
         current = 1; longest = Math.max(longest, current); prevDate = d; continue;
       }
-
       const prev = new Date(prevDate);
       const cur = new Date(d);
       const deltaDays = Math.round((cur - prev) / 86400000);
@@ -196,10 +193,7 @@ export const studySessionsDB = {
       longest = Math.max(longest, current);
       prevDate = d;
     }
-
-    // If today is not a study day, current streak ends yesterday
     if (!hasToday) {
-      // Recompute current streak ending at latest study day
       let curStreak = 0;
       let lastDate = null;
       for (const d of dates) {
@@ -214,8 +208,18 @@ export const studySessionsDB = {
       }
       current = curStreak;
     }
-
     return { currentStreak: current, longestStreak: longest };
+  },
+  /** Optimized: fetch session start hours for last 90 days for peak study time */
+  async getSessionHours(userId) {
+    const since = new Date(Date.now() - 90 * 86400000).toISOString();
+    const { data, error } = await supabase
+      .from("user_study_sessions")
+      .select("session_start")
+      .eq("user_id", userId)
+      .gte("session_start", since);
+    if (error) throw new Error(`Failed to fetch session hours: ${error.message}`);
+    return (data || []).map(r => new Date(r.session_start).getHours());
   },
 
   /** Completed units in last N days based on user_study_progress.updated_at */
