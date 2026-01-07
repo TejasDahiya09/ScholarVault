@@ -647,6 +647,12 @@ export default function NotesPage() {
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
     try {
+      const sid = subjectId || selectedNote?.subject_id;
+      if (!sid) {
+        setToast({ show: true, message: "Missing subject context", type: "error" });
+        setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
+        return;
+      }
       const isCompleted = completedNotes.has(noteId);
       // Do not update UI until after confirmation
       // Optimistically update UI
@@ -657,7 +663,7 @@ export default function NotesPage() {
         return updated;
       });
       const resp = await client.post(`/api/notes/${noteId}/complete`, {
-        subjectId: subjectId,
+        subjectId: sid,
         completed: !isCompleted,
       });
       // Use fresh progress snapshot from response to avoid extra GET
