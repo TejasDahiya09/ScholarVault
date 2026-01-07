@@ -126,7 +126,8 @@ export default function Dashboard() {
         
         setStats({
           totalTime: a.stats?.totalTimeHours || 0,
-          unitsCompleted: totalCompleted,
+          // Prefer backend analytics count for immediate consistency
+          unitsCompleted: (a.stats?.completedUnitsTotal ?? totalCompleted),
           longestStreak: a.stats?.longestStreak || 0
         });
         

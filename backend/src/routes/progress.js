@@ -111,6 +111,14 @@ router.get("/analytics", authenticate, async (req, res, next) => {
         .sort((a, b) => b[1] - a[1])[0]?.[0] || null;
     }
 
+    // Aggregate total completed units (notes marked complete)
+    const { data: completedAll } = await supabase
+      .from("user_study_progress")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("is_completed", true);
+    const completedUnitsTotal = (completedAll?.length || 0);
+
     // Study velocity (notes completed per week, last 8 weeks)
     const velocity = [];
     for (let i = 7; i >= 0; i--) {
@@ -141,6 +149,7 @@ router.get("/analytics", authenticate, async (req, res, next) => {
         currentStreak,
         longestStreak,
         peakStudyTime: peakTime,
+        completedUnitsTotal,
       },
       weekly,
       monthly: month,
