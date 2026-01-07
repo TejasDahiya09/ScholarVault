@@ -57,26 +57,14 @@ export default function ProfilePage() {
         setCurrentYear(profileRes.data.selected_year || '');
         setEmailNotifications(profileRes.data.email_notifications ?? true);
         
-        // Calculate stats from subjects, filtered by selected year
+        // Use backend analytics for units completed for instant sync
+        const analyticsRes = await client.get('/api/progress/analytics');
+        const a = analyticsRes.data || {};
         const subjects = filterSubjectsByYear(subjectsRes.data || []);
-        const subjectsWithProgress = await Promise.all(
-          subjects.map(async (subject) => {
-            try {
-              const progressRes = await client.get(`/api/subjects/${subject.id}/progress`);
-              return {
-                completed: progressRes.data.completed_units || 0
-              };
-            } catch {
-              return { completed: 0 };
-            }
-          })
-        );
-        
-        const totalUnits = subjectsWithProgress.reduce((sum, s) => sum + s.completed, 0);
         setStats({
           subjects: subjects.length,
-          unitsCompleted: totalUnits,
-          totalTime: 0 // Will be updated when backend tracking is ready
+          unitsCompleted: a.stats?.completedUnitsTotal || 0,
+          totalTime: a.stats?.totalTimeHours || 0
         });
         
       } catch (err) {
