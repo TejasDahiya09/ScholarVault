@@ -163,50 +163,60 @@ export const studySessionsDB = {
       .gte("session_date", since)
       .order("session_date", { ascending: true });
     if (error) throw new Error(`Failed to fetch streaks: ${error.message}`);
+    
     // Roll-up per day in JS
     const perDay = new Map();
     for (const row of data || []) {
       perDay.set(row.session_date, (perDay.get(row.session_date) || 0) + (row.duration_seconds || 0));
     }
-    // ...existing code for streak calculation...
-    const dates = Array.from(perDay.keys()).sort();
-    let longest = 0, current = 0;
-    let prevDate = null;
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const hasToday = perDay.get(todayStr) >= thresholdSeconds;
+    
+    // Get valid study dates (sorted ASC)
+    const dates = Array.from(perDay.entries())
+      .filter(([_, sec]) => sec >= thresholdSeconds)
+      .map(([d]) => d)
+      .sort();
+
+    // Calculate Longest Streak
+    let longest = 0;
+    let run = 0;
+    let prev = null;
+    
     for (const d of dates) {
-      const studied = (perDay.get(d) || 0) >= thresholdSeconds;
-      if (!studied) continue;
-      if (!prevDate) {
-        current = 1; longest = Math.max(longest, current); prevDate = d; continue;
-      }
-      const prev = new Date(prevDate);
-      const cur = new Date(d);
-      const deltaDays = Math.round((cur - prev) / 86400000);
-      if (deltaDays === 1) {
-        current += 1;
+      if (!prev) {
+        run = 1;
       } else {
-        current = 1;
+        const d1 = new Date(prev);
+        const d2 = new Date(d);
+        const diff = Math.round((d2 - d1) / (1000 * 3600 * 24));
+        if (diff === 1) run++;
+        else run = 1;
       }
-      longest = Math.max(longest, current);
-      prevDate = d;
+      longest = Math.max(longest, run);
+      prev = d;
     }
-    if (!hasToday) {
-      let curStreak = 0;
-      let lastDate = null;
-      for (const d of dates) {
-        const studied = (perDay.get(d) || 0) >= thresholdSeconds;
-        if (!studied) continue;
-        if (!lastDate) { curStreak = 1; lastDate = d; continue; }
-        const prev = new Date(lastDate);
-        const cur = new Date(d);
-        const delta = Math.round((cur - prev) / 86400000);
-        curStreak = delta === 1 ? curStreak + 1 : 1;
-        lastDate = d;
+
+    // Calculate Current Streak
+    let currentStreak = 0;
+    if (dates.length > 0) {
+      const today = new Date().toISOString().slice(0, 10);
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const lastDate = dates[dates.length - 1];
+
+      // Streak is active only if last study was Today or Yesterday
+      if (lastDate === today || lastDate === yesterday) {
+        let streak = 1;
+        for (let i = dates.length - 2; i >= 0; i--) {
+          const d2 = new Date(dates[i+1]);
+          const d1 = new Date(dates[i]);
+          const diff = Math.round((d2 - d1) / (1000 * 3600 * 24));
+          if (diff === 1) streak++;
+          else break;
+        }
+        currentStreak = streak;
       }
-      current = curStreak;
     }
-    return { currentStreak: current, longestStreak: longest };
+
+    return { currentStreak, longestStreak: longest };
   },
   /** Optimized: fetch session start hours for last 90 days for peak study time */
   async getSessionHours(userId) {
