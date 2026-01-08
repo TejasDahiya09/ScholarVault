@@ -8,6 +8,7 @@ export default function ProgressPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [refreshVersion, setRefreshVersion] = useState(0); // VERSION-BASED REFRESH
   const [subjects, setSubjects] = useState([]);
   const [stats, setStats] = useState({
     totalTime: 0,
@@ -22,14 +23,16 @@ export default function ProgressPage() {
   const [subjectTime, setSubjectTime] = useState([]);
   const [velocity, setVelocity] = useState([]);
 
+  // Subscribe to global learning refresh events ONCE
+  // Updates state which triggers the data-fetching effect
+  useEffect(() => {
+    return onLearningRefresh(setRefreshVersion);
+  }, []);
+
+  // Data-fetching effect: runs on mount, year change, OR refreshVersion change
   useEffect(() => {
     fetchProgressData();
-    // Subscribe to global learning refresh events (bookmark/completion changes)
-    const cleanup = onLearningRefresh(() => {
-      fetchProgressData();
-    });
-    return cleanup;
-  }, [user?.selected_year]);
+  }, [user?.selected_year, refreshVersion]);
 
   // Helper to filter subjects by selected year
   const filterSubjectsByYear = (subjects) => {

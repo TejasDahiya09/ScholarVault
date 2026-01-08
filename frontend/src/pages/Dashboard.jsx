@@ -2,13 +2,14 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
-import { onLearningRefresh, REFRESH_EVENTS } from "../lib/refreshBus";
+import { onLearningRefresh } from "../lib/refreshBus";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshVersion, setRefreshVersion] = useState(0); // VERSION-BASED REFRESH
   const [stats, setStats] = useState({
     totalTime: 0,
     unitsCompleted: 0,
@@ -26,14 +27,16 @@ export default function Dashboard() {
   const BOOKMARKS_PER_PAGE = 4;
   const SUBJECTS_PER_PAGE = 5;
 
+  // Subscribe to global learning refresh events ONCE
+  // Updates state which triggers the data-fetching effect
+  useEffect(() => {
+    return onLearningRefresh(setRefreshVersion);
+  }, []);
+
+  // Data-fetching effect: runs on mount, year change, OR refreshVersion change
   useEffect(() => {
     fetchDashboardData();
-    // Subscribe to global learning refresh events (bookmark/completion changes)
-    const cleanup = onLearningRefresh(() => {
-      fetchDashboardData();
-    });
-    return cleanup;
-  }, [user?.selected_year]);
+  }, [user?.selected_year, refreshVersion]);
 
   // Stay on Dashboard even if there are no bookmarks
   // Previously redirected to "/home" which prevented accessing Dashboard.

@@ -1,34 +1,41 @@
 /**
- * Global Refresh Bus
+ * Global Refresh Bus (VERSION-BASED)
  * 
  * Single source of truth for cross-page state invalidation.
- * When a mutation changes user learning state, emit a refresh event.
- * All pages that display this data must subscribe and refetch.
+ * Uses a monotonically increasing version counter to force React effects.
  * 
  * ⚠️ RULES:
  * - Emit ONLY after successful backend response
  * - Never emit on optimistic updates
- * - All listeners must refetch from backend (not local state)
+ * - Listeners MUST update React state (not call functions directly)
+ * - Effects MUST depend on refreshVersion to trigger re-fetch
  */
 
-export const REFRESH_EVENTS = {
-  LEARNING: "sv:learning-updated",  // completion, bookmarks, progress
-};
+let version = 0;
 
 /**
- * Emit learning refresh event
+ * Emit learning refresh event with version
  * Call after: mark-complete, bookmark add/remove
  */
 export function emitLearningRefresh() {
-  window.dispatchEvent(new Event(REFRESH_EVENTS.LEARNING));
+  version += 1;
+  window.dispatchEvent(
+    new CustomEvent("sv:learning-updated", { detail: { version } })
+  );
 }
 
 /**
  * Subscribe to learning refresh events
- * @param {Function} callback - Function to call on refresh
+ * @param {Function} callback - Receives version number, use to set state
  * @returns {Function} cleanup function for useEffect
+ * 
+ * USAGE:
+ * useEffect(() => {
+ *   return onLearningRefresh(setRefreshVersion);
+ * }, []);
  */
 export function onLearningRefresh(callback) {
-  window.addEventListener(REFRESH_EVENTS.LEARNING, callback);
-  return () => window.removeEventListener(REFRESH_EVENTS.LEARNING, callback);
+  const handler = (e) => callback(e.detail.version);
+  window.addEventListener("sv:learning-updated", handler);
+  return () => window.removeEventListener("sv:learning-updated", handler);
 }
