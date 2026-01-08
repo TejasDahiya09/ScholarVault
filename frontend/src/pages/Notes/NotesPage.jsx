@@ -7,6 +7,7 @@ import InPDFSearch from "../../components/InPDFSearch";
 import ErrorBoundary from "../../components/ErrorBoundary";
 import client from "../../api/client";
 import { getSignedPdfUrl, resolveKeyFromUrl } from "../../api/files";
+import { emitLearningRefresh } from "../../lib/refreshBus";
 
 // Lazy load PDF viewer component for performance
 // Reduces initial bundle size and speeds up page load
@@ -668,8 +669,8 @@ export default function NotesPage() {
       // Use fresh progress snapshot from response to avoid extra GET
       const ids = resp.data?.progress?.completed_note_ids || [];
       setCompletedNotes(new Set(ids));
-      localStorage.setItem('sv_refresh_dashboard', '1');
-      window.dispatchEvent(new Event('sv_refresh_dashboard'));
+      // Emit global refresh for Dashboard/Progress pages
+      emitLearningRefresh();
       if (isCompleted) {
         setToast({ show: true, message: "Marked as incomplete", type: "info" });
       } else {
@@ -705,8 +706,8 @@ export default function NotesPage() {
       // Refetch to reconcile with backend truth
       const bookmarksRes = await client.get('/api/bookmarks');
       setBookmarkedNotes(new Set(bookmarksRes.data?.bookmarks || []));
-      localStorage.setItem('sv_refresh_dashboard', '1');
-      window.dispatchEvent(new Event('sv_refresh_dashboard'));
+      // Emit global refresh for Dashboard/Progress pages
+      emitLearningRefresh();
       if (isBookmarked) {
         setToast({ show: true, message: "Bookmark removed", type: "info" });
       } else {

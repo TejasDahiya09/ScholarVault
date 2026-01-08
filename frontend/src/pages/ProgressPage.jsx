@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
+import { onLearningRefresh } from "../lib/refreshBus";
 
 export default function ProgressPage() {
   const navigate = useNavigate();
@@ -22,14 +23,12 @@ export default function ProgressPage() {
   const [velocity, setVelocity] = useState([]);
 
   useEffect(() => {
-    const fetchAll = () => {
+    fetchProgressData();
+    // Subscribe to global learning refresh events (bookmark/completion changes)
+    const cleanup = onLearningRefresh(() => {
       fetchProgressData();
-      localStorage.removeItem('sv_refresh_dashboard');
-    };
-    fetchAll();
-    // Listen for instant refresh event
-    window.addEventListener('sv_refresh_dashboard', fetchAll);
-    return () => window.removeEventListener('sv_refresh_dashboard', fetchAll);
+    });
+    return cleanup;
   }, [user?.selected_year]);
 
   // Helper to filter subjects by selected year

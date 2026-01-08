@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
+import { onLearningRefresh, REFRESH_EVENTS } from "../lib/refreshBus";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -26,14 +27,12 @@ export default function Dashboard() {
   const SUBJECTS_PER_PAGE = 5;
 
   useEffect(() => {
-    const fetchAll = () => {
+    fetchDashboardData();
+    // Subscribe to global learning refresh events (bookmark/completion changes)
+    const cleanup = onLearningRefresh(() => {
       fetchDashboardData();
-      localStorage.removeItem('sv_refresh_dashboard');
-    };
-    fetchAll();
-    // Listen for instant refresh event
-    window.addEventListener('sv_refresh_dashboard', fetchAll);
-    return () => window.removeEventListener('sv_refresh_dashboard', fetchAll);
+    });
+    return cleanup;
   }, [user?.selected_year]);
 
   // Stay on Dashboard even if there are no bookmarks
