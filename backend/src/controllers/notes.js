@@ -216,21 +216,18 @@ export const toggleBookmark = async (req, res, next) => {
       return res.status(400).json({ error: "Note ID is required" });
     }
 
-    // Deterministic: frontend sends desired state
+    // Deterministic: frontend MUST send desired state
     let result;
     if (bookmarked === true) {
       result = await bookmarksDB.addBookmark(userId, noteId);
     } else if (bookmarked === false) {
       result = await bookmarksDB.removeBookmark(userId, noteId);
     } else {
-      // Fallback: check current state and toggle (legacy support)
-      const currentIds = await bookmarksDB.getUserBookmarkIds(userId);
-      const isCurrentlyBookmarked = currentIds.includes(noteId);
-      if (isCurrentlyBookmarked) {
-        result = await bookmarksDB.removeBookmark(userId, noteId);
-      } else {
-        result = await bookmarksDB.addBookmark(userId, noteId);
-      }
+      // STRICT: Reject requests without explicit intent
+      // Toggle-by-read is forbidden per database-schema.sql invariants
+      return res.status(400).json({ 
+        error: "Missing 'bookmarked' field. Must be true or false." 
+      });
     }
 
     res.json({ ok: true, noteId, bookmarked: result.bookmarked });
