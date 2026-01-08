@@ -3,26 +3,34 @@ import config from "../config.js";
 
 /**
  * CORS Configuration Middleware
+ * 
+ * CRITICAL: This must be applied BEFORE any routes.
+ * Production origins are hardcoded as fallback to prevent CORS failures.
  */
+
+// Hardcoded production origins (fallback if env var missing)
+const PRODUCTION_ORIGINS = [
+  "https://scholarvault.netlify.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, or server requests)
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
 
-    // Get allowed origins from config (already parsed as array in config.js)
-    const allowedOrigins = config.ALLOWED_ORIGINS;
+    // Merge env origins with hardcoded production origins
+    const envOrigins = config.ALLOWED_ORIGINS || [];
+    const allowedOrigins = [...new Set([...PRODUCTION_ORIGINS, ...envOrigins])];
 
-    // If no allowed origins configured, allow all (development mode)
-    if (allowedOrigins.length === 0) {
-      return callback(null, true);
-    }
-
-    // Check if origin is in allowed list
+    // Check if origin is allowed
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 
-    // IMPORTANT: Do NOT throw error; return callback(null, false) instead
+    // Reject unknown origins (don't throw, just return false)
+    console.warn(`CORS: Blocked origin ${origin}`);
     return callback(null, false);
   },
   credentials: true,
