@@ -80,18 +80,20 @@ export default function ProgressPage() {
 
       setSubjects(subjectsWithProgress);
 
-      // Calculate stats
-      const totalCompleted = subjectsWithProgress.reduce((sum, s) => sum + (s.completed || 0), 0);
-      const totalUnits = subjectsWithProgress.reduce((sum, s) => sum + (s.total || 0), 0);
+      // Calculate total units from frontend for display context
+      const totalUnitsFromSubjects = subjectsWithProgress.reduce((sum, s) => sum + (s.total || 0), 0);
       
-      // Fetch analytics (time, streaks, weekly, monthly, subject time, velocity)
+      // Fetch analytics (time, streaks, weekly, monthly, subject time, velocity) - SINGLE SOURCE OF TRUTH
       try {
         const analyticsRes = await client.get('/api/progress/analytics');
         const a = analyticsRes.data || {};
+        
+        // Use backend completedUnitsTotal as authoritative count
+        // This ensures Dashboard and Progress page always show the same value
         setStats({
           totalTime: a.stats?.totalTimeHours || 0,
-          totalUnits,
-          completedUnits: totalCompleted,
+          totalUnits: totalUnitsFromSubjects,
+          completedUnits: a.stats?.completedUnitsTotal || 0,
           longestStreak: a.stats?.longestStreak || 0,
           currentStreak: a.stats?.currentStreak || 0,
           peakStudyTime: typeof a.stats?.peakStudyTime === 'string' && a.stats.peakStudyTime ? a.stats.peakStudyTime : null,

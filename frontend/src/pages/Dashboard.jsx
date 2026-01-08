@@ -82,28 +82,21 @@ export default function Dashboard() {
         // Set subjects without loading progress first (faster initial render)
         setSubjects(yearFilteredSubjects.map(s => ({ ...s, progress: -1 })));
         
-        // Async load progress for each subject
+        // Async load progress for each subject (progressive UI enhancement only)
+        // NOTE: Stats come from backend analytics - do NOT update stats.unitsCompleted here
         yearFilteredSubjects.forEach(async (subject) => {
           try {
             const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
-            setSubjects(prev => {
-              const updated = prev.map(s => 
-                s.id === subject.id 
-                  ? {
-                      ...s,
-                      progress: completionRes.data?.progress_percent || 0,
-                      completed: completionRes.data?.completed_units || 0,
-                      total: completionRes.data?.total_units || 0
-                    }
-                  : s
-              );
-              
-              // Update total completed units in stats
-              const totalCompleted = updated.reduce((sum, s) => sum + (s.completed || 0), 0);
-              setStats(prev => ({ ...prev, unitsCompleted: totalCompleted }));
-              
-              return updated;
-            });
+            setSubjects(prev => prev.map(s => 
+              s.id === subject.id 
+                ? {
+                    ...s,
+                    progress: completionRes.data?.progress_percent || 0,
+                    completed: completionRes.data?.completed_units || 0,
+                    total: completionRes.data?.total_units || 0
+                  }
+                : s
+            ));
           } catch (err) {
             console.error(`Error fetching progress for ${subject.id}:`, err);
           }
@@ -113,21 +106,15 @@ export default function Dashboard() {
         setError("Failed to load subjects. Please try refreshing.");
       }
 
-      // Fetch analytics (time, streaks, weekly activity)
+      // Fetch analytics (time, streaks, weekly activity) - SINGLE SOURCE OF TRUTH
       try {
         const analyticsRes = await client.get('/api/progress/analytics');
         const a = analyticsRes.data || {};
         
-        // Calculate total completed units from subjects
-        const totalCompleted = yearFilteredSubjects.reduce((sum, s) => {
-          // Will be updated when individual subject progress loads
-          return sum;
-        }, 0);
-        
+        // Backend analytics is the single source of truth for all stats
         setStats({
           totalTime: a.stats?.totalTimeHours || 0,
-          // Prefer backend analytics count for immediate consistency
-          unitsCompleted: (a.stats?.completedUnitsTotal ?? totalCompleted),
+          unitsCompleted: a.stats?.completedUnitsTotal || 0,
           currentStreak: a.stats?.currentStreak || 0
         });
         

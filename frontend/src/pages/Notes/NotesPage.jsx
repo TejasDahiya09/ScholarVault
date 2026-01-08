@@ -136,7 +136,6 @@ export default function NotesPage() {
       try {
         const res = await client.get('/api/bookmarks');
         const bookmarkIds = res.data?.bookmarks || [];
-        console.log('Fetched bookmarks for user:', bookmarkIds);
         setBookmarkedNotes(new Set(bookmarkIds));
       } catch (err) {
         console.error("Failed to fetch bookmarks:", err);
