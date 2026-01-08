@@ -200,11 +200,13 @@ export const markAsCompleted = async (req, res, next) => {
 
 /**
  * Toggle bookmark for a note
+ * Uses deterministic add/remove based on request body
  */
 export const toggleBookmark = async (req, res, next) => {
   try {
     const userId = req.user?.userId;
     const { id: noteId } = req.params;
+    const { bookmarked } = req.body; // Explicit intent from frontend
 
     if (!userId) {
       return res.status(401).json({ error: "User not authenticated" });
@@ -214,8 +216,23 @@ export const toggleBookmark = async (req, res, next) => {
       return res.status(400).json({ error: "Note ID is required" });
     }
 
-    // Toggle bookmark via DB
-    const result = await bookmarksDB.toggleBookmark(userId, noteId);
+    // Deterministic: frontend sends desired state
+    let result;
+    if (bookmarked === true) {
+      result = await bookmarksDB.addBookmark(userId, noteId);
+    } else if (bookmarked === false) {
+      result = await bookmarksDB.removeBookmark(userId, noteId);
+    } else {
+      // Fallback: check current state and toggle (legacy support)
+      const currentIds = await bookmarksDB.getUserBookmarkIds(userId);
+      const isCurrentlyBookmarked = currentIds.includes(noteId);
+      if (isCurrentlyBookmarked) {
+        result = await bookmarksDB.removeBookmark(userId, noteId);
+      } else {
+        result = await bookmarksDB.addBookmark(userId, noteId);
+      }
+    }
+
     res.json({ ok: true, noteId, bookmarked: result.bookmarked });
   } catch (err) {
     res.status(500).json({ error: err.message });

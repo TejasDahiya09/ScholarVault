@@ -692,6 +692,7 @@ export default function NotesPage() {
     const originalBookmarkedNotes = new Set(bookmarkedNotes); // Store for rollback
     try {
       const isBookmarked = bookmarkedNotes.has(noteId);
+      const desiredState = !isBookmarked; // Explicit intent
       // Optimistically update UI
       setBookmarkedNotes(prev => {
         const updated = new Set(prev);
@@ -699,8 +700,9 @@ export default function NotesPage() {
         else updated.add(noteId);
         return updated;
       });
-      await client.post(`/api/notes/${noteId}/bookmark`);
-      // Only re-fetch bookmarks (not completion, which is unaffected)
+      // Send explicit desired state to backend (deterministic)
+      await client.post(`/api/notes/${noteId}/bookmark`, { bookmarked: desiredState });
+      // Refetch to reconcile with backend truth
       const bookmarksRes = await client.get('/api/bookmarks');
       setBookmarkedNotes(new Set(bookmarksRes.data?.bookmarks || []));
       localStorage.setItem('sv_refresh_dashboard', '1');

@@ -37,39 +37,39 @@ export const bookmarksDB = {
 	},
 
 	/**
-	 * Toggle bookmark for a note
-	 * Returns { bookmarked: boolean }
+	 * Add bookmark for a note (idempotent)
+	 * Uses INSERT ON CONFLICT - safe for retries
 	 */
-	async toggleBookmark(userId, noteId) {
-		// Check existing
-		const { data: existing, error: selError } = await supabase
+	async addBookmark(userId, noteId) {
+		const { error } = await supabase
 			.from("user_bookmarks")
-			.select("id")
-			.eq("user_id", userId)
-			.eq("note_id", noteId)
-			.maybeSingle();
-		if (selError && selError.code !== "PGRST116") {
-			throw new Error(`Database error: ${selError.message}`);
-		}
-
-		if (existing?.id) {
-			const { error } = await supabase
-				.from("user_bookmarks")
-				.delete()
-				.eq("id", existing.id);
-			if (error) {
-				throw new Error(`Failed to remove bookmark: ${error.message}`);
-			}
-			return { bookmarked: false };
-		}
-
-		const { error: insError } = await supabase
-			.from("user_bookmarks")
-			.insert([{ user_id: userId, note_id: noteId, bookmarked_at: new Date().toISOString() }]);
-		if (insError) {
-			throw new Error(`Failed to add bookmark: ${insError.message}`);
+			.upsert([
+				{
+					user_id: userId,
+					note_id: noteId,
+					bookmarked_at: new Date().toISOString(),
+				}
+			], { onConflict: ["user_id", "note_id"] });
+		if (error) {
+			throw new Error(`Failed to add bookmark: ${error.message}`);
 		}
 		return { bookmarked: true };
+	},
+
+	/**
+	 * Remove bookmark for a note (idempotent)
+	 * Uses deterministic DELETE - safe for retries
+	 */
+	async removeBookmark(userId, noteId) {
+		const { error } = await supabase
+			.from("user_bookmarks")
+			.delete()
+			.eq("user_id", userId)
+			.eq("note_id", noteId);
+		if (error) {
+			throw new Error(`Failed to remove bookmark: ${error.message}`);
+		}
+		return { bookmarked: false };
 	},
 };
 
