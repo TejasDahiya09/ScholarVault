@@ -618,8 +618,7 @@ export default function NotesPage() {
     }
   };
 
-  // PHASE 1: Bookmark and completion handlers removed - will be rebuilt in Phase 2
-  // Placeholder handlers that show "feature disabled" message
+  // Bookmark and completion handlers - refetch after mutation for reliability
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyCompleted = completedNotes.has(noteId);
@@ -627,17 +626,13 @@ export default function NotesPage() {
     try {
       if (isCurrentlyCompleted) {
         await completionsAPI.markIncomplete(noteId);
-        setCompletedNotes(prev => {
-          const next = new Set(prev);
-          next.delete(noteId);
-          return next;
-        });
-        setToast({ show: true, message: "Marked as incomplete", type: "success" });
       } else {
         await completionsAPI.markComplete(noteId, subjectId);
-        setCompletedNotes(prev => new Set(prev).add(noteId));
-        setToast({ show: true, message: "Marked as complete!", type: "success" });
       }
+      // Always refetch from backend after mutation
+      const ids = await completionsAPI.getCompletedNoteIds();
+      setCompletedNotes(new Set(ids));
+      setToast({ show: true, message: isCurrentlyCompleted ? "Marked as incomplete" : "Marked as complete!", type: "success" });
     } catch (err) {
       console.error("Completion toggle failed:", err);
       setToast({ show: true, message: "Failed to update completion", type: "error" });
@@ -652,17 +647,13 @@ export default function NotesPage() {
     try {
       if (isCurrentlyBookmarked) {
         await bookmarksAPI.removeBookmark(noteId);
-        setBookmarkedNotes(prev => {
-          const next = new Set(prev);
-          next.delete(noteId);
-          return next;
-        });
-        setToast({ show: true, message: "Bookmark removed", type: "success" });
       } else {
         await bookmarksAPI.addBookmark(noteId, subjectId);
-        setBookmarkedNotes(prev => new Set(prev).add(noteId));
-        setToast({ show: true, message: "Bookmarked!", type: "success" });
       }
+      // Always refetch from backend after mutation
+      const ids = await bookmarksAPI.getBookmarkedNoteIds();
+      setBookmarkedNotes(new Set(ids));
+      setToast({ show: true, message: isCurrentlyBookmarked ? "Bookmark removed" : "Bookmarked!", type: "success" });
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
       setToast({ show: true, message: "Failed to update bookmark", type: "error" });
