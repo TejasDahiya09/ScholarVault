@@ -137,6 +137,8 @@ export default function NotesPage() {
         bookmarksAPI.getBookmarkedNoteIds(),
         completionsAPI.getCompletedNoteIds(),
       ]);
+      console.log("[DEBUG] Loaded bookmarks:", bookmarkIds);
+      console.log("[DEBUG] Loaded completions:", completedIds);
       setBookmarkedNotes(new Set(bookmarkIds));
       setCompletedNotes(new Set(completedIds));
     } catch (err) {
@@ -622,15 +624,19 @@ export default function NotesPage() {
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyCompleted = completedNotes.has(noteId);
+    console.log("[DEBUG] handleMarkComplete called:", { noteId, isCurrentlyCompleted });
     
     try {
       if (isCurrentlyCompleted) {
         await completionsAPI.markIncomplete(noteId);
+        console.log("[DEBUG] markIncomplete succeeded");
       } else {
         await completionsAPI.markComplete(noteId, subjectId);
+        console.log("[DEBUG] markComplete succeeded");
       }
       // Always refetch from backend after mutation
       const ids = await completionsAPI.getCompletedNoteIds();
+      console.log("[DEBUG] Refetched completions:", ids);
       setCompletedNotes(new Set(ids));
       setToast({ show: true, message: isCurrentlyCompleted ? "Marked as incomplete" : "Marked as complete!", type: "success" });
     } catch (err) {
@@ -643,15 +649,19 @@ export default function NotesPage() {
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyBookmarked = bookmarkedNotes.has(noteId);
+    console.log("[DEBUG] handleToggleBookmark called:", { noteId, isCurrentlyBookmarked });
     
     try {
       if (isCurrentlyBookmarked) {
         await bookmarksAPI.removeBookmark(noteId);
+        console.log("[DEBUG] removeBookmark succeeded");
       } else {
         await bookmarksAPI.addBookmark(noteId, subjectId);
+        console.log("[DEBUG] addBookmark succeeded");
       }
       // Always refetch from backend after mutation
       const ids = await bookmarksAPI.getBookmarkedNoteIds();
+      console.log("[DEBUG] Refetched bookmarks:", ids);
       setBookmarkedNotes(new Set(ids));
       setToast({ show: true, message: isCurrentlyBookmarked ? "Bookmark removed" : "Bookmarked!", type: "success" });
     } catch (err) {
