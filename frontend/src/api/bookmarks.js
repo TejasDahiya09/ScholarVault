@@ -12,7 +12,7 @@ export const bookmarksAPI = {
    */
   async getBookmarkedNoteIds() {
     const { data } = await client.get("/api/bookmarks");
-    return data.noteIds || [];
+    return data.bookmarks || [];
   },
 
   /**
