@@ -7,7 +7,6 @@ import InPDFSearch from "../../components/InPDFSearch";
 import ErrorBoundary from "../../components/ErrorBoundary";
 import client from "../../api/client";
 import { getSignedPdfUrl, resolveKeyFromUrl } from "../../api/files";
-import { emitLearningRefresh } from "../../lib/refreshBus";
 
 // Lazy load PDF viewer component for performance
 // Reduces initial bundle size and speeds up page load
@@ -43,11 +42,8 @@ export default function NotesPage() {
   const [subjectDetails, setSubjectDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [bookmarkedNotes, setBookmarkedNotes] = useState(new Set());
-  const [completedNotes, setCompletedNotes] = useState(new Set());
+  // PHASE 1: Bookmark/completion disabled - will be rebuilt in Phase 2
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
-  const [bookmarkPopup, setBookmarkPopup] = useState({ show: false, noteId: null });
-  const [completePopup, setCompletePopup] = useState({ show: false, noteId: null });
 
   // Viewer
   const [selectedNote, setSelectedNote] = useState(null);
@@ -131,19 +127,7 @@ export default function NotesPage() {
     });
   };
 
-  // Fetch user bookmarks on mount
-  useEffect(() => {
-    async function fetchBookmarks() {
-      try {
-        const res = await client.get('/api/bookmarks');
-        const bookmarkIds = res.data?.bookmarks || [];
-        setBookmarkedNotes(new Set(bookmarkIds));
-      } catch (err) {
-        console.error("Failed to fetch bookmarks:", err);
-      }
-    }
-    fetchBookmarks();
-  }, []);
+  // PHASE 1: Bookmark fetching disabled - will be rebuilt in Phase 2
 
   // Fetch subject data
   // Extracted load function to allow manual refresh
@@ -164,17 +148,17 @@ export default function NotesPage() {
         };
         const pptItems = allNotes.filter(isPptFile);
         const regularNotes = allNotes.filter((n) => !isPptFile(n));
-        // Merge completed/bookmarked status into notes
+        // PHASE 1: No completed/bookmarked status - will be rebuilt in Phase 2
         const mergedNotes = regularNotes.map(note => ({
           ...note,
-          completed: completedNotes.has(note.id),
-          bookmarked: bookmarkedNotes.has(note.id)
+          completed: false,
+          bookmarked: false
         }));
         setNotesList(sortByUnitNumber(mergedNotes));
         const mergedPpts = pptItems.map(note => ({
           ...note,
-          completed: completedNotes.has(note.id),
-          bookmarked: bookmarkedNotes.has(note.id)
+          completed: false,
+          bookmarked: false
         }));
         setPptList(sortByUnitNumber(mergedPpts));
         setBooksList(subject.books || []);
@@ -200,22 +184,7 @@ export default function NotesPage() {
     load();
   }, [subjectId, noteId]);
 
-  // Fetch completion status for current subject so buttons reflect saved progress
-  useEffect(() => {
-    if (!subjectId) return;
-
-    async function fetchCompletion() {
-      try {
-        const res = await client.get(`/api/subjects/${subjectId}/progress`);
-        const completedIds = res.data?.completed_note_ids || [];
-        setCompletedNotes(new Set(completedIds));
-      } catch (err) {
-        console.error("Failed to load completion status:", err);
-      }
-    }
-
-    fetchCompletion();
-  }, [subjectId]);
+  // PHASE 1: Completion fetching disabled - will be rebuilt in Phase 2
 
   // Load cached summary when note changes or AI mode switches
   useEffect(() => {
@@ -643,84 +612,18 @@ export default function NotesPage() {
     }
   };
 
-  // Handle mark as complete
-  const handleMarkComplete = async (e, noteId) => {
+  // PHASE 1: Bookmark and completion handlers removed - will be rebuilt in Phase 2
+  // Placeholder handlers that show "feature disabled" message
+  const handleMarkComplete = (e, noteId) => {
     e.stopPropagation();
-    const originalCompletedNotes = new Set(completedNotes); // Store for rollback
-    try {
-      const sid = subjectId || selectedNote?.subject_id;
-      if (!sid) {
-        setToast({ show: true, message: "Missing subject context", type: "error" });
-        setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
-        return;
-      }
-      const isCompleted = completedNotes.has(noteId);
-      // Optimistically update UI
-      setCompletedNotes(prev => {
-        const updated = new Set(prev);
-        if (isCompleted) updated.delete(noteId);
-        else updated.add(noteId);
-        return updated;
-      });
-      const resp = await client.post(`/api/notes/${noteId}/complete`, {
-        subjectId: sid,
-        completed: !isCompleted,
-      });
-      // Use fresh progress snapshot from response to avoid extra GET
-      const ids = resp.data?.progress?.completed_note_ids || [];
-      setCompletedNotes(new Set(ids));
-      // Emit global refresh for Dashboard/Progress pages
-      emitLearningRefresh();
-      if (isCompleted) {
-        setToast({ show: true, message: "Marked as incomplete", type: "info" });
-      } else {
-        setToast({ show: true, message: "✓ Marked as complete!", type: "success" });
-        setCompletePopup({ show: true, noteId });
-        setTimeout(() => setCompletePopup({ show: false, noteId: null }), 3000);
-      }
-      setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
-    } catch (err) {
-      console.error("Failed to mark note complete:", err);
-      setCompletedNotes(originalCompletedNotes); // ROLLBACK on error
-      setToast({ show: true, message: "Failed to update completion status", type: "error" });
-      setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
-    }
+    setToast({ show: true, message: "Completion tracking temporarily disabled", type: "info" });
+    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
 
-  // Handle bookmark toggle
-  const handleToggleBookmark = async (e, noteId) => {
+  const handleToggleBookmark = (e, noteId) => {
     e.stopPropagation();
-    const originalBookmarkedNotes = new Set(bookmarkedNotes); // Store for rollback
-    try {
-      const isBookmarked = bookmarkedNotes.has(noteId);
-      const desiredState = !isBookmarked; // Explicit intent
-      // Optimistically update UI
-      setBookmarkedNotes(prev => {
-        const updated = new Set(prev);
-        if (isBookmarked) updated.delete(noteId);
-        else updated.add(noteId);
-        return updated;
-      });
-      // Send explicit desired state to backend (deterministic)
-      await client.post(`/api/notes/${noteId}/bookmark`, { bookmarked: desiredState });
-      // Refetch to reconcile with backend truth
-      const bookmarksRes = await client.get('/api/bookmarks');
-      setBookmarkedNotes(new Set(bookmarksRes.data?.bookmarks || []));
-      // Emit global refresh for Dashboard/Progress pages
-      emitLearningRefresh();
-      if (isBookmarked) {
-        setToast({ show: true, message: "Bookmark removed", type: "info" });
-      } else {
-        setBookmarkPopup({ show: true, noteId });
-        setTimeout(() => setBookmarkPopup({ show: false, noteId: null }), 3000);
-      }
-      setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
-    } catch (err) {
-      console.error("Failed to toggle bookmark:", err);
-      setBookmarkedNotes(originalBookmarkedNotes); // ROLLBACK on error
-      setToast({ show: true, message: "Failed to update bookmark", type: "error" });
-      setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
-    }
+    setToast({ show: true, message: "Bookmarks temporarily disabled", type: "info" });
+    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
 
   // ------------------------------------------------------------------------------------
@@ -732,31 +635,7 @@ export default function NotesPage() {
 
   return (
     <>
-      {/* Bookmark Saved Popup */}
-      {bookmarkPopup.show && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className="animate-in fade-in zoom-in duration-300 pointer-events-auto">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 text-center max-w-sm border border-gray-200">
-              <div className="text-5xl mb-4">⭐</div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Saved!</h2>
-              <p className="text-gray-600">This note has been saved for future learning</p>
-              <p className="text-sm text-gray-500 mt-3">You can access it anytime from your bookmarks</p>
-            </div>
-          </div>
-        </div>
-      )}
-      {completePopup.show && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className="animate-in fade-in zoom-in duration-300 pointer-events-auto">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 text-center max-w-sm border border-gray-200">
-              <div className="text-5xl mb-4">✅</div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Completed!</h2>
-              <p className="text-gray-600">Marked as done and tracked in your progress</p>
-              <p className="text-sm text-gray-500 mt-3">You can revisit or unmark anytime</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* PHASE 1: Bookmark/Complete popups disabled - will be rebuilt in Phase 2 */}
       {/* Toast Notification */}
       {toast.show && (
         <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -791,8 +670,8 @@ export default function NotesPage() {
             onClick={openNoteViewer}
             onToggleBookmark={handleToggleBookmark}
             onMarkComplete={handleMarkComplete}
-            bookmarkedNotes={bookmarkedNotes}
-            completedNotes={completedNotes}
+            bookmarkedNotes={new Set()}
+            completedNotes={new Set()}
             showMarkComplete={true}
           />
         )}
@@ -805,8 +684,8 @@ export default function NotesPage() {
             onClick={(ppt) => openNoteViewer({ ...ppt, isPpt: true })}
             onToggleBookmark={handleToggleBookmark}
             onMarkComplete={handleMarkComplete}
-            bookmarkedNotes={bookmarkedNotes}
-            completedNotes={completedNotes}
+            bookmarkedNotes={new Set()}
+            completedNotes={new Set()}
             showMarkComplete={false}
           />
         )}
@@ -819,8 +698,8 @@ export default function NotesPage() {
             onClick={(pyq) => openNoteViewer({ ...pyq, isPyQ: true })}
             onToggleBookmark={handleToggleBookmark}
             onMarkComplete={handleMarkComplete}
-            bookmarkedNotes={bookmarkedNotes}
-            completedNotes={completedNotes}
+            bookmarkedNotes={new Set()}
+            completedNotes={new Set()}
             showMarkComplete={false}
           />
         )}
@@ -833,8 +712,8 @@ export default function NotesPage() {
             onClick={(syll) => openNoteViewer({ ...syll, isSyllabus: true })}
             onToggleBookmark={handleToggleBookmark}
             onMarkComplete={handleMarkComplete}
-            bookmarkedNotes={bookmarkedNotes}
-            completedNotes={completedNotes}
+            bookmarkedNotes={new Set()}
+            completedNotes={new Set()}
             showMarkComplete={false}
           />
         )}
@@ -847,8 +726,8 @@ export default function NotesPage() {
             onClick={(book) => openNoteViewer({ ...book, isBook: true })}
             onToggleBookmark={handleToggleBookmark}
             onMarkComplete={handleMarkComplete}
-            bookmarkedNotes={bookmarkedNotes}
-            completedNotes={completedNotes}
+            bookmarkedNotes={new Set()}
+            completedNotes={new Set()}
             showMarkComplete={false}
           />
         )}

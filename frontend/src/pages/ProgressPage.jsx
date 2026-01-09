@@ -2,13 +2,11 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
-import { onLearningRefresh } from "../lib/refreshBus";
 
 export default function ProgressPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [refreshVersion, setRefreshVersion] = useState(0); // VERSION-BASED REFRESH
   const [subjects, setSubjects] = useState([]);
   const [stats, setStats] = useState({
     totalTime: 0,
@@ -23,16 +21,10 @@ export default function ProgressPage() {
   const [subjectTime, setSubjectTime] = useState([]);
   const [velocity, setVelocity] = useState([]);
 
-  // Subscribe to global learning refresh events ONCE
-  // Updates state which triggers the data-fetching effect
-  useEffect(() => {
-    return onLearningRefresh(setRefreshVersion);
-  }, []);
-
-  // Data-fetching effect: runs on mount, year change, OR refreshVersion change
+  // PHASE 1: Fetch data on mount and year change only
   useEffect(() => {
     fetchProgressData();
-  }, [user?.selected_year, refreshVersion]);
+  }, [user?.selected_year]);
 
   // Helper to filter subjects by selected year
   const filterSubjectsByYear = (subjects) => {

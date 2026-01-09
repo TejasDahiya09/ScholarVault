@@ -249,23 +249,10 @@ export const studySessionsDB = {
     return maxCount > 0 ? peakHour : null;
   },
 
-  /** Completed units in last N days based on user_study_progress.updated_at */
+  /** PHASE 1: Completion tracking disabled - returns empty map */
   async getCompletedUnitsByDay(userId, days = 30) {
-    const since = new Date(Date.now() - days * 86400000).toISOString();
-    const { data, error } = await supabase
-      .from("user_study_progress")
-      .select("updated_at, is_completed")
-      .eq("user_id", userId)
-      .gte("updated_at", since);
-
-    if (error) throw new Error(`Failed to fetch completed units: ${error.message}`);
-    const perDay = new Map();
-    for (const row of data || []) {
-      if (!row.is_completed) continue;
-      const dateStr = new Date(row.updated_at).toISOString().slice(0, 10);
-      perDay.set(dateStr, (perDay.get(dateStr) || 0) + 1);
-    }
-    return perDay; // date -> count
+    // Table dropped in Phase 1, returning empty map
+    return new Map();
   },
 };
 

@@ -1,8 +1,6 @@
 import supabase from "../lib/services.js";
 import { notesService } from "../services/notes.js";
 import { aiService } from "../services/ai.js";
-import bookmarksDB from "../db/bookmarks.js";
-import progressDB from "../db/progress.js";
 
 /**
  * Get all notes
@@ -151,92 +149,6 @@ export const askQuestion = async (req, res) => {
 };
 
 /**
- * Get progress on note
- */
-export const getProgress = async (req, res) => {
-  try {
-    res.json({ progress: 0, completed: false });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-/**
- * Mark note as completed
- */
-export const markAsCompleted = async (req, res, next) => {
-  try {
-    const userId = req.user.userId;
-    const { id: noteId } = req.params;
-    const { subjectId, completed } = req.body;
-
-    if (!subjectId) {
-      return res.status(400).json({ error: "subjectId is required" });
-    }
-
-    // Atomic upsert for completion
-    const row = await progressDB.setNoteCompletion(userId, noteId, subjectId, !!completed);
-
-    // Return fresh subject progress snapshot for immediate UI sync
-    const status = await progressDB.getSubjectCompletionStatus(userId, subjectId);
-    const completedIds = await progressDB.getCompletedNotes(userId, subjectId);
-
-    res.json({
-      ok: true,
-      noteId,
-      subjectId,
-      is_completed: !!row?.is_completed,
-      progress: {
-        total_units: status.total_notes,
-        completed_units: status.completed_notes,
-        progress_percent: status.percentage,
-        completed_note_ids: completedIds,
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-}
-
-/**
- * Toggle bookmark for a note
- * Uses deterministic add/remove based on request body
- */
-export const toggleBookmark = async (req, res, next) => {
-  try {
-    const userId = req.user?.userId;
-    const { id: noteId } = req.params;
-    const { bookmarked } = req.body; // Explicit intent from frontend
-
-    if (!userId) {
-      return res.status(401).json({ error: "User not authenticated" });
-    }
-
-    if (!noteId) {
-      return res.status(400).json({ error: "Note ID is required" });
-    }
-
-    // Deterministic: frontend MUST send desired state
-    let result;
-    if (bookmarked === true) {
-      result = await bookmarksDB.addBookmark(userId, noteId);
-    } else if (bookmarked === false) {
-      result = await bookmarksDB.removeBookmark(userId, noteId);
-    } else {
-      // STRICT: Reject requests without explicit intent
-      // Toggle-by-read is forbidden per database-schema.sql invariants
-      return res.status(400).json({ 
-        error: "Missing 'bookmarked' field. Must be true or false." 
-      });
-    }
-
-    res.json({ ok: true, noteId, bookmarked: result.bookmarked });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-}
-
-/**
  * Get notes metadata for client-side search
  * GET /api/notes/metadata
  */
@@ -262,8 +174,5 @@ export default {
   getNotesByUnit,
   getSummary,
   askQuestion,
-  markAsCompleted,
-  toggleBookmark,
-  getProgress,
   getNotesMetadata,
 };
