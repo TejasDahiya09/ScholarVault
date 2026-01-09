@@ -130,19 +130,17 @@ export default function NotesPage() {
     });
   };
 
-  // Fetch bookmarks and completions from API
-  const loadUserStatus = async () => {
+  // Centralized state reload - SINGLE SOURCE OF TRUTH from backend
+  const reloadNoteState = async () => {
     try {
       const [bookmarkIds, completedIds] = await Promise.all([
         bookmarksAPI.getBookmarkedNoteIds(),
         completionsAPI.getCompletedNoteIds(),
       ]);
-      console.log("[DEBUG] Loaded bookmarks:", bookmarkIds);
-      console.log("[DEBUG] Loaded completions:", completedIds);
-      setBookmarkedNotes(new Set(bookmarkIds));
-      setCompletedNotes(new Set(completedIds));
+      setBookmarkedNotes(new Set(bookmarkIds || []));
+      setCompletedNotes(new Set(completedIds || []));
     } catch (err) {
-      console.error("Failed to load user status:", err);
+      console.error("Failed to reload note state:", err);
     }
   };
 
@@ -155,7 +153,7 @@ export default function NotesPage() {
         // Fetch subject and user status in parallel
         const [subjectRes] = await Promise.all([
           client.get(`/api/subjects/${subjectId}`),
-          loadUserStatus(),
+          reloadNoteState(),
         ]);
         const subject = subjectRes.data;
         setSubjectDetails(subject);
@@ -620,24 +618,18 @@ export default function NotesPage() {
     }
   };
 
-  // Bookmark and completion handlers - refetch after mutation for reliability
+  // Handlers - Backend is single source of truth, always reload after mutation
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyCompleted = completedNotes.has(noteId);
-    console.log("[DEBUG] handleMarkComplete called, noteId:", noteId, "isCurrentlyCompleted:", isCurrentlyCompleted);
     
     try {
       if (isCurrentlyCompleted) {
         await completionsAPI.markIncomplete(noteId);
-        console.log("[DEBUG] markIncomplete API called");
       } else {
         await completionsAPI.markComplete(noteId, subjectId);
-        console.log("[DEBUG] markComplete API called");
       }
-      // Always refetch from backend after mutation
-      const ids = await completionsAPI.getCompletedNoteIds();
-      console.log("[DEBUG] After mutation, fetched completions:", ids);
-      setCompletedNotes(new Set(ids));
+      await reloadNoteState();
       setToast({ show: true, message: isCurrentlyCompleted ? "Marked as incomplete" : "Marked as complete!", type: "success" });
     } catch (err) {
       console.error("Completion toggle failed:", err);
@@ -649,20 +641,14 @@ export default function NotesPage() {
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyBookmarked = bookmarkedNotes.has(noteId);
-    console.log("[DEBUG] handleToggleBookmark called, noteId:", noteId, "isCurrentlyBookmarked:", isCurrentlyBookmarked);
     
     try {
       if (isCurrentlyBookmarked) {
         await bookmarksAPI.removeBookmark(noteId);
-        console.log("[DEBUG] removeBookmark API called");
       } else {
         await bookmarksAPI.addBookmark(noteId, subjectId);
-        console.log("[DEBUG] addBookmark API called");
       }
-      // Always refetch from backend after mutation
-      const ids = await bookmarksAPI.getBookmarkedNoteIds();
-      console.log("[DEBUG] After mutation, fetched bookmarks:", ids);
-      setBookmarkedNotes(new Set(ids));
+      await reloadNoteState();
       setToast({ show: true, message: isCurrentlyBookmarked ? "Bookmark removed" : "Bookmarked!", type: "success" });
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
