@@ -1,6 +1,7 @@
 import { Router } from "express";
 import subjectsDB from "../db/subjects.js";
 import notesDB from "../db/notes.js";
+import completionsDB from "../db/completions.js";
 import { authenticate } from "../middlewares/auth.js";
 import { supabase } from "../lib/services.js";
 
@@ -68,17 +69,14 @@ router.get("/:id/notes", async (req, res, next) => {
 
 /**
  * Get subject progress for authenticated user
- * PHASE 1: Returns placeholder data (completion tracking disabled)
  */
 router.get("/:id/progress", authenticate, async (req, res, next) => {
   try {
-    // PHASE 1: Completion tracking disabled - return zero progress
-    res.json({
-      total_units: 0,
-      completed_units: 0,
-      progress_percent: 0,
-      completed_note_ids: [],
-    });
+    const userId = req.user.userId;
+    const subjectId = req.params.id;
+
+    const progress = await completionsDB.getSubjectProgress(userId, subjectId);
+    res.json(progress);
   } catch (err) {
     next(err);
   }
@@ -102,8 +100,9 @@ router.get("/:id/units", authenticate, async (req, res, next) => {
       throw new Error(`Failed to fetch notes: ${notesError.message}`);
     }
 
-    // PHASE 1: Completion tracking disabled (table dropped)
-    const completedSet = new Set();
+    // Get completed note IDs from new completions table
+    const completedIds = await completionsDB.getCompletedNoteIds(userId);
+    const completedSet = new Set(completedIds);
 
     // Group notes by unit_number
     const unitsMap = new Map();

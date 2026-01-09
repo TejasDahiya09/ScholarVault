@@ -13,6 +13,8 @@ import subjectsRoutes from "./src/routes/subjects.js";
 import searchRoutes from "./src/routes/search.js";
 import filesRoutes from "./src/routes/files.js";
 import progressRoutes from "./src/routes/progress.js";
+import bookmarksRoutes from "./src/routes/bookmarks.js";
+import completionsRoutes from "./src/routes/completions.js";
 
 const app = express();
 
@@ -91,6 +93,8 @@ app.use("/api/subjects", subjectsRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/files", filesRoutes);
 app.use("/api/progress", progressRoutes);
+app.use("/api/bookmarks", bookmarksRoutes);
+app.use("/api/completions", completionsRoutes);
 
 /**
  * 404 Handler

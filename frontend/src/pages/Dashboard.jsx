@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
+import bookmarksAPI from "../api/bookmarks";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -57,8 +58,14 @@ export default function Dashboard() {
       setLoading(true);
       setError(null);
       
-      // PHASE 1: Bookmarks disabled - will be rebuilt in Phase 2
-      setBookmarkedNotes([]);
+      // Fetch bookmarks from new API
+      try {
+        const bookmarks = await bookmarksAPI.getBookmarksWithDetails();
+        setBookmarkedNotes(bookmarks);
+      } catch (err) {
+        console.error("Failed to fetch bookmarks:", err);
+        setBookmarkedNotes([]);
+      }
       
       // Fetch subjects (all), then filter by selected year
       let yearFilteredSubjects = [];

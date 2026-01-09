@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../middlewares/auth.js";
 import studySessionsDB from "../db/studySessions.js";
+import completionsDB from "../db/completions.js";
 import { supabase } from "../lib/services.js";
 
 const router = Router();
@@ -31,16 +32,21 @@ router.post("/session/end", authenticate, async (req, res, next) => {
 
 /**
  * Get analytics for Progress page
- * PHASE 1: Only session-based analytics (no completion data)
  */
 router.get("/analytics", authenticate, async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
+    // Fetch study session analytics
     const totalHours = await studySessionsDB.getTotalHours(userId);
     const weeklyMap = await studySessionsDB.getMinutesByDay(userId, 7);
     const monthlyMap = await studySessionsDB.getMinutesByDay(userId, 30);
     const { currentStreak, longestStreak } = await studySessionsDB.getStreaks(userId, 15);
+
+    // Fetch completion analytics
+    const completionsByDate = await completionsDB.getCompletionsByDate(userId, 30);
+    const completedNoteIds = await completionsDB.getCompletedNoteIds(userId);
+    const totalCompletedNotes = completedNoteIds.length;
 
     // Build weekly array: Sun..Sat order
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -54,17 +60,18 @@ router.get("/analytics", authenticate, async (req, res, next) => {
       return { day: label, minutes: Math.round(seconds / 60), isToday: idx === todayIdx };
     });
 
-    // Build monthly trend (last 30 days) - NO completion data for Phase 1
+    // Build monthly trend (last 30 days) with completion data
     const month = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const dStr = d.toISOString().slice(0, 10);
       const minutes = Math.round((monthlyMap.get(dStr) || 0) / 60);
+      const completed = completionsByDate.get(dStr) || 0;
       month.push({
         date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         minutes,
-        completed: 0, // Placeholder until Phase 2 rebuild
+        completed,
       });
     }
 
@@ -94,12 +101,12 @@ router.get("/analytics", authenticate, async (req, res, next) => {
         currentStreak,
         longestStreak,
         peakStudyTime: peakTime,
-        completedUnitsTotal: 0, // Placeholder until Phase 2 rebuild
+        completedUnitsTotal: totalCompletedNotes,
       },
       weekly,
       monthly: month,
-      subjectTime: [], // Placeholder until Phase 2 rebuild
-      velocity: [], // Placeholder until Phase 2 rebuild
+      subjectTime: [],
+      velocity: [],
     });
   } catch (err) { next(err); }
 });
