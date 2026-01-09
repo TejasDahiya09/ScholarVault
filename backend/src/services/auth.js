@@ -4,7 +4,7 @@ import userDB from "../db/users.js";
 import config from "../config.js";
 import subjectsDB from "../db/subjects.js";
 import notesDB from "../db/notes.js";
-import progressDB from "../db/progress.js";
+import completionsDB from "../db/completions.js";
 
 /**
  * Authentication Service
@@ -248,7 +248,7 @@ export const authService = {
         userNotes = userNotes.concat(subjectNotes);
 
         // For each subject, compute completion using note-level progress
-        const status = await progressDB.getSubjectCompletionStatus(userId, subject.id);
+        const status = await completionsDB.getSubjectProgress(userId, subject.id);
         studyProgressBySubject[subject.id] = status;
         totalNotes += status.total_notes || 0;
         completedNotes += status.completed_notes || 0;
