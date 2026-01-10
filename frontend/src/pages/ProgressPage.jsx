@@ -21,9 +21,19 @@ export default function ProgressPage() {
   const [subjectTime, setSubjectTime] = useState([]);
   const [velocity, setVelocity] = useState([]);
 
-  // PHASE 1: Fetch data on mount and year change only
+  // Fetch data on mount, year change, and when learning updates occur
   useEffect(() => {
     fetchProgressData();
+    
+    // Subscribe to learning updates from NotesPage
+    const handleLearningUpdate = () => {
+      fetchProgressData();
+    };
+    window.addEventListener("learning:update", handleLearningUpdate);
+    
+    return () => {
+      window.removeEventListener("learning:update", handleLearningUpdate);
+    };
   }, [user?.selected_year]);
 
   // Helper to filter subjects by selected year

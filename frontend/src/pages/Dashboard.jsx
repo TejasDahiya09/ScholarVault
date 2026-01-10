@@ -26,9 +26,19 @@ export default function Dashboard() {
   const BOOKMARKS_PER_PAGE = 4;
   const SUBJECTS_PER_PAGE = 5;
 
-  // PHASE 1: Fetch data on mount and year change only
+  // Fetch data on mount, year change, and when learning updates occur
   useEffect(() => {
     fetchDashboardData();
+    
+    // Subscribe to learning updates from NotesPage
+    const handleLearningUpdate = () => {
+      fetchDashboardData();
+    };
+    window.addEventListener("learning:update", handleLearningUpdate);
+    
+    return () => {
+      window.removeEventListener("learning:update", handleLearningUpdate);
+    };
   }, [user?.selected_year]);
 
   // Stay on Dashboard even if there are no bookmarks

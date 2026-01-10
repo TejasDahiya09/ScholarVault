@@ -638,6 +638,8 @@ export default function NotesPage() {
         setCompletedNotes(prev => new Set(prev).add(noteId));
         setToast({ show: true, message: "Marked as complete!", type: "success" });
       }
+      // Notify other pages (Dashboard, Progress) to refresh
+      window.dispatchEvent(new Event("learning:update"));
     } catch (err) {
       console.error("Completion toggle failed:", err);
       setToast({ show: true, message: "Failed to update completion", type: "error" });
@@ -663,6 +665,8 @@ export default function NotesPage() {
         setBookmarkedNotes(prev => new Set(prev).add(noteId));
         setToast({ show: true, message: "Bookmarked!", type: "success" });
       }
+      // Notify other pages (Dashboard, Progress) to refresh
+      window.dispatchEvent(new Event("learning:update"));
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
       setToast({ show: true, message: "Failed to update bookmark", type: "error" });
