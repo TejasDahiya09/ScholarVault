@@ -120,9 +120,9 @@ export const completionsDB = {
     const percentage = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
 
     return {
-      total_notes: totalCount,
-      completed_notes: completedCount,
-      percentage,
+      total_units: totalCount,
+      completed_units: completedCount,
+      progress_percent: percentage,
       completed_note_ids: completedIds,
     };
   },
