@@ -67,11 +67,12 @@ export const completionsDB = {
    */
   async markIncomplete(userId, noteId) {
     console.log('[COMPLETIONS] Attempting to delete:', { userId, noteId });
-    const { error } = await supabase
+    const { data, error, status, statusText } = await supabase
       .from("user_note_completions")
       .delete()
       .eq("user_id", userId)
       .eq("note_id", noteId);
+    console.log('[COMPLETIONS] Supabase delete response:', { data, error, status, statusText });
     if (error) {
       console.error('[COMPLETIONS] Delete error:', error);
       throw new Error(`Failed to mark incomplete: ${error.message}`);
