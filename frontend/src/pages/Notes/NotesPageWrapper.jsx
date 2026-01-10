@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router-dom";
-import NotesPage from "./Notes/NotesPage";
+import NotesPage from "./NotesPage";
 
 export default function NotesPageWrapper() {
   const [query] = useSearchParams();
