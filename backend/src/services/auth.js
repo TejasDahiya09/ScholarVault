@@ -250,8 +250,8 @@ export const authService = {
         // For each subject, compute completion using note-level progress
         const status = await completionsDB.getSubjectProgress(userId, subject.id);
         studyProgressBySubject[subject.id] = status;
-        totalNotes += status.total_units || 0;
-        completedNotes += status.completed_units || 0;
+        totalNotes += status.total_notes || 0;
+        completedNotes += status.completed_notes || 0;
       }
     }
 

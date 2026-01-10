@@ -66,12 +66,15 @@ export const completionsDB = {
    * Uses DELETE - no error if already deleted
    */
   async markIncomplete(userId, noteId) {
-    const { error } = await supabase
+    console.log(`[DEBUG] markIncomplete called with userId=${userId}, noteId=${noteId}`);
+    const { data, error } = await supabase
       .from("user_note_completions")
       .delete()
       .eq("user_id", userId)
-      .eq("note_id", noteId);
+      .eq("note_id", noteId)
+      .select();
     
+    console.log(`[DEBUG] markIncomplete result: data=${JSON.stringify(data)}, error=${error?.message || 'none'}`);
     if (error) throw new Error(`Failed to mark incomplete: ${error.message}`);
     return { completed: false };
   },
@@ -120,9 +123,9 @@ export const completionsDB = {
     const percentage = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
 
     return {
-      total_units: totalCount,
-      completed_units: completedCount,
-      progress_percent: percentage,
+      total_notes: totalCount,
+      completed_notes: completedCount,
+      percentage,
       completed_note_ids: completedIds,
     };
   },
