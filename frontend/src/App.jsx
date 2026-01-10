@@ -95,7 +95,8 @@ export default function App() {
           path="/notes"
           element={
             <AppShell>
-              <NotesPage />
+              {/* Wrapper forces remount on param change */}
+              <NotesPageWrapper />
             </AppShell>
           }
         />
