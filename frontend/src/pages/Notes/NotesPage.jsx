@@ -130,17 +130,17 @@ export default function NotesPage() {
     });
   };
 
-  // Centralized state reload - SINGLE SOURCE OF TRUTH from backend
-  const reloadNoteState = async () => {
+  // Fetch bookmarks and completions from API
+  const loadUserStatus = async () => {
     try {
       const [bookmarkIds, completedIds] = await Promise.all([
         bookmarksAPI.getBookmarkedNoteIds(),
         completionsAPI.getCompletedNoteIds(),
       ]);
-      setBookmarkedNotes(new Set(bookmarkIds || []));
-      setCompletedNotes(new Set(completedIds || []));
+      setBookmarkedNotes(new Set(bookmarkIds));
+      setCompletedNotes(new Set(completedIds));
     } catch (err) {
-      console.error("Failed to reload note state:", err);
+      console.error("Failed to load user status:", err);
     }
   };
 
@@ -153,7 +153,7 @@ export default function NotesPage() {
         // Fetch subject and user status in parallel
         const [subjectRes] = await Promise.all([
           client.get(`/api/subjects/${subjectId}`),
-          reloadNoteState(),
+          loadUserStatus(),
         ]);
         const subject = subjectRes.data;
         setSubjectDetails(subject);
@@ -618,7 +618,8 @@ export default function NotesPage() {
     }
   };
 
-  // Handlers - Backend is single source of truth, always reload after mutation
+  // PHASE 1: Bookmark and completion handlers removed - will be rebuilt in Phase 2
+  // Placeholder handlers that show "feature disabled" message
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyCompleted = completedNotes.has(noteId);
@@ -626,11 +627,17 @@ export default function NotesPage() {
     try {
       if (isCurrentlyCompleted) {
         await completionsAPI.markIncomplete(noteId);
+        setCompletedNotes(prev => {
+          const next = new Set(prev);
+          next.delete(noteId);
+          return next;
+        });
+        setToast({ show: true, message: "Marked as incomplete", type: "success" });
       } else {
         await completionsAPI.markComplete(noteId, subjectId);
+        setCompletedNotes(prev => new Set(prev).add(noteId));
+        setToast({ show: true, message: "Marked as complete!", type: "success" });
       }
-      await reloadNoteState();
-      setToast({ show: true, message: isCurrentlyCompleted ? "Marked as incomplete" : "Marked as complete!", type: "success" });
     } catch (err) {
       console.error("Completion toggle failed:", err);
       setToast({ show: true, message: "Failed to update completion", type: "error" });
@@ -645,11 +652,17 @@ export default function NotesPage() {
     try {
       if (isCurrentlyBookmarked) {
         await bookmarksAPI.removeBookmark(noteId);
+        setBookmarkedNotes(prev => {
+          const next = new Set(prev);
+          next.delete(noteId);
+          return next;
+        });
+        setToast({ show: true, message: "Bookmark removed", type: "success" });
       } else {
         await bookmarksAPI.addBookmark(noteId, subjectId);
+        setBookmarkedNotes(prev => new Set(prev).add(noteId));
+        setToast({ show: true, message: "Bookmarked!", type: "success" });
       }
-      await reloadNoteState();
-      setToast({ show: true, message: isCurrentlyBookmarked ? "Bookmark removed" : "Bookmarked!", type: "success" });
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
       setToast({ show: true, message: "Failed to update bookmark", type: "error" });

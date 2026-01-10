@@ -12,7 +12,7 @@ export const completionsAPI = {
    */
   async getCompletedNoteIds() {
     const { data } = await client.get("/api/completions");
-    return data.completions || [];
+    return data.noteIds || [];
   },
 
   /**
