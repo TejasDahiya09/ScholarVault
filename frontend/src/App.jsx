@@ -1,7 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
-import NotesPageWrapper from "./pages/Notes/NotesPageWrapper";
 
 // Lazy load all pages for better performance
 const Landing = lazy(() => import("./pages/Landing"));
@@ -96,8 +95,7 @@ export default function App() {
           path="/notes"
           element={
             <AppShell>
-              {/* Wrapper forces remount on param change */}
-              <NotesPageWrapper />
+              <NotesPage />
             </AppShell>
           }
         />

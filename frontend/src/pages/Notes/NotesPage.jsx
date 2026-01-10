@@ -23,8 +23,6 @@ const PdfViewerSection = lazy(() => Promise.resolve({
 export default function NotesPage() {
   const navigate = useNavigate();
   const { darkMode } = useDarkMode();
-  // Log on every render to confirm remount and param changes
-  console.log("[NotesPage] render", { subjectId, branch, semester });
   // Always force viewer modal and all document viewers to true light mode by neutralizing global dark mode inversion.
   // If darkMode is active, apply filter: invert(1) hue-rotate(180deg) to double-invert and neutralize.
   const viewerLightModeStyle = darkMode ? { filter: 'invert(1) hue-rotate(180deg)', background: '#fff' } : { background: '#fff' };
@@ -191,17 +189,8 @@ export default function NotesPage() {
   };
 
   useEffect(() => {
-    if (!subjectId || !branch || !semester) return;
-    // Bulletproof: reset state before loading new subject
-    setNotesList([]);
-    setPptList([]);
-    setBooksList([]);
-    setPyqList([]);
-    setSyllabusList([]);
-    setBookmarkedNotes(new Set());
-    setCompletedNotes(new Set());
     load();
-  }, [subjectId, branch, semester]);
+  }, [subjectId, noteId]);
 
   // Load cached summary when note changes or AI mode switches
   useEffect(() => {
