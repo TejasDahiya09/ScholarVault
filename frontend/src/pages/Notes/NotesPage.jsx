@@ -189,7 +189,8 @@ export default function NotesPage() {
   };
 
   useEffect(() => {
-    // Optional safety: reset state before loading new subject
+    if (!subjectId || !branch || !semester) return;
+    // Bulletproof: reset state before loading new subject
     setNotesList([]);
     setPptList([]);
     setBooksList([]);
@@ -198,7 +199,7 @@ export default function NotesPage() {
     setBookmarkedNotes(new Set());
     setCompletedNotes(new Set());
     load();
-  }, [subjectId]);
+  }, [subjectId, branch, semester]);
 
   // Load cached summary when note changes or AI mode switches
   useEffect(() => {
