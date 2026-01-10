@@ -623,22 +623,15 @@ export default function NotesPage() {
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyCompleted = completedNotes.has(noteId);
-    
     try {
       if (isCurrentlyCompleted) {
         await completionsAPI.markIncomplete(noteId);
-        setCompletedNotes(prev => {
-          const next = new Set(prev);
-          next.delete(noteId);
-          return next;
-        });
         setToast({ show: true, message: "Marked as incomplete", type: "success" });
       } else {
         await completionsAPI.markComplete(noteId, subjectId);
-        setCompletedNotes(prev => new Set(prev).add(noteId));
         setToast({ show: true, message: "Marked as complete!", type: "success" });
       }
-      // Notify other pages (Dashboard, Progress) to refresh
+      await loadUserStatus();
       window.dispatchEvent(new Event("learning:update"));
     } catch (err) {
       console.error("Completion toggle failed:", err);
@@ -650,22 +643,15 @@ export default function NotesPage() {
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyBookmarked = bookmarkedNotes.has(noteId);
-    
     try {
       if (isCurrentlyBookmarked) {
         await bookmarksAPI.removeBookmark(noteId);
-        setBookmarkedNotes(prev => {
-          const next = new Set(prev);
-          next.delete(noteId);
-          return next;
-        });
         setToast({ show: true, message: "Bookmark removed", type: "success" });
       } else {
         await bookmarksAPI.addBookmark(noteId, subjectId);
-        setBookmarkedNotes(prev => new Set(prev).add(noteId));
         setToast({ show: true, message: "Bookmarked!", type: "success" });
       }
-      // Notify other pages (Dashboard, Progress) to refresh
+      await loadUserStatus();
       window.dispatchEvent(new Event("learning:update"));
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
