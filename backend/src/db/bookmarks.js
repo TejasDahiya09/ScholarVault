@@ -82,13 +82,18 @@ export const bookmarksDB = {
    * Uses DELETE - no error if already deleted
    */
   async removeBookmark(userId, noteId) {
+    console.log('[BOOKMARKS] Attempting to delete:', { userId, noteId });
     const { error } = await supabase
       .from("user_bookmarks")
       .delete()
       .eq("user_id", userId)
       .eq("note_id", noteId);
     
-    if (error) throw new Error(`Failed to remove bookmark: ${error.message}`);
+    if (error) {
+      console.error('[BOOKMARKS] Delete error:', error);
+      throw new Error(`Failed to remove bookmark: ${error.message}`);
+    }
+    console.log('[BOOKMARKS] Delete successful for:', { userId, noteId });
     return { bookmarked: false };
   },
 
