@@ -14,9 +14,7 @@ router.get("/", authenticate, async (req, res, next) => {
     const userId = req.user.userId;
     const { subjectId } = req.query;
     
-    console.log(`[DEBUG] GET /api/completions for userId=${userId}, subjectId=${subjectId || 'all'}`);
     const completedIds = await completionsDB.getCompletedNoteIds(userId, subjectId || null);
-    console.log(`[DEBUG] GET /api/completions returning ${completedIds.length} IDs: ${JSON.stringify(completedIds.slice(0, 5))}...`);
     res.json({ completions: completedIds });
   } catch (err) {
     next(err);

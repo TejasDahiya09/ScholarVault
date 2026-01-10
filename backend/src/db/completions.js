@@ -66,15 +66,12 @@ export const completionsDB = {
    * Uses DELETE - no error if already deleted
    */
   async markIncomplete(userId, noteId) {
-    console.log(`[DEBUG] markIncomplete called with userId=${userId}, noteId=${noteId}`);
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("user_note_completions")
       .delete()
       .eq("user_id", userId)
-      .eq("note_id", noteId)
-      .select();
+      .eq("note_id", noteId);
     
-    console.log(`[DEBUG] markIncomplete result: data=${JSON.stringify(data)}, error=${error?.message || 'none'}`);
     if (error) throw new Error(`Failed to mark incomplete: ${error.message}`);
     return { completed: false };
   },
