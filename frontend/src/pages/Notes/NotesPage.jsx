@@ -189,8 +189,16 @@ export default function NotesPage() {
   };
 
   useEffect(() => {
+    // Optional safety: reset state before loading new subject
+    setNotesList([]);
+    setPptList([]);
+    setBooksList([]);
+    setPyqList([]);
+    setSyllabusList([]);
+    setBookmarkedNotes(new Set());
+    setCompletedNotes(new Set());
     load();
-  }, [subjectId, noteId]);
+  }, [subjectId]);
 
   // Load cached summary when note changes or AI mode switches
   useEffect(() => {
