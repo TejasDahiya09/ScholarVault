@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
 import bookmarksAPI from "../api/bookmarks";
@@ -29,15 +29,17 @@ export default function Dashboard() {
   // Fetch data on mount, year change, and when learning updates occur
   useEffect(() => {
     fetchDashboardData();
+    
     // Subscribe to learning updates from NotesPage
     const handleLearningUpdate = () => {
       fetchDashboardData();
     };
     window.addEventListener("learning:update", handleLearningUpdate);
+    
     return () => {
       window.removeEventListener("learning:update", handleLearningUpdate);
     };
-  }, [fetchDashboardData]);
+  }, [user?.selected_year]);
 
   // Stay on Dashboard even if there are no bookmarks
   // Previously redirected to "/home" which prevented accessing Dashboard.
@@ -61,7 +63,7 @@ export default function Dashboard() {
     );
   }, [user?.selected_year]);
 
-  const fetchDashboardData = useCallback(async () => {
+  async function fetchDashboardData() {
     try {
       setLoading(true);
       setError(null);
@@ -168,7 +170,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [user?.selected_year, filterSubjectsByYear]);
+  }
 
   // Memoize paginated items
   const paginatedBookmarks = useMemo(() => {

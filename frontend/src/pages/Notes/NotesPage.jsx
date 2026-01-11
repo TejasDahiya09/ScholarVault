@@ -133,12 +133,12 @@ export default function NotesPage() {
   // Fetch bookmarks and completions from API
   const loadUserStatus = async () => {
     try {
-      const [bookmarkIds, progressRes] = await Promise.all([
+      const [bookmarkIds, completedIds] = await Promise.all([
         bookmarksAPI.getBookmarkedNoteIds(),
-        client.get(`/api/subjects/${subjectId}/progress`)
+        completionsAPI.getCompletedNoteIds(),
       ]);
       setBookmarkedNotes(new Set(bookmarkIds));
-      setCompletedNotes(new Set(progressRes.data?.completed_note_ids || []));
+      setCompletedNotes(new Set(completedIds));
     } catch (err) {
       console.error("Failed to load user status:", err);
     }
@@ -150,8 +150,11 @@ export default function NotesPage() {
     try {
       setLoading(true);
       if (subjectId) {
-        // Only fetch subject data
-        const subjectRes = await client.get(`/api/subjects/${subjectId}`);
+        // Fetch subject and user status in parallel
+        const [subjectRes] = await Promise.all([
+          client.get(`/api/subjects/${subjectId}`),
+          loadUserStatus(),
+        ]);
         const subject = subjectRes.data;
         setSubjectDetails(subject);
         const allNotes = subject.notes || [];
@@ -186,20 +189,8 @@ export default function NotesPage() {
   };
 
   useEffect(() => {
-    if (!subjectId || !branch || !semester) return;
-
-    // Reset state to avoid bleed-through
-    setCompletedNotes(new Set());
-    setBookmarkedNotes(new Set());
-
-    // Load subject notes
     load();
-
-    // 🔒 Authoritative backend hydration
-    (async () => {
-      await loadUserStatus();
-    })();
-  }, [subjectId, branch, semester]);
+  }, [subjectId, noteId]);
 
   // Load cached summary when note changes or AI mode switches
   useEffect(() => {
@@ -632,20 +623,23 @@ export default function NotesPage() {
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyCompleted = completedNotes.has(noteId);
+    
     try {
       if (isCurrentlyCompleted) {
         await completionsAPI.markIncomplete(noteId);
-        // 🔒 Always reload backend truth
-        await loadUserStatus();
-        window.dispatchEvent(new Event("learning:update"));
+        setCompletedNotes(prev => {
+          const next = new Set(prev);
+          next.delete(noteId);
+          return next;
+        });
         setToast({ show: true, message: "Marked as incomplete", type: "success" });
       } else {
         await completionsAPI.markComplete(noteId, subjectId);
-        // 🔒 Always reload backend truth
-        await loadUserStatus();
-        window.dispatchEvent(new Event("learning:update"));
+        setCompletedNotes(prev => new Set(prev).add(noteId));
         setToast({ show: true, message: "Marked as complete!", type: "success" });
       }
+      // Notify other pages (Dashboard, Progress) to refresh
+      window.dispatchEvent(new Event("learning:update"));
     } catch (err) {
       console.error("Completion toggle failed:", err);
       setToast({ show: true, message: "Failed to update completion", type: "error" });
@@ -656,6 +650,7 @@ export default function NotesPage() {
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyBookmarked = bookmarkedNotes.has(noteId);
+    
     try {
       if (isCurrentlyBookmarked) {
         await bookmarksAPI.removeBookmark(noteId);
@@ -664,14 +659,10 @@ export default function NotesPage() {
           next.delete(noteId);
           return next;
         });
-        // 🔒 Always reload backend truth
-        await loadUserStatus();
         setToast({ show: true, message: "Bookmark removed", type: "success" });
       } else {
         await bookmarksAPI.addBookmark(noteId, subjectId);
         setBookmarkedNotes(prev => new Set(prev).add(noteId));
-        // 🔒 Always reload backend truth
-        await loadUserStatus();
         setToast({ show: true, message: "Bookmarked!", type: "success" });
       }
       // Notify other pages (Dashboard, Progress) to refresh
