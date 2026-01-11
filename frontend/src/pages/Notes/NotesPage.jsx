@@ -189,18 +189,8 @@ export default function NotesPage() {
   };
 
   useEffect(() => {
-    if (!subjectId || !branch || !semester) return;
-
-    // Reset local state to prevent bleed-through
-    setCompletedNotes(new Set());
-    setBookmarkedNotes(new Set());
-
-    // Load subject notes
     load();
-
-    // Reload authoritative user state
-    loadUserStatus();
-  }, [subjectId, branch, semester]);
+  }, [subjectId, noteId]);
 
   // Load cached summary when note changes or AI mode switches
   useEffect(() => {
