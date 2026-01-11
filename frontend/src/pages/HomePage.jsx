@@ -1,13 +1,9 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Breadcrumbs from "../components/Breadcrumbs";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
 
-/**
- * HomePage - Shows all subjects for user's selected year
- * Organized by semester with visual separation
- */
 export default function HomePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -17,25 +13,42 @@ export default function HomePage() {
   const [error, setError] = useState(null);
   const [showTips, setShowTips] = useState(false);
   const [pendingSubject, setPendingSubject] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Fetch all subjects on mount
+  // Fetch all subjects
   useEffect(() => {
+    let isMounted = true;
+    const abortController = new AbortController();
+
     async function fetchSubjects() {
       try {
+        if (!isMounted) return;
         setLoading(true);
         setError(null);
-        const res = await client.get('/api/subjects');
-        setAllSubjects(Array.isArray(res.data) ? res.data : []);
+        const res = await client.get('/api/subjects', {
+          signal: abortController.signal
+        });
+        if (isMounted) {
+          setAllSubjects(Array.isArray(res.data) ? res.data : []);
+        }
       } catch (err) {
+        if (err.name === 'AbortError') return;
         console.error("Failed to fetch subjects:", err);
-        setError("Failed to load subjects. Please try again.");
-        setAllSubjects([]);
+        if (isMounted) {
+          setError("Failed to load subjects. Please try again.");
+          setAllSubjects([]);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
     fetchSubjects();
-  }, []);
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [refreshTrigger]);
 
   // Filter subjects by user's selected year
   const filteredSubjects = useMemo(() => {
@@ -62,7 +75,7 @@ export default function HomePage() {
   ];
 
   // Handle subject click
-  const handleSubjectClick = (subject) => {
+  const handleSubjectClick = useCallback((subject) => {
     const seen = localStorage.getItem('sv_subject_tips_seen') === '1';
     if (!seen) {
       setPendingSubject(subject);
@@ -70,7 +83,7 @@ export default function HomePage() {
       return;
     }
     navigate(`/notes?subjectId=${subject.id}&subjectName=${encodeURIComponent(subject.name)}&branch=${encodeURIComponent(subject.branch || '')}&semester=${encodeURIComponent(subject.semester || '')}`);
-  };
+  }, [navigate]);
 
   if (!user?.selected_year) {
     return (
@@ -85,7 +98,7 @@ export default function HomePage() {
             </p>
             <button
               onClick={() => navigate('/profile')}
-              className="min-h-touch px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 font-semibold active:scale-98"
+              className="min-h-touch px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 font-semibold"
             >
               Go to Profile
             </button>
@@ -104,12 +117,22 @@ export default function HomePage() {
 
           {/* Header */}
           <div className="mb-6 xs:mb-8">
-            <h1 className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 mb-2 truncate">
-              Subjects
-            </h1>
-            <p className="text-gray-600 text-fluid-sm xs:text-fluid-base truncate">
-              {user?.selected_year} • {filteredSubjects.length} subjects available
-            </p>
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-fluid-xl sm:text-fluid-2xl font-semibold text-gray-900 mb-2 truncate">
+                  Subjects
+                </h1>
+                <p className="text-gray-600 text-fluid-sm xs:text-fluid-base truncate">
+                  {user?.selected_year} • {filteredSubjects.length} subjects available
+                </p>
+              </div>
+              <button 
+                onClick={() => setRefreshTrigger(prev => prev + 1)}
+                className="text-sm text-indigo-600 hover:text-indigo-800"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
 
           {/* Error Display */}
@@ -117,8 +140,8 @@ export default function HomePage() {
             <div className="mb-4 xs:mb-6 p-3 xs:p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3">
               <p className="text-fluid-sm">{error}</p>
               <button 
-                onClick={() => window.location.reload()}
-                className="min-h-touch w-full xs:w-auto px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap shrink-0 active:scale-98 transition-transform"
+                onClick={() => setRefreshTrigger(prev => prev + 1)}
+                className="min-h-touch w-full xs:w-auto px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap shrink-0"
               >
                 Retry
               </button>
@@ -133,13 +156,19 @@ export default function HomePage() {
                 <p className="text-gray-600 text-fluid-sm xs:text-fluid-base">Loading subjects...</p>
               </div>
             </div>
-          ) : Object.keys(filteredSubjects).length === 0 ? (
+          ) : filteredSubjects.length === 0 ? (
             <div className="text-center py-8 xs:py-12 bg-white rounded-lg xs:rounded-xl shadow-lg px-4 xs:px-6">
               <div className="text-4xl xs:text-5xl sm:text-6xl mb-4">📚</div>
               <p className="text-fluid-lg sm:text-fluid-xl font-semibold text-gray-900 mb-2">No subjects found</p>
               <p className="text-fluid-sm xs:text-fluid-base text-gray-600">
                 No subjects available for {user?.selected_year}
               </p>
+              <button
+                onClick={() => setRefreshTrigger(prev => prev + 1)}
+                className="mt-4 min-h-touch px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                Refresh Subjects
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 xs:gap-4 md:gap-6">
@@ -147,18 +176,13 @@ export default function HomePage() {
                 <button
                   key={subject.id}
                   onClick={() => handleSubjectClick(subject)}
-                  className="group relative bg-white rounded-lg xs:rounded-xl shadow-sm hover:shadow-md p-4 xs:p-5 md:p-6 text-left transition-all duration-200 border border-gray-200 hover:border-indigo-300 hover:scale-105 active:scale-100 min-h-touch"
+                  className="group relative bg-white rounded-lg xs:rounded-xl shadow-sm hover:shadow-md p-4 xs:p-5 md:p-6 text-left transition-all duration-200 border border-gray-200 hover:border-indigo-300 min-h-touch"
                 >
                   <div className="relative z-10">
                     <div className="flex items-start justify-between mb-3 xs:mb-4">
                       <div className="w-10 h-10 xs:w-12 xs:h-12 rounded-lg bg-indigo-100 flex items-center justify-center text-xl xs:text-2xl shrink-0">
                         📖
                       </div>
-                      {subject.progress !== undefined && (
-                        <div className="px-2 xs:px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-fluid-xs font-medium whitespace-nowrap">
-                          {subject.progress}%
-                        </div>
-                      )}
                     </div>
 
                     <h3 className="font-semibold text-fluid-sm xs:text-fluid-base mb-2 text-gray-900 line-clamp-2">
@@ -176,17 +200,6 @@ export default function HomePage() {
                         <p className="text-fluid-xs xs:text-fluid-sm text-gray-500 line-clamp-2">{subject.description}</p>
                       )}
                     </div>
-
-                    {subject.progress !== undefined && (
-                      <div className="mt-3 xs:mt-4">
-                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                          <div
-                            className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${subject.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
 
                     {/* Arrow indicator */}
                     <div className="flex items-center text-indigo-600 font-medium text-fluid-xs xs:text-fluid-sm mt-3 xs:mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -214,13 +227,13 @@ export default function HomePage() {
             </ul>
             <div className="flex flex-col xs:flex-row justify-end gap-2 xs:gap-3">
               <button
-                className="min-h-touch px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                className="min-h-touch px-4 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                 onClick={() => setShowTips(false)}
               >
                 Close
               </button>
               <button
-                className="min-h-touch px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-500 active:bg-indigo-700 transition-colors"
+                className="min-h-touch px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors"
                 onClick={() => {
                   localStorage.setItem('sv_subject_tips_seen', '1');
                   setShowTips(false);

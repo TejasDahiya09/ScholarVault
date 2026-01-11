@@ -2,7 +2,8 @@
  * Completions API
  * 
  * DESIGN: Presence-based (row exists = completed)
- * NO toggle logic - explicit mark/unmark only
+ * Subject-scoped (only affect current subject's analytics)
+ * Pessimistic updates only (backend-confirmed)
  */
 import client from "./client";
 
@@ -11,32 +12,52 @@ export const completionsAPI = {
    * Get all completed note IDs for current user
    */
   async getCompletedNoteIds() {
-    const { data } = await client.get("/api/completions");
-    return data.completions || [];
+    try {
+      const { data } = await client.get("/api/completions");
+      return data.completions || [];
+    } catch (error) {
+      console.error("Error fetching completed note IDs:", error);
+      return [];
+    }
   },
 
   /**
    * Get completion count
    */
   async getCompletionCount() {
-    const { data } = await client.get("/api/completions/count");
-    return data.count || 0;
+    try {
+      const { data } = await client.get("/api/completions/count");
+      return data.count || 0;
+    } catch (error) {
+      console.error("Error fetching completion count:", error);
+      return 0;
+    }
   },
 
   /**
    * Mark note as completed (idempotent)
    */
   async markComplete(noteId, subjectId) {
-    const { data } = await client.post("/api/completions", { noteId, subjectId });
-    return data;
+    try {
+      const { data } = await client.post("/api/completions", { noteId, subjectId });
+      return data;
+    } catch (error) {
+      console.error("Error marking note as complete:", error);
+      throw error;
+    }
   },
 
   /**
    * Mark note as incomplete (remove completion)
    */
   async markIncomplete(noteId) {
-    const { data } = await client.delete(`/api/completions/${noteId}`);
-    return data;
+    try {
+      const { data } = await client.delete(`/api/completions/${noteId}`);
+      return data;
+    } catch (error) {
+      console.error("Error marking note as incomplete:", error);
+      throw error;
+    }
   },
 };
 
