@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
 
@@ -20,12 +20,27 @@ export default function ProgressPage() {
   const [monthlyData, setMonthlyData] = useState([]);
   const [subjectTime, setSubjectTime] = useState([]);
   const [velocity, setVelocity] = useState([]);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Fetch data on mount, year change, and when learning updates occur
+  useEffect(() => {
+    fetchProgressData();
+    
+    // Subscribe to learning updates from NotesPage
+    const handleLearningUpdate = () => {
+      fetchProgressData();
+    };
+    window.addEventListener("learning:update", handleLearningUpdate);
+    
+    return () => {
+      window.removeEventListener("learning:update", handleLearningUpdate);
+    };
+  }, [user?.selected_year]);
 
   // Helper to filter subjects by selected year
-  const filterSubjectsByYear = useCallback((subjects) => {
+  const filterSubjectsByYear = (subjects) => {
     if (!user?.selected_year) return subjects;
     
+    // Map year to semesters: handle numeric and "1st Year" labels
     const yearToSemesters = {
       '1st Year': ['1', '2', '1st year'],
       '2nd Year': ['3', '4', '2nd year'],
@@ -38,115 +53,77 @@ export default function ProgressPage() {
     return subjects.filter(subject => 
       validSemestersNorm.includes(String(subject.semester || '').trim().toLowerCase())
     );
-  }, [user?.selected_year]);
+  };
 
-  // Fetch data on mount, year change, and when learning updates occur
-  useEffect(() => {
-    let isMounted = true;
-    const abortController = new AbortController();
-
-    const fetchProgressData = async () => {
-      try {
-        if (!isMounted) return;
-        setLoading(true);
-        
-        // Fetch all subjects
-        const subjectsRes = await client.get('/api/subjects', {
-          signal: abortController.signal
-        });
-        const allSubjects = subjectsRes.data || [];
-        
-        // Filter by selected year
-        const yearFilteredSubjects = filterSubjectsByYear(allSubjects);
-        
-        // Fetch progress for each subject
-        const subjectsWithProgress = await Promise.all(
-          yearFilteredSubjects.map(async (subject) => {
-            try {
-              const completionRes = await client.get(`/api/subjects/${subject.id}/progress`, {
-                signal: abortController.signal
-              });
-              return {
-                ...subject,
-                progress: completionRes.data?.progress_percent || 0,
-                completed: completionRes.data?.completed_units || 0,
-                total: completionRes.data?.total_units || 0
-              };
-            } catch (err) {
-              if (err.name !== 'AbortError') {
-                console.error(`Error fetching progress for ${subject.id}:`, err);
-              }
-              return { ...subject, progress: 0, completed: 0, total: 0 };
-            }
-          })
-        );
-
-        if (isMounted) {
-          setSubjects(subjectsWithProgress);
-
-          // Calculate total units for display context only
-          const totalUnitsFromSubjects = subjectsWithProgress.reduce((sum, s) => sum + (s.total || 0), 0);
-          
-          // Fetch analytics from backend - SINGLE SOURCE OF TRUTH
+  async function fetchProgressData() {
+    try {
+      setLoading(true);
+      
+      // Fetch all subjects, progress will be computed per subject
+      const subjectsRes = await client.get('/api/subjects');
+      const allSubjects = subjectsRes.data || [];
+      
+      // Filter by selected year
+      const yearFilteredSubjects = filterSubjectsByYear(allSubjects);
+      
+      const subjectsWithProgress = await Promise.all(
+        yearFilteredSubjects.map(async (subject) => {
           try {
-            const analyticsRes = await client.get('/api/progress/analytics', {
-              signal: abortController.signal
-            });
-            const a = analyticsRes.data || {};
-            
-            // Use backend completedUnitsTotal as authoritative count
-            setStats({
-              totalTime: a.stats?.totalTimeHours || 0,
-              totalUnits: totalUnitsFromSubjects,
-              completedUnits: a.stats?.completedUnitsTotal || 0,
-              longestStreak: a.stats?.longestStreak || 0,
-              currentStreak: a.stats?.currentStreak || 0,
-              peakStudyTime: typeof a.stats?.peakStudyTime === 'string' && a.stats.peakStudyTime ? a.stats.peakStudyTime : null,
-            });
-            setWeeklyData(Array.isArray(a.weekly) ? a.weekly : []);
-            setMonthlyData(Array.isArray(a.monthly) ? a.monthly : []);
-            setSubjectTime(Array.isArray(a.subjectTime) ? a.subjectTime : []);
-            setVelocity(Array.isArray(a.velocity) ? a.velocity : []);
+            const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
+            return {
+              ...subject,
+              progress: completionRes.data?.progress_percent || 0,
+              completed: completionRes.data?.completed_units || 0,
+              total: completionRes.data?.total_units || 0
+            };
           } catch (err) {
-            if (err.name !== 'AbortError') {
-              console.error("Failed to fetch analytics:", err);
-              // Fallback to zeroed analytics
-              setWeeklyData([]);
-              setMonthlyData([]);
-              setSubjectTime([]);
-              setVelocity([]);
-            }
+            return { ...subject, progress: 0, completed: 0, total: 0 };
           }
-        }
+        })
+      );
 
-      } catch (error) {
-        if (error.name === 'AbortError') return;
-        console.error("Error fetching progress data:", error);
-      } finally {
-        if (isMounted) setLoading(false);
+      setSubjects(subjectsWithProgress);
+
+      // Calculate total units from frontend for display context
+      const totalUnitsFromSubjects = subjectsWithProgress.reduce((sum, s) => sum + (s.total || 0), 0);
+      
+      // Fetch analytics (time, streaks, weekly, monthly, subject time, velocity) - SINGLE SOURCE OF TRUTH
+      try {
+        const analyticsRes = await client.get('/api/progress/analytics');
+        const a = analyticsRes.data || {};
+        
+        // Use backend completedUnitsTotal as authoritative count
+        // This ensures Dashboard and Progress page always show the same value
+        setStats({
+          totalTime: a.stats?.totalTimeHours || 0,
+          totalUnits: totalUnitsFromSubjects,
+          completedUnits: a.stats?.completedUnitsTotal || 0,
+          longestStreak: a.stats?.longestStreak || 0,
+          currentStreak: a.stats?.currentStreak || 0,
+          peakStudyTime: typeof a.stats?.peakStudyTime === 'string' && a.stats.peakStudyTime ? a.stats.peakStudyTime : null,
+        });
+        setWeeklyData(Array.isArray(a.weekly) ? a.weekly : []);
+        setMonthlyData(Array.isArray(a.monthly) ? a.monthly : []);
+        setSubjectTime(Array.isArray(a.subjectTime) ? a.subjectTime : []);
+        setVelocity(Array.isArray(a.velocity) ? a.velocity : []);
+      } catch (err) {
+        // Fallback to zeroed analytics
+        setWeeklyData([]);
+        setMonthlyData([]);
+        setSubjectTime([]);
+        setVelocity([]);
       }
-    };
 
-    fetchProgressData();
-
-    // Subscribe to learning updates - re-fetch from backend on event
-    const handleLearningUpdate = () => {
-      if (isMounted) {
-        setRefreshTrigger(prev => prev + 1);
-      }
-    };
-    
-    window.addEventListener("learning:update", handleLearningUpdate);
-    
-    return () => {
-      isMounted = false;
-      abortController.abort();
-      window.removeEventListener("learning:update", handleLearningUpdate);
-    };
-  }, [user?.selected_year, refreshTrigger, filterSubjectsByYear]);
+    } catch (error) {
+      console.error("Error fetching progress data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   // Sort subjects by different criteria
   const strongestSubjects = [...subjects].sort((a, b) => b.progress - a.progress).slice(0, 3);
+
 
   if (loading) {
     return (
@@ -164,23 +141,13 @@ export default function ProgressPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-1 sm:mb-2">
-                Progress Analytics
-              </h1>
-              <p className="text-gray-600 text-xs sm:text-sm">Detailed insights into your learning journey</p>
-            </div>
-            <button 
-              onClick={() => setRefreshTrigger(prev => prev + 1)}
-              className="text-sm text-indigo-600 hover:text-indigo-800"
-            >
-              Refresh Data
-            </button>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-1 sm:mb-2">
+            Progress Analytics
+          </h1>
+          <p className="text-gray-600 text-xs sm:text-sm">Detailed insights into your learning journey</p>
         </div>
 
-        {/* Summary Cards - Backend Data Only */}
+        {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">
             <div className="flex flex-col gap-2">
@@ -334,7 +301,7 @@ export default function ProgressPage() {
                         <div className="text-right shrink-0">
                           <div className="text-lg sm:text-xl font-bold text-indigo-600">{Math.round(subject.progress)}%</div>
                           <button
-                            onClick={() => navigate(`/notes?subjectId=${subject.id}&subjectName=${encodeURIComponent(subject.name)}`)}
+                            onClick={() => navigate('/home')}
                             className="text-xs font-medium text-indigo-600 hover:underline mt-1"
                           >
                             Continue →
@@ -450,6 +417,8 @@ export default function ProgressPage() {
                 </div>
               </div>
             )}
+
+
 
             {/* Study Streak Info */}
             <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-gray-200">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, Suspense, lazy, useCallback } from "react";
+import React, { useEffect, useState, useRef, Suspense, lazy } from "react";
 import useDarkMode from "../../store/useDarkMode";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Switch } from "@headlessui/react";
@@ -10,14 +10,21 @@ import { getSignedPdfUrl, resolveKeyFromUrl } from "../../api/files";
 import bookmarksAPI from "../../api/bookmarks";
 import completionsAPI from "../../api/completions";
 
-// Lazy load PDF viewer component
+// Lazy load PDF viewer component for performance
+// Reduces initial bundle size and speeds up page load
 const PdfViewerSection = lazy(() => Promise.resolve({
   default: ({ children }) => <>{children}</>
 }));
 
+/**
+ * NotesPage - Smart Notes + Books + PYQ viewer with AI features
+ * PERFORMANCE: Lazy loads PDF viewer, streams PDFs from backend with aggressive caching
+ */
 export default function NotesPage() {
   const navigate = useNavigate();
   const { darkMode } = useDarkMode();
+  // Always force viewer modal and all document viewers to true light mode by neutralizing global dark mode inversion.
+  // If darkMode is active, apply filter: invert(1) hue-rotate(180deg) to double-invert and neutralize.
   const viewerLightModeStyle = darkMode ? { filter: 'invert(1) hue-rotate(180deg)', background: '#fff' } : { background: '#fff' };
   const [query] = useSearchParams();
 
@@ -26,7 +33,7 @@ export default function NotesPage() {
   const semester = query.get("semester") || "";
   const subjectName = query.get("subjectName") || "";
   const subjectId = query.get("subjectId");
-  const noteId = query.get("noteId");
+  const noteId = query.get("noteId"); // Auto-open note if provided
 
   // States
   const [notesList, setNotesList] = useState([]);
@@ -40,24 +47,28 @@ export default function NotesPage() {
   const [bookmarkedNotes, setBookmarkedNotes] = useState(new Set());
   const [completedNotes, setCompletedNotes] = useState(new Set());
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Viewer states
+  // Viewer
   const [selectedNote, setSelectedNote] = useState(null);
-  const [activeTab, setActiveTab] = useState("list");
+  const [activeTab, setActiveTab] = useState("list"); 
   const [zoom, setZoom] = useState(1);
-  const [viewerWidth, setViewerWidth] = useState(80);
-  const [showResizeHint, setShowResizeHint] = useState(false);
+  const [viewerWidth, setViewerWidth] = useState(80); // 80% for viewer by default (notes bigger)
+  const [showResizeHint, setShowResizeHint] = useState(false); // Show resize hint on open
 
-  // AI states
+  // AI
   const [aiMode, setAiMode] = useState("summary");
   const [aiResponse, setAiResponse] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [question, setQuestion] = useState("");
   const [ragEnabled, setRagEnabled] = useState(false);
   
-  // Refs
+  // Use refs for immediate updates without React batching
   const responseRef = useRef("");
+  
+  // Session storage key for summaries (per note)
+  const getSummaryCacheKey = (noteId) => `sv_summary_${noteId}`;
+  
+  // Drag state refs for reliable slider functionality
   const isDraggingRef = useRef(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
@@ -65,15 +76,15 @@ export default function NotesPage() {
   const dividerRef = useRef(null);
   const animationFrameRef = useRef(null);
 
-  // Signed URL for viewer
-  const [signedViewUrl, setSignedViewUrl] = useState("");
-
-  // Detect file type
+  // Detect file type - Check both filename and S3 URL for robustness
   const fileName = selectedNote?.file_name?.toLowerCase() || "";
   const s3Url = selectedNote?.s3_url?.toLowerCase() || "";
   const isPDF = fileName.endsWith(".pdf") || s3Url.includes(".pdf");
   const isImage = /\.(png|jpg|jpeg|webp|gif|svg)$/i.test(fileName) || /\.(png|jpg|jpeg|webp|gif|svg)/i.test(s3Url);
+    // Signed URL for viewer
+    const [signedViewUrl, setSignedViewUrl] = useState("")
 
+  
   // Document type tracking
   const isNote = !selectedNote?.isBook && !selectedNote?.isPyQ && !selectedNote?.isSyllabus && !selectedNote?.isPpt;
   const isBook = selectedNote?.isBook;
@@ -81,18 +92,21 @@ export default function NotesPage() {
   const isSyllabus = selectedNote?.isSyllabus;
   const isPpt = selectedNote?.isPpt || false;
 
-  // Get unit number
+  // Extract unit number from DB field or filename fallback (handles "Unit-2", "Unit -2", "u2", or any digits)
   const getUnitNumber = (item) => {
     if (!item) return Number.MAX_SAFE_INTEGER;
 
+    // Trust DB value first
     const dbUnit = parseInt(item.unit_number, 10);
     if (!Number.isNaN(dbUnit)) return dbUnit;
 
     const name = (item.file_name || "").toLowerCase();
+
+    // Robust patterns for unit detection
     const patterns = [
-      /unit[\s._-]*([0-9]+)/i,
-      /\bu\s*([0-9]+)/i,
-      /([0-9]+)/,
+      /unit[\s._-]*([0-9]+)/i,  // "Unit-2", "Unit - 2", "unit_2"
+      /\bu\s*([0-9]+)/i,        // "u2", "u 2"
+      /([0-9]+)/,               // any number as last resort
     ];
 
     for (const pat of patterns) {
@@ -106,7 +120,7 @@ export default function NotesPage() {
     return Number.MAX_SAFE_INTEGER;
   };
 
-  // Natural sort by unit number
+  // Natural sort by unit number, fallback to filename
   const sortByUnitNumber = (list = []) => {
     return [...list].sort((a, b) => {
       const unitA = getUnitNumber(a);
@@ -116,8 +130,8 @@ export default function NotesPage() {
     });
   };
 
-  // Load bookmarks and completions from backend
-  const loadUserStatus = useCallback(async () => {
+  // Fetch bookmarks and completions from API
+  const loadUserStatus = async () => {
     try {
       const [bookmarkIds, completedIds] = await Promise.all([
         bookmarksAPI.getBookmarkedNoteIds(),
@@ -128,10 +142,11 @@ export default function NotesPage() {
     } catch (err) {
       console.error("Failed to load user status:", err);
     }
-  }, []);
+  };
 
   // Fetch subject data
-  const load = useCallback(async () => {
+  // Extracted load function to allow manual refresh
+  const load = async () => {
     try {
       setLoading(true);
       if (subjectId) {
@@ -143,7 +158,6 @@ export default function NotesPage() {
         const subject = subjectRes.data;
         setSubjectDetails(subject);
         const allNotes = subject.notes || [];
-        
         const isPptFile = (item) => {
           const name = (item.file_name || "").toLowerCase();
           const url = (item.s3_url || "").toLowerCase();
@@ -151,16 +165,13 @@ export default function NotesPage() {
           return name.includes('.ppt') || url.includes('.ppt') || key.includes('.ppt') || 
                  name.includes('ppt') || url.includes('ppt') || key.includes('ppt');
         };
-        
         const pptItems = allNotes.filter(isPptFile);
         const regularNotes = allNotes.filter((n) => !isPptFile(n));
-        
         setNotesList(sortByUnitNumber(regularNotes));
         setPptList(sortByUnitNumber(pptItems));
         setBooksList(subject.books || []);
         setPyqList(subject.pyqs || []);
         setSyllabusList(subject.syllabus || []);
-        
         if (noteId && subject.notes) {
           const noteToOpen = subject.notes.find(n => n.id === noteId);
           if (noteToOpen) {
@@ -175,16 +186,16 @@ export default function NotesPage() {
     } finally {
       setLoading(false);
     }
-  }, [subjectId, noteId, loadUserStatus]);
+  };
 
   useEffect(() => {
     load();
-  }, [load, refreshTrigger]);
+  }, [subjectId, noteId]);
 
-  // Load cached summary when note changes
+  // Load cached summary when note changes or AI mode switches
   useEffect(() => {
     if (selectedNote?.id && aiMode === "summary") {
-      const cachedSummary = sessionStorage.getItem(`sv_summary_${selectedNote.id}`);
+      const cachedSummary = sessionStorage.getItem(getSummaryCacheKey(selectedNote.id));
       if (cachedSummary) {
         setAiResponse(cachedSummary);
         responseRef.current = cachedSummary;
@@ -192,6 +203,9 @@ export default function NotesPage() {
         setAiResponse("");
         responseRef.current = "";
       }
+    } else if (aiMode === "ask") {
+      // Don't clear Q&A responses when switching modes
+      // Keep the last answer visible
     }
   }, [selectedNote?.id, aiMode]);
 
@@ -199,7 +213,8 @@ export default function NotesPage() {
   const handleSummarize = async () => {
     if (!selectedNote?.id) return;
     
-    const cachedSummary = sessionStorage.getItem(`sv_summary_${selectedNote.id}`);
+    // Check cache first
+    const cachedSummary = sessionStorage.getItem(getSummaryCacheKey(selectedNote.id));
     if (cachedSummary) {
       setAiResponse(cachedSummary);
       responseRef.current = cachedSummary;
@@ -210,6 +225,7 @@ export default function NotesPage() {
       setAiLoading(true);
       setAiResponse("");
       responseRef.current = "";
+      // console.log("Starting summary stream...");
       
       const API_BASE = import.meta.env.VITE_API_BASE_URL;
       const response = await fetch(`${API_BASE}/api/notes/${selectedNote.id}/summary`, {
@@ -226,12 +242,19 @@ export default function NotesPage() {
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          // console.log("Stream complete");
+          break;
+        }
 
+        // Decode and add to buffer
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
+        
+        // Keep the last incomplete line in buffer
         buffer = lines[lines.length - 1];
         
+        // Process complete lines
         for (let i = 0; i < lines.length - 1; i++) {
           const line = lines[i].trim();
           if (!line) continue;
@@ -239,9 +262,14 @@ export default function NotesPage() {
             try {
               const jsonStr = line.slice(6);
               const data = JSON.parse(jsonStr);
-              if (data.chunk) {
+              if (data.done) {
+                // console.log("Summary stream finished");
+              } else if (data.error) {
+                throw new Error(data.error);
+              } else if (data.chunk) {
                 responseRef.current += data.chunk;
                 setAiResponse(responseRef.current);
+                // console.log("Chunk received:", data.chunk.substring(0, 30));
               }
             } catch (e) {
               console.error('JSON parse error:', e);
@@ -250,6 +278,7 @@ export default function NotesPage() {
         }
       }
       
+      // Process remaining buffer
       if (buffer.trim().startsWith('data: ')) {
         try {
           const jsonStr = buffer.trim().slice(6);
@@ -257,14 +286,17 @@ export default function NotesPage() {
           if (data.chunk) {
             responseRef.current += data.chunk;
             setAiResponse(responseRef.current);
+            // console.log("Final chunk, total:", responseRef.current.length);
           }
         } catch (e) {
           console.error('Final buffer parse error:', e);
         }
       }
       
+      // Save to session storage for this session
       if (responseRef.current && selectedNote?.id) {
-        sessionStorage.setItem(`sv_summary_${selectedNote.id}`, responseRef.current);
+        sessionStorage.setItem(getSummaryCacheKey(selectedNote.id), responseRef.current);
+        // console.log("Summary cached for note:", selectedNote.id);
       }
     } catch (err) {
       console.error("Summary error:", err);
@@ -281,6 +313,7 @@ export default function NotesPage() {
       setAiLoading(true);
       setAiResponse("");
       responseRef.current = "";
+      // console.log("Starting question stream...");
       
       const API_BASE = import.meta.env.VITE_API_BASE_URL;
       const response = await fetch(`${API_BASE}/api/notes/${selectedNote.id}/ask`, {
@@ -303,12 +336,19 @@ export default function NotesPage() {
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          // console.log("Stream complete");
+          break;
+        }
 
+        // Decode and add to buffer
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
+        
+        // Keep the last incomplete line in buffer
         buffer = lines[lines.length - 1];
         
+        // Process complete lines
         for (let i = 0; i < lines.length - 1; i++) {
           const line = lines[i].trim();
           if (!line) continue;
@@ -316,9 +356,14 @@ export default function NotesPage() {
             try {
               const jsonStr = line.slice(6);
               const data = JSON.parse(jsonStr);
-              if (data.chunk) {
+              if (data.done) {
+                // console.log("Question stream finished");
+              } else if (data.error) {
+                throw new Error(data.error);
+              } else if (data.chunk) {
                 responseRef.current += data.chunk;
                 setAiResponse(responseRef.current);
+                // console.log("Chunk received:", data.chunk.substring(0, 30));
               }
             } catch (e) {
               console.error('JSON parse error:', e);
@@ -327,6 +372,7 @@ export default function NotesPage() {
         }
       }
       
+      // Process remaining buffer
       if (buffer.trim().startsWith('data: ')) {
         try {
           const jsonStr = buffer.trim().slice(6);
@@ -334,6 +380,7 @@ export default function NotesPage() {
           if (data.chunk) {
             responseRef.current += data.chunk;
             setAiResponse(responseRef.current);
+            // console.log("Final chunk, total:", responseRef.current.length);
           }
         } catch (e) {
           console.error('Final buffer parse error:', e);
@@ -355,15 +402,16 @@ export default function NotesPage() {
     setActiveTab("viewer");
     setZoom(1);
     setAiMode("summary");
-    const cachedSummary = sessionStorage.getItem(`sv_summary_${note.id}`);
+    // Load cached summary if available
+    const cachedSummary = sessionStorage.getItem(getSummaryCacheKey(note.id));
     setAiResponse(cachedSummary || "");
     responseRef.current = cachedSummary || "";
     setQuestion("");
     setRagEnabled(false);
-    setShowResizeHint(true);
+    setShowResizeHint(true); // Show resize hint when opening document
     setSignedViewUrl("");
+    // User must click "Got it" to close - no auto-hide
   };
-
   // Generate signed URL when a PDF note is selected
   useEffect(() => {
     let active = true;
@@ -390,12 +438,13 @@ export default function NotesPage() {
     return () => { active = false; };
   }, [selectedNote]);
 
+
   const closeViewer = () => {
     setActiveTab("list");
     setSelectedNote(null);
   };
 
-  // Track note study time
+  // Track note study time invisibly (no timer UI)
   useEffect(() => {
     if (!selectedNote || !subjectId) return;
 
@@ -405,20 +454,21 @@ export default function NotesPage() {
     // Silent start tracking
     client.post(`/api/progress/note/${noteId}/start`, {
       startedAt: new Date().toISOString()
-    }).catch(() => {});
+    }).catch(() => {}); // Ignore errors silently
 
+    // On unmount or note change, send duration
     return () => {
       const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
-      if (durationSeconds > 5) {
+      if (durationSeconds > 5) { // Only track if studied for more than 5 seconds
         client.post(`/api/progress/note/${noteId}/end`, {
           subjectId,
           durationSeconds
-        }).catch(() => {});
+        }).catch(() => {}); // Ignore errors silently
       }
     };
   }, [selectedNote, subjectId]);
 
-  // Handle resize divider drag
+  // Handle resize divider drag - optimized for smooth performance
   useEffect(() => {
     let lastClientX = 0;
 
@@ -428,10 +478,12 @@ export default function NotesPage() {
       moveEvent.preventDefault();
       lastClientX = moveEvent.clientX;
 
+      // Cancel previous animation frame if exists
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
 
+      // Use requestAnimationFrame for smooth updates
       animationFrameRef.current = requestAnimationFrame(() => {
         const diff = lastClientX - startXRef.current;
         const percentChange = (diff / containerWidthRef.current) * 100;
@@ -446,10 +498,12 @@ export default function NotesPage() {
       upEvent.preventDefault();
       isDraggingRef.current = false;
 
+      // Cancel pending animation frame
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
       
+      // Reset visual feedback
       if (dividerRef.current) {
         dividerRef.current.style.backgroundColor = '';
       }
@@ -458,6 +512,7 @@ export default function NotesPage() {
       document.documentElement.style.cursor = '';
     };
 
+    // Keyboard shortcuts for resizing
     const handleKeyDown = (keyEvent) => {
       if (!selectedNote || !isPDF || !isNote) return;
 
@@ -470,17 +525,18 @@ export default function NotesPage() {
           setViewerWidth(prev => Math.max(40, prev - 5));
         } else if (keyEvent.key === '1') {
           keyEvent.preventDefault();
-          setViewerWidth(80);
+          setViewerWidth(80); // Notes Focus (increased)
         } else if (keyEvent.key === '2') {
           keyEvent.preventDefault();
-          setViewerWidth(60);
+          setViewerWidth(60); // Balanced split (changed to 60-40)
         } else if (keyEvent.key === '3') {
           keyEvent.preventDefault();
-          setViewerWidth(40);
+          setViewerWidth(40); // AI Focus (minimum 40 for notes)
         }
       }
     };
 
+    // Attach listeners with capture and passive option where applicable
     document.addEventListener('mousemove', handleMouseMove, { capture: true, passive: false });
     document.addEventListener('mouseup', handleMouseUp, { capture: true, passive: false });
     window.addEventListener('mousemove', handleMouseMove, { capture: true, passive: false });
@@ -514,6 +570,7 @@ export default function NotesPage() {
     }
     containerWidthRef.current = container.offsetWidth;
     
+    // Add visual feedback
     const divider = e.currentTarget;
     dividerRef.current = divider;
     divider.style.backgroundColor = '#3b82f6';
@@ -524,10 +581,10 @@ export default function NotesPage() {
     document.documentElement.style.cursor = 'col-resize';
   };
 
-  // Breadcrumbs
+  // Breadcrumbs with proper navigation
   const crumbs = [
     { label: "Subjects", to: "/home" },
-    subjectName && { label: subjectName, onClick: () => setRefreshTrigger(prev => prev + 1) },
+    subjectName && { label: subjectName, onClick: () => window.location.reload() },
   ].filter(Boolean);
 
   // Download 
@@ -561,101 +618,72 @@ export default function NotesPage() {
     }
   };
 
-  // Handle mark complete - PESSIMISTIC (backend-confirmed only)
+  // PHASE 1: Bookmark and completion handlers removed - will be rebuilt in Phase 2
+  // Placeholder handlers that show "feature disabled" message
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyCompleted = completedNotes.has(noteId);
     
     try {
-      let result;
       if (isCurrentlyCompleted) {
-        result = await completionsAPI.markIncomplete(noteId);
-      } else {
-        result = await completionsAPI.markComplete(noteId, subjectId);
-      }
-      
-      if (result) {
-        // Wait for backend confirmation before updating UI
-        await loadUserStatus();
-        
-        setToast({ 
-          show: true, 
-          message: isCurrentlyCompleted ? "Marked as incomplete" : "Marked as complete!", 
-          type: "success" 
+        await completionsAPI.markIncomplete(noteId);
+        setCompletedNotes(prev => {
+          const next = new Set(prev);
+          next.delete(noteId);
+          return next;
         });
-        
-        // Signal other pages to re-fetch from backend
-        window.dispatchEvent(new Event("learning:update"));
+        setToast({ show: true, message: "Marked as incomplete", type: "success" });
+      } else {
+        await completionsAPI.markComplete(noteId, subjectId);
+        setCompletedNotes(prev => new Set(prev).add(noteId));
+        setToast({ show: true, message: "Marked as complete!", type: "success" });
       }
+      // Notify other pages (Dashboard, Progress) to refresh
+      window.dispatchEvent(new Event("learning:update"));
     } catch (err) {
       console.error("Completion toggle failed:", err);
       setToast({ show: true, message: "Failed to update completion", type: "error" });
     }
-    
-    const timer = setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
-    return () => clearTimeout(timer);
+    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
 
-  // Handle bookmark - OPTIMISTIC (safe for bookmarks)
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyBookmarked = bookmarkedNotes.has(noteId);
     
-    // Optimistic update for bookmarks (safe)
-    setBookmarkedNotes(prev => {
-      const next = new Set(prev);
-      if (isCurrentlyBookmarked) {
-        next.delete(noteId);
-      } else {
-        next.add(noteId);
-      }
-      return next;
-    });
-    
     try {
-      let result;
       if (isCurrentlyBookmarked) {
-        result = await bookmarksAPI.removeBookmark(noteId);
-      } else {
-        result = await bookmarksAPI.addBookmark(noteId, subjectId);
-      }
-      
-      if (result) {
-        setToast({ 
-          show: true, 
-          message: isCurrentlyBookmarked ? "Bookmark removed" : "Bookmarked!", 
-          type: "success" 
-        });
-        
-        // Signal other pages to re-fetch from backend
-        window.dispatchEvent(new Event("learning:update"));
-      } else {
-        // Rollback optimistic update if API fails
+        await bookmarksAPI.removeBookmark(noteId);
         setBookmarkedNotes(prev => {
           const next = new Set(prev);
-          if (isCurrentlyBookmarked) {
-            next.add(noteId);
-          } else {
-            next.delete(noteId);
-          }
+          next.delete(noteId);
           return next;
         });
-        throw new Error("API call failed");
+        setToast({ show: true, message: "Bookmark removed", type: "success" });
+      } else {
+        await bookmarksAPI.addBookmark(noteId, subjectId);
+        setBookmarkedNotes(prev => new Set(prev).add(noteId));
+        setToast({ show: true, message: "Bookmarked!", type: "success" });
       }
+      // Notify other pages (Dashboard, Progress) to refresh
+      window.dispatchEvent(new Event("learning:update"));
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
       setToast({ show: true, message: "Failed to update bookmark", type: "error" });
     }
-    
-    const timer = setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
-    return () => clearTimeout(timer);
+    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
+
+  // ------------------------------------------------------------------------------------
+  // RENDER
+  // ------------------------------------------------------------------------------------
 
   if (loading) return <div className="p-8 text-center">Loading...</div>;
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
 
   return (
     <>
+      {/* PHASE 1: Bookmark/Complete popups disabled - will be rebuilt in Phase 2 */}
       {/* Toast Notification */}
       {toast.show && (
         <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -668,21 +696,12 @@ export default function NotesPage() {
           </div>
         </div>
       )}
-      
       {/* Normal Page */}
       <div className="space-y-4 sm:space-y-5 md:space-y-6 pb-8 sm:pb-10 md:pb-12">
         <Breadcrumbs crumbs={crumbs} />
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">{subjectName}</h1>
-            <button 
-              onClick={() => setRefreshTrigger(prev => prev + 1)}
-              className="text-sm text-gray-500 hover:text-gray-700 mt-1"
-            >
-              Refresh
-            </button>
-          </div>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">{subjectName}</h1>
           <button
             onClick={() => navigate(-1)}
             className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-100 rounded-lg hover:bg-gray-200 text-sm sm:text-base whitespace-nowrap"
@@ -733,7 +752,7 @@ export default function NotesPage() {
           />
         )}
 
-        {/* Syllabus Section */}
+        {/* Syllabus (PNG/JPG) */}
         {syllabusList.length > 0 && (
           <Section
             title="📋 Syllabus"
@@ -747,7 +766,7 @@ export default function NotesPage() {
           />
         )}
 
-        {/* Books Section */}
+        {/* Books */}
         {booksList.length > 0 && (
           <Section
             title="📚 Books"
@@ -785,372 +804,440 @@ export default function NotesPage() {
                     ✕
                   </button>
                 </div>
-                
                 {/* Main Content */}
                 <div className="flex-1 flex overflow-hidden viewer-container bg-white" data-theme="light">
-                  {/* Viewer */}
-                  <div 
-                    style={{ width: isNote ? `${viewerWidth}%` : '100%' }} 
-                    className={`flex flex-col overflow-hidden bg-white ${!isNote ? 'mx-auto max-w-6xl' : ''}`}
-                  >
-                    {/* Toolbar */}
-                    <div className="p-2 sm:p-3 flex items-center gap-1.5 sm:gap-2 md:gap-3 bg-white border-b flex-wrap">
-                      <button className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 rounded text-sm sm:text-base"
-                        onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}
-                      >➖</button>
 
-                      <span className="px-2 sm:px-3 py-1 sm:py-1.5 border rounded bg-white text-xs sm:text-sm">{Math.round(zoom * 100)}%</span>
+              {/* Viewer */}
+              <div 
+                style={{ width: isNote ? `${viewerWidth}%` : '100%' }} 
+                className={`flex flex-col overflow-hidden bg-white ${!isNote ? 'mx-auto max-w-6xl' : ''}`}
+              >
 
-                      <button className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 rounded text-sm sm:text-base"
-                        onClick={() => setZoom(z => z + 0.1)}
-                      >➕</button>
+                {/* Toolbar */}
+                <div className="p-2 sm:p-3 flex items-center gap-1.5 sm:gap-2 md:gap-3 bg-white border-b flex-wrap">
+                  <button className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 rounded text-sm sm:text-base"
+                    onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}
+                  >➖</button>
 
-                      <div className="flex-1" />
+                  <span className="px-2 sm:px-3 py-1 sm:py-1.5 border rounded bg-white text-xs sm:text-sm">{Math.round(zoom * 100)}%</span>
 
-                      {/* In-PDF Search */}
-                      {selectedNote?.id && (
-                        <InPDFSearch
-                          noteId={selectedNote.id}
-                          onResultClick={() => {}}
-                        />
-                      )}
+                  <button className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 rounded text-sm sm:text-base"
+                    onClick={() => setZoom(z => z + 0.1)}
+                  >➕</button>
 
-                      <button
-                        onClick={handleDownload}
-                        className="px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 bg-blue-600 text-white rounded text-xs sm:text-sm whitespace-nowrap"
-                      >
-                        <span className="hidden sm:inline">⬇ Download</span>
-                        <span className="sm:hidden">⬇</span>
-                      </button>
+                  <div className="flex-1" />
 
-                      {isNote && (
-                        <button
-                          onClick={(e) => handleMarkComplete(e, selectedNote?.id)}
-                          className={`px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm whitespace-nowrap font-medium transition-all ${
-                            completedNotes.has(selectedNote?.id)
-                              ? "bg-green-600 hover:bg-green-700 text-white"
-                              : "bg-amber-500 hover:bg-amber-600 text-white"
-                          }`}
-                          title="Mark as complete"
-                        >
-                          <span className="hidden sm:inline">{completedNotes.has(selectedNote?.id) ? "✓ Completed" : "Mark Complete"}</span>
-                          <span className="sm:hidden">{completedNotes.has(selectedNote?.id) ? "✓" : "Done"}</span>
-                        </button>
-                      )}
-
-                      <button
-                        onClick={handleOpenNewTab}
-                        className="px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 bg-indigo-600 text-white rounded text-xs sm:text-sm whitespace-nowrap"
-                      >
-                        <span className="hidden sm:inline">Open ↗</span>
-                        <span className="sm:hidden">↗</span>
-                      </button>
-                    </div>
-
-                    {/* Viewer area */}
-                    <div className="flex-1 overflow-auto p-2 bg-white" style={{ colorScheme: 'light' }}>
-                      {/* PDF VIEW */}
-                      {isPDF && (
-                        <div
-                          style={{
-                            transform: `scale(${zoom})`,
-                            transformOrigin: "top left",
-                            width: `${100 / zoom}%`,
-                          }}
-                        >
-                          <iframe
-                            src={signedViewUrl || "about:blank"}
-                            className="w-full h-screen bg-white"
-                            style={{ border: "none", background: '#ffffff', colorScheme: 'light' }}
-                            allow="fullscreen"
-                            title="PDF Viewer"
-                          />
-                        </div>
-                      )}
-
-                      {/* IMAGE VIEW */}
-                      {isImage && (
-                        <div className="flex justify-center p-4">
-                          <img
-                            src={selectedNote.s3_url}
-                            alt={selectedNote.file_name}
-                            style={{
-                              transform: `scale(${zoom})`,
-                              transformOrigin: "top left",
-                              filter: 'none',
-                            }}
-                            className="max-w-none"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Resizable Divider */}
-                  {isPDF && (isNote || isPpt) && (
-                    <>
-                      <div className="flex flex-col items-center gap-1 bg-gray-50 py-2 px-0.5">
-                        {/* Preset Layout Buttons */}
-                        <div className="flex gap-0.5 flex-col w-full">
-                          <button
-                            onClick={() => setViewerWidth(80)}
-                            title="Notes Focus (Ctrl+1)"
-                            className={`px-2 py-1.5 text-xs font-semibold rounded transition-all whitespace-nowrap ${
-                              viewerWidth >= 78 
-                                ? 'bg-indigo-600 text-white' 
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
-                          >
-                            📄 Notes
-                          </button>
-                          <button
-                            onClick={() => setViewerWidth(60)}
-                            title="Balanced (Ctrl+2)"
-                            className={`px-2 py-1.5 text-xs font-semibold rounded transition-all whitespace-nowrap ${
-                              viewerWidth >= 58 && viewerWidth <= 62
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
-                          >
-                            ⚖️ Split
-                          </button>
-                          <button
-                            onClick={() => setViewerWidth(40)}
-                            title="AI Focus (Ctrl+3)"
-                            className={`px-2 py-1.5 text-xs font-semibold rounded transition-all whitespace-nowrap ${
-                              viewerWidth <= 42
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
-                          >
-                            🤖 AI
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Draggable Divider */}
-                      <div
-                        ref={dividerRef}
-                        onMouseDown={handleMouseDown}
-                        className="select-none group"
-                        style={{ 
-                          width: '2px',
-                          background: 'linear-gradient(180deg, rgba(59, 130, 246, 0.4) 0%, rgba(139, 92, 246, 0.4) 100%)',
-                          userSelect: 'none',
-                          WebkitUserSelect: 'none',
-                          MozUserSelect: 'none',
-                          msUserSelect: 'none',
-                          flexShrink: 0,
-                          transition: 'all 0.3s ease',
-                          cursor: 'col-resize',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.width = '4px';
-                          e.currentTarget.style.background = 'linear-gradient(180deg, rgba(59, 130, 246, 0.8) 0%, rgba(139, 92, 246, 0.8) 100%)';
-                          e.currentTarget.style.boxShadow = '0 0 16px rgba(59, 130, 246, 0.5), inset 0 0 8px rgba(255, 255, 255, 0.3)';
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isDraggingRef.current) {
-                            e.currentTarget.style.width = '2px';
-                            e.currentTarget.style.background = 'linear-gradient(180deg, rgba(59, 130, 246, 0.4) 0%, rgba(139, 92, 246, 0.4) 100%)';
-                            e.currentTarget.style.boxShadow = '';
-                          }
-                        }}
-                        title="Drag to resize panels"
-                      />
-                  
-                      {/* Resize Hint Popup */}
-                      {showResizeHint && (
-                        <div className="fixed top-1/2 transform -translate-y-1/2 bg-white rounded-2xl shadow-2xl p-6 z-50 max-w-sm border border-gray-200" style={{ right: '24px' }}>
-                          <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-300">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center text-lg">⚙️</div>
-                              <h3 className="font-semibold text-lg text-gray-900">Panel Control</h3>
-                            </div>
-                            <button
-                              onClick={() => setShowResizeHint(false)}
-                              className="text-gray-400 hover:text-gray-600 transition-colors text-2xl font-light w-6 h-6 flex items-center justify-center"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                      
-                          <div className="mb-4 pb-4 border-b border-gray-200">
-                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
-                              <span className="text-sm">1️⃣</span>
-                              <span>Drag Divider</span>
-                            </div>
-                            <p className="text-sm text-gray-700 leading-relaxed ml-6">Click and drag the subtle line between panels to adjust sizes smoothly</p>
-                          </div>
-
-                          <div className="mb-4 pb-4 border-b border-gray-200">
-                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2.5 flex items-center gap-2">
-                              <span className="text-sm">2️⃣</span>
-                              <span>Quick Presets</span>
-                            </div>
-                            <div className="space-y-1.5 ml-6">
-                              <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors">
-                                <span className="text-gray-700 font-medium">📄 Notes Focus</span>
-                                <span className="bg-white text-gray-600 px-2.5 py-1 rounded text-xs font-mono font-semibold border border-gray-300">Ctrl+1</span>
-                              </div>
-                              <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors">
-                                <span className="text-gray-700 font-medium">⚖️ Balanced</span>
-                                <span className="bg-white text-gray-600 px-2.5 py-1 rounded text-xs font-mono font-semibold border border-gray-300">Ctrl+2</span>
-                              </div>
-                              <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors">
-                                <span className="text-gray-700 font-medium">🤖 AI Focus</span>
-                                <span className="bg-white text-gray-600 px-2.5 py-1 rounded text-xs font-mono font-semibold border border-gray-300">Ctrl+3</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mb-6">
-                            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2.5 flex items-center gap-2">
-                              <span className="text-sm">3️⃣</span>
-                              <span>Keyboard Control</span>
-                            </div>
-                            <div className="space-y-1.5 ml-6">
-                              <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors">
-                                <span className="text-gray-700 font-medium">Expand Notes</span>
-                                <span className="bg-white text-gray-600 px-2.5 py-1 rounded text-xs font-mono font-semibold border border-gray-300">Ctrl + →</span>
-                              </div>
-                              <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors">
-                                <span className="text-gray-700 font-medium">Shrink Notes</span>
-                                <span className="bg-white text-gray-600 px-2.5 py-1 rounded text-xs font-mono font-semibold border border-gray-300">Ctrl + ←</span>
-                              </div>
-                            </div>
-                          </div>
-                      
-                          {/* Button */}
-                          <button
-                            onClick={() => setShowResizeHint(false)}
-                            className="w-full py-3 bg-linear-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-base hover:shadow-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
-                          >
-                            Got It
-                          </button>
-                        </div>
-                      )}
-                    </>
+                  {/* In-PDF Search */}
+                  {selectedNote?.id && (
+                    <InPDFSearch
+                      noteId={selectedNote.id}
+                      onResultClick={(result) => {
+                        // Optional: could scroll to result or show snippet
+                        // console.log("Search result clicked:", result);
+                      }}
+                    />
                   )}
 
-                  {/* AI PANEL (NOTES & PPT) */}
-                  {selectedNote && (isNote || isPpt) && (
-                    <div style={{ width: `${100 - viewerWidth}%` }} className="border-l bg-white flex flex-col overflow-hidden">
-                      {/* Tabs */}
-                      <div className="flex border-b">
-                        {isNote && (
-                          <>
-                            <button
-                              className={`flex-1 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-medium ${aiMode === "summary" ? "bg-indigo-50 text-indigo-600 border-b-2 border-indigo-600" : "text-gray-600"}`}
-                              onClick={() => { setAiMode("summary"); setAiResponse(""); }}
-                            >
-                              Summarize
-                            </button>
-                            <button
-                              className={`flex-1 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-medium ${aiMode === "qa" ? "bg-indigo-50 text-indigo-600 border-b-2 border-indigo-600" : "text-gray-600"}`}
-                              onClick={() => { setAiMode("qa"); setAiResponse(""); }}
-                            >
-                              Ask AI
-                            </button>
-                          </>
-                        )}
-                        {isPpt && (
-                          <button
-                            className={`flex-1 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-medium ${aiMode === "qa" ? "bg-indigo-50 text-indigo-600 border-b-2 border-indigo-600" : "text-gray-600"}`}
-                            onClick={() => { setAiMode("qa"); setAiResponse(""); }}
-                          >
-                            Ask AI
-                          </button>
-                        )}
-                      </div>
+                  <button
+                    onClick={handleDownload}
+                    className="px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 bg-blue-600 text-white rounded text-xs sm:text-sm whitespace-nowrap"
+                  >
+                    <span className="hidden sm:inline">⬇ Download</span>
+                    <span className="sm:hidden">⬇</span>
+                  </button>
 
-                      {/* RAG Toggle (only for notes) */}
-                      {isNote && aiMode === "qa" && (
-                        <div className="p-2 sm:p-3 border-b">
-                          <div className="flex justify-between items-center gap-2">
-                            <span className="text-xs sm:text-sm">Use Notes Context (RAG)</span>
-                            <Switch
-                              checked={ragEnabled}
-                              onChange={setRagEnabled}
-                              className={`${ragEnabled ? "bg-indigo-600" : "bg-gray-300"} relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full shrink-0`}
-                            >
-                              <span
-                                className={`${ragEnabled ? "translate-x-5 sm:translate-x-6" : "translate-x-1"} inline-block h-3 w-3 sm:h-4 sm:w-4 transform bg-white rounded-full`}
-                              />
-                            </Switch>
-                          </div>
-                          {ragEnabled && (
-                            <div className="mt-2 p-2 sm:p-2.5 bg-linear-to-r from-yellow-400 to-yellow-500 rounded-lg shadow-md">
-                              <p className="text-[10px] sm:text-xs font-semibold text-gray-900 flex items-center gap-1 sm:gap-1.5">
-                                <span className="text-xs sm:text-sm">🎯</span>
-                                <span className="line-clamp-2">RAG Mode Active: Using your notes for context-aware answers</span>
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                  {isNote && (
+                    <button
+                      onClick={(e) => handleMarkComplete(e, selectedNote?.id)}
+                      className={`px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm whitespace-nowrap font-medium transition-all ${
+                        completedNotes.has(selectedNote?.id)
+                          ? "bg-green-600 hover:bg-green-700 text-white"
+                          : "bg-amber-500 hover:bg-amber-600 text-white"
+                      }`}
+                      title="Mark as complete"
+                    >
+                      <span className="hidden sm:inline">{completedNotes.has(selectedNote?.id) ? "✓ Completed" : "Mark Complete"}</span>
+                      <span className="sm:hidden">{completedNotes.has(selectedNote?.id) ? "✓" : "Done"}</span>
+                    </button>
+                  )}
 
-                      {/* AI Output */}
-                      <div className="flex-1 overflow-auto p-3 sm:p-4 bg-gray-50">
-                        {aiLoading ? (
-                          <div className="text-center text-gray-500">
-                            <div className="text-xs sm:text-sm">Generating...</div>
-                            <div className="text-[10px] sm:text-xs text-gray-400 mt-1">Streaming output in real-time</div>
-                          </div>
-                        ) : aiResponse ? (
-                          <div className="prose prose-sm max-w-none text-xs sm:text-sm leading-relaxed text-left pl-2 sm:pl-4">
-                            <div className="whitespace-pre-wrap text-gray-700">{aiResponse}</div>
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 text-center py-6 sm:py-8 text-xs">
-                            {aiMode === "summary" ? "Summarize now" : "Ask a question"}
-                          </div>
-                        )}
-                      </div>
+                  <button
+                    onClick={handleOpenNewTab}
+                    className="px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 bg-indigo-600 text-white rounded text-xs sm:text-sm whitespace-nowrap"
+                  >
+                    <span className="hidden sm:inline">Open ↗</span>
+                    <span className="sm:hidden">↗</span>
+                  </button>
+                </div>
 
-                      {/* Input */}
-                      <div className="p-3 sm:p-4 border-t bg-gray-50">
-                        {isNote && aiMode === "summary" ? (
-                          <button
-                            onClick={handleSummarize}
-                            className="w-full py-2 sm:py-2.5 bg-indigo-600 text-white rounded text-sm sm:text-base font-medium hover:bg-indigo-700 transition-colors"
-                          >
-                            Summarize
-                          </button>
-                        ) : (
-                          <>
-                            <input
-                              className="w-full px-2 sm:px-3 py-1.5 sm:py-2 border rounded mb-2 text-sm sm:text-base"
-                              placeholder={aiMode === "summary" ? "Summarize now..." : "Ask a question..."}
-                              value={question}
-                              onChange={(e) => setQuestion(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault();
-                                  handleAskQuestion();
-                                }
-                              }}
-                            />
-                            <button
-                              onClick={handleAskQuestion}
-                              className="w-full py-2 sm:py-2.5 bg-indigo-600 text-white rounded text-sm sm:text-base font-medium hover:bg-indigo-700 transition-colors"
-                            >
-                              Send
-                            </button>
-                          </>
-                        )}
-                      </div>
+                {/* Viewer area - force light theme */}
+                <div className="flex-1 overflow-auto p-2 bg-white" style={{ colorScheme: 'light' }}>
+
+                  {/* PDF VIEW */}
+                  {isPDF && (
+                    <div
+                      style={{
+                        transform: `scale(${zoom})`,
+                        transformOrigin: "top left",
+                        width: `${100 / zoom}%`,
+                      }}
+                    >
+                      <iframe
+                        src={signedViewUrl || "about:blank"}
+                        className="w-full h-screen bg-white"
+                        style={{ border: "none", background: '#ffffff', colorScheme: 'light' }}
+                        allow="fullscreen"
+                        title="PDF Viewer"
+                      />
+                    </div>
+                  )}
+
+                  {/* IMAGE VIEW (PNG/JPG) */}
+                  {isImage && (
+                    <div className="flex justify-center p-4">
+                      <img
+                        src={selectedNote.s3_url}
+                        alt={selectedNote.file_name}
+                        style={{
+                          transform: `scale(${zoom})`,
+                          transformOrigin: "top left",
+                          filter: 'none',
+                        }}
+                        className="max-w-none"
+                      />
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* Resizable Divider with Preset Buttons (now for notes and PPTs) */}
+              {isPDF && (isNote || isPpt) && (
+                <>
+                  <div className="flex flex-col items-center gap-1 bg-gray-50 py-2 px-0.5">
+                    {/* Preset Layout Buttons */}
+                    <div className="flex gap-0.5 flex-col w-full">
+                      <button
+                        onClick={() => setViewerWidth(80)}
+                        title="Notes Focus (Ctrl+1)"
+                        className={`px-2 py-1.5 text-xs font-semibold rounded transition-all whitespace-nowrap ${
+                          viewerWidth >= 78 
+                            ? 'bg-indigo-600 text-white' 
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        📄 Notes
+                      </button>
+                      <button
+                        onClick={() => setViewerWidth(60)}
+                        title="Balanced (Ctrl+2)"
+                        className={`px-2 py-1.5 text-xs font-semibold rounded transition-all whitespace-nowrap ${
+                          viewerWidth >= 58 && viewerWidth <= 62
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        ⚖️ Split
+                      </button>
+                      <button
+                        onClick={() => setViewerWidth(40)}
+                        title="AI Focus (Ctrl+3)"
+                        className={`px-2 py-1.5 text-xs font-semibold rounded transition-all whitespace-nowrap ${
+                          viewerWidth <= 42
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        🤖 AI
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Draggable Divider and Panel Control for both notes and PPTs */}
+                  <div
+                    ref={dividerRef}
+                    onMouseDown={handleMouseDown}
+                    className="select-none group"
+                    style={{ 
+                      width: '2px',
+                      background: 'linear-gradient(180deg, rgba(59, 130, 246, 0.4) 0%, rgba(139, 92, 246, 0.4) 100%)',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      MozUserSelect: 'none',
+                      msUserSelect: 'none',
+                      flexShrink: 0,
+                      transition: 'all 0.3s ease',
+                      cursor: 'col-resize',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.width = '4px';
+                      e.currentTarget.style.background = 'linear-gradient(180deg, rgba(59, 130, 246, 0.8) 0%, rgba(139, 92, 246, 0.8) 100%)';
+                      e.currentTarget.style.boxShadow = '0 0 16px rgba(59, 130, 246, 0.5), inset 0 0 8px rgba(255, 255, 255, 0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isDraggingRef.current) {
+                        e.currentTarget.style.width = '2px';
+                        e.currentTarget.style.background = 'linear-gradient(180deg, rgba(59, 130, 246, 0.4) 0%, rgba(139, 92, 246, 0.4) 100%)';
+                        e.currentTarget.style.boxShadow = '';
+                      }
+                    }}
+                    title="Drag to resize panels • Ctrl+1/2/3 for presets • Ctrl+Arrow keys to adjust"
+                  />
+              
+                  {/* Resize Hint Popup for both notes and PPTs */}
+                  {showResizeHint && (
+                    <div className="fixed top-1/2 transform -translate-y-1/2 bg-white rounded-2xl shadow-2xl p-6 z-50 max-w-sm border border-gray-200" style={{ right: '24px', backdropFilter: 'blur(10px)' }}>
+                      <style>{`
+                        @keyframes slideInRight {
+                          0% {
+                            transform: translateX(500px);
+                            opacity: 0;
+                          }
+                          70% {
+                            transform: translateX(-8px);
+                          }
+                          100% {
+                            transform: translateX(0);
+                            opacity: 1;
+                          }
+                        }
+                        .resize-hint-popup {
+                          animation: slideInRight 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                        }
+                        @keyframes fadeOut {
+                          to {
+                            opacity: 0;
+                            transform: translateX(20px);
+                          }
+                        }
+                        .resize-hint-popup.fade-out {
+                          animation: fadeOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+                        }
+                      `}</style>
+                      <div className="resize-hint-popup">
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-300">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-purple-500 flex items-center justify-center text-lg">⚙️</div>
+                            <h3 className="font-semibold text-lg text-gray-900">Panel Control</h3>
+                          </div>
+                          <button
+                            onClick={() => setShowResizeHint(false)}
+                            className="text-gray-400 hover:text-gray-600 transition-colors text-2xl font-light w-6 h-6 flex items-center justify-center"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                    
+                        {/* Method 1: Drag */}
+                        <div className="mb-4 pb-4 border-b border-gray-200">
+                          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
+                            <span className="text-sm">1️⃣</span>
+                            <span>Drag Divider</span>
+                          </div>
+                          <p className="text-sm text-gray-700 leading-relaxed ml-6">Click and drag the subtle line between panels to adjust sizes smoothly</p>
+                        </div>
+
+                        {/* Method 2: Preset Buttons */}
+                        <div className="mb-4 pb-4 border-b border-gray-200">
+                          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2.5 flex items-center gap-2">
+                            <span className="text-sm">2️⃣</span>
+                            <span>Quick Presets</span>
+                          </div>
+                          <div className="space-y-1.5 ml-6">
+                            <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors">
+                              <span className="text-gray-700 font-medium">📄 Notes Focus</span>
+                              <span className="bg-white text-gray-600 px-2.5 py-1 rounded text-xs font-mono font-semibold border border-gray-300">Ctrl+1</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors">
+                              <span className="text-gray-700 font-medium">⚖️ Balanced</span>
+                              <span className="bg-white text-gray-600 px-2.5 py-1 rounded text-xs font-mono font-semibold border border-gray-300">Ctrl+2</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors">
+                              <span className="text-gray-700 font-medium">🤖 AI Focus</span>
+                              <span className="bg-white text-gray-600 px-2.5 py-1 rounded text-xs font-mono font-semibold border border-gray-300">Ctrl+3</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Method 3: Keyboard */}
+                        <div className="mb-6">
+                          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2.5 flex items-center gap-2">
+                            <span className="text-sm">3️⃣</span>
+                            <span>Keyboard Control</span>
+                          </div>
+                          <div className="space-y-1.5 ml-6">
+                            <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors">
+                              <span className="text-gray-700 font-medium">Expand Notes</span>
+                              <span className="bg-white text-gray-600 px-2.5 py-1 rounded text-xs font-mono font-semibold border border-gray-300">Ctrl + →</span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors">
+                              <span className="text-gray-700 font-medium">Shrink Notes</span>
+                              <span className="bg-white text-gray-600 px-2.5 py-1 rounded text-xs font-mono font-semibold border border-gray-300">Ctrl + ←</span>
+                            </div>
+                          </div>
+                        </div>
+                    
+                        {/* Button */}
+                        <button
+                          onClick={() => setShowResizeHint(false)}
+                          className="w-full py-3 bg-linear-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-base hover:shadow-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105"
+                        >
+                          Got It
+                        </button>
+                      </div>
+                      {/* Close popup container */}
+                    </div>
+                  )}
+                </>
+              )}
+
+
+
+              {/* AI PANEL (NOTES & PPT) - unified panel, hide Summarize and RAG for PPTs */}
+              {selectedNote && (isNote || isPpt) && (
+                <div style={{ width: `${100 - viewerWidth}%` }} className="border-l bg-white flex flex-col overflow-hidden">
+                  {/* Tabs */}
+                  <div className="flex border-b">
+                    {isNote && (
+                      <>
+                        <button
+                          className={`flex-1 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-medium ${aiMode === "summary" ? "bg-indigo-50 text-indigo-600 border-b-2 border-indigo-600" : "text-gray-600"}`}
+                          onClick={() => { setAiMode("summary"); setAiResponse(""); }}
+                        >
+                          Summarize
+                        </button>
+                        <button
+                          className={`flex-1 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-medium ${aiMode === "qa" ? "bg-indigo-50 text-indigo-600 border-b-2 border-indigo-600" : "text-gray-600"}`}
+                          onClick={() => { setAiMode("qa"); setAiResponse(""); }}
+                        >
+                          Ask AI
+                        </button>
+                      </>
+                    )}
+                    {isPpt && (
+                      <button
+                        className={`flex-1 py-2 sm:py-2.5 md:py-3 text-xs sm:text-sm font-medium ${aiMode === "qa" ? "bg-indigo-50 text-indigo-600 border-b-2 border-indigo-600" : "text-gray-600"}`}
+                        onClick={() => { setAiMode("qa"); setAiResponse(""); }}
+                      >
+                        Ask AI
+                      </button>
+                    )}
+                  </div>
+
+                  {/* RAG Toggle (only for notes) */}
+                  {isNote && aiMode === "qa" && (
+                    <div className="p-2 sm:p-3 border-b">
+                      <div className="flex justify-between items-center gap-2">
+                        <span className="text-xs sm:text-sm">Use Notes Context (RAG)</span>
+                        <Switch
+                          checked={ragEnabled}
+                          onChange={setRagEnabled}
+                          className={`${ragEnabled ? "bg-indigo-600" : "bg-gray-300"} relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full shrink-0`}
+                        >
+                          <span
+                            className={`${ragEnabled ? "translate-x-5 sm:translate-x-6" : "translate-x-1"} inline-block h-3 w-3 sm:h-4 sm:w-4 transform bg-white rounded-full`}
+                          />
+                        </Switch>
+                      </div>
+                      {ragEnabled && (
+                        <style>{`
+                          @keyframes popIn {
+                            0% { 
+                              transform: scale(0.5) translateY(-10px);
+                              opacity: 0;
+                            }
+                            50% {
+                              transform: scale(1.05);
+                            }
+                            100% {
+                              transform: scale(1) translateY(0);
+                              opacity: 1;
+                            }
+                          }
+                          .rag-disclaimer {
+                            animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+                          }
+                        `}</style>
+                      )}
+                      {ragEnabled && (
+                        <div className="rag-disclaimer mt-2 p-2 sm:p-2.5 bg-linear-to-r from-yellow-400 to-yellow-500 rounded-lg shadow-md">
+                          <p className="text-[10px] sm:text-xs font-semibold text-gray-900 flex items-center gap-1 sm:gap-1.5">
+                            <span className="text-xs sm:text-sm">🎯</span>
+                            <span className="line-clamp-2">RAG Mode Active: Using your notes for context-aware answers</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* AI Output */}
+                  <div className="flex-1 overflow-auto p-3 sm:p-4 bg-gray-50">
+                    {aiLoading ? (
+                      <div className="text-center text-gray-500">
+                        <div className="text-xs sm:text-sm">Generating...</div>
+                        <div className="text-[10px] sm:text-xs text-gray-400 mt-1">Streaming output in real-time</div>
+                      </div>
+                    ) : aiResponse ? (
+                      <div
+                        className="prose prose-sm max-w-none text-xs sm:text-sm leading-relaxed text-left pl-2 sm:pl-4"
+                      >
+                        <div className="whitespace-pre-wrap text-gray-700">{aiResponse}</div>
+                      </div>
+                    ) : (
+                      <div className="text-gray-400 text-center py-6 sm:py-8 text-xs">
+                        {aiMode === "summary" ? "Summarize now" : "Ask a question"}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Input */}
+                  <div className="p-3 sm:p-4 border-t bg-gray-50">
+                    {isNote && aiMode === "summary" ? (
+                      <button
+                        onClick={handleSummarize}
+                        className="w-full py-2 sm:py-2.5 bg-indigo-600 text-white rounded text-sm sm:text-base font-medium hover:bg-indigo-700 transition-colors"
+                      >
+                        Summarize
+                      </button>
+                    ) : (
+                      <>
+                        <input
+                          className="w-full px-2 sm:px-3 py-1.5 sm:py-2 border rounded mb-2 text-sm sm:text-base"
+                          placeholder={aiMode === "summary" ? "Summarize now..." : "Ask a question..."}
+                          value={question}
+                          onChange={(e) => setQuestion(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleAskQuestion();
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={handleAskQuestion}
+                          className="w-full py-2 sm:py-2.5 bg-indigo-600 text-white rounded text-sm sm:text-base font-medium hover:bg-indigo-700 transition-colors"
+                        >
+                          Send
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
             </div>
+          </div>
+        </div>
+
           </Suspense>
         </ErrorBoundary>
       )}
+
     </>
   );
+
 }
+// End of NotesPage component
 
 /** Reusable Section Component **/
 function Section({ title, items, onClick, onToggleBookmark, onMarkComplete, bookmarkedNotes, completedNotes, showMarkComplete = false }) {
@@ -1187,7 +1274,7 @@ function Section({ title, items, onClick, onToggleBookmark, onMarkComplete, book
               <div className="text-indigo-600 text-xs sm:text-sm">Click to view →</div>
             </button>
 
-            {/* Mark Complete Button */}
+            {/* Mark Complete Button - Only show for actual notes */}
             {showMarkComplete && (
               <button
                 onClick={(e) => onMarkComplete(e, item.id)}
