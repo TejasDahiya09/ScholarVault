@@ -21,29 +21,16 @@ export default function Dashboard() {
   const [bookmarkedNotes, setBookmarkedNotes] = useState([]);
   const [bookmarksPage, setBookmarksPage] = useState(0);
   const [subjectsPage, setSubjectsPage] = useState(0);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Pagination constants
   const BOOKMARKS_PER_PAGE = 4;
   const SUBJECTS_PER_PAGE = 5;
 
-  // Fetch data on mount, year change, and when learning updates occur
+  // Reset bookmarks page when bookmarks change
   useEffect(() => {
-    fetchDashboardData();
-    
-    // Subscribe to learning updates from NotesPage
-    const handleLearningUpdate = () => {
-      fetchDashboardData();
-    };
-    window.addEventListener("learning:update", handleLearningUpdate);
-    
-    return () => {
-      window.removeEventListener("learning:update", handleLearningUpdate);
-    };
-  }, [user?.selected_year]);
-
-  // Stay on Dashboard even if there are no bookmarks
-  // Previously redirected to "/home" which prevented accessing Dashboard.
-  // Now we show an empty state inside the Dashboard instead.
+    setBookmarksPage(0);
+  }, [bookmarkedNotes.length]);
 
   // Memoized filter function
   const filterSubjectsByYear = useCallback((subjects) => {
@@ -63,114 +50,162 @@ export default function Dashboard() {
     );
   }, [user?.selected_year]);
 
-  async function fetchDashboardData() {
-    try {
-      setLoading(true);
-      setError(null);
+  // Fetch data on mount, year change, and when learning updates occur
+  useEffect(() => {
+    let isMounted = true;
+    const abortController = new AbortController();
+
+    const fetchDashboardData = async () => {
+      if (!isMounted) return;
       
-      // Fetch bookmarks from new API
       try {
-        const bookmarks = await bookmarksAPI.getBookmarksWithDetails();
-        setBookmarkedNotes(bookmarks);
-      } catch (err) {
-        console.error("Failed to fetch bookmarks:", err);
-        setBookmarkedNotes([]);
-      }
-      
-      // Fetch subjects (all), then filter by selected year
-      let yearFilteredSubjects = [];
-      try {
-        const subjectsRes = await client.get('/api/subjects');
-        const allSubjects = subjectsRes.data || [];
-        yearFilteredSubjects = filterSubjectsByYear(allSubjects);
+        setLoading(true);
+        setError(null);
         
-        // Set subjects without loading progress first (faster initial render)
-        setSubjects(yearFilteredSubjects.map(s => ({ ...s, progress: -1 })));
-        
-        // Async load progress for each subject (progressive UI enhancement only)
-        // NOTE: Stats come from backend analytics - do NOT update stats.unitsCompleted here
-        yearFilteredSubjects.forEach(async (subject) => {
-          try {
-            const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
-            setSubjects(prev => prev.map(s => 
-              s.id === subject.id 
-                ? {
-                    ...s,
-                    progress: completionRes.data?.progress_percent || 0,
-                    completed: completionRes.data?.completed_units || 0,
-                    total: completionRes.data?.total_units || 0
-                  }
-                : s
-            ));
-          } catch (err) {
-            console.error(`Error fetching progress for ${subject.id}:`, err);
-          }
-        });
-      } catch (err) {
-        console.error("Failed to fetch subjects:", err);
-        setError("Failed to load subjects. Please try refreshing.");
-      }
-
-      // Fetch analytics (time, streaks, weekly activity) - SINGLE SOURCE OF TRUTH
-      try {
-        const analyticsRes = await client.get('/api/progress/analytics');
-        const a = analyticsRes.data || {};
-        
-        // Backend analytics is the single source of truth for all stats
-        setStats({
-          totalTime: a.stats?.totalTimeHours || 0,
-          unitsCompleted: a.stats?.completedUnitsTotal || 0,
-          currentStreak: a.stats?.currentStreak || 0
-        });
-        
-        setWeeklyActivity(Array.isArray(a.weekly) ? a.weekly : []);
-      } catch (err) {
-        console.error("Failed to fetch analytics:", err);
-        // Set empty weekly activity as fallback
-        const today = new Date().getDay();
-        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        setWeeklyActivity(
-          days.map((day, index) => ({
-            day,
-            minutes: 0,
-            isToday: index === today
-          }))
-        );
-      }
-
-      // Recent activity
-      const recent = JSON.parse(localStorage.getItem("sv_last_note") || "null");
-      if (recent) {
-        setRecentActivity([recent]);
-      }
-
-      // Find next unit to study (lazy loaded)
-      const nextSubject = yearFilteredSubjects.find(s => (s.progress || 0) < 100);
-      if (nextSubject) {
+        // Fetch bookmarks from backend
         try {
-          const unitsRes = await client.get(`/api/subjects/${nextSubject.id}/units`);
-          const units = unitsRes.data || [];
-          const incompleteUnit = units.find(u => !u.is_completed);
-          if (incompleteUnit) {
-            setNextUnit({
-              subject: nextSubject.name,
-              unit: incompleteUnit.name,
-              unitId: incompleteUnit.id,
-              subjectId: nextSubject.id
+          const bookmarks = await bookmarksAPI.getBookmarksWithDetails();
+          if (isMounted) setBookmarkedNotes(bookmarks);
+        } catch (err) {
+          console.error("Failed to fetch bookmarks:", err);
+          if (isMounted) setBookmarkedNotes([]);
+        }
+        
+        // Fetch subjects (all), then filter by selected year
+        let yearFilteredSubjects = [];
+        try {
+          const subjectsRes = await client.get('/api/subjects', {
+            signal: abortController.signal
+          });
+          const allSubjects = subjectsRes.data || [];
+          yearFilteredSubjects = filterSubjectsByYear(allSubjects);
+          
+          // Set subjects without loading progress first
+          if (isMounted) {
+            setSubjects(yearFilteredSubjects.map(s => ({ ...s, progress: -1 })));
+          }
+          
+          // Async load progress for each subject
+          yearFilteredSubjects.forEach(async (subject) => {
+            try {
+              const completionRes = await client.get(`/api/subjects/${subject.id}/progress`, {
+                signal: abortController.signal
+              });
+              if (isMounted) {
+                setSubjects(prev => prev.map(s => 
+                  s.id === subject.id 
+                    ? {
+                        ...s,
+                        progress: completionRes.data?.progress_percent || 0,
+                        completed: completionRes.data?.completed_units || 0,
+                        total: completionRes.data?.total_units || 0
+                      }
+                    : s
+                ));
+              }
+            } catch (err) {
+              if (err.name !== 'AbortError') {
+                console.error(`Error fetching progress for ${subject.id}:`, err);
+              }
+            }
+          });
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+          console.error("Failed to fetch subjects:", err);
+          if (isMounted) setError("Failed to load subjects. Please try refreshing.");
+        }
+
+        // Fetch analytics from backend - SINGLE SOURCE OF TRUTH
+        try {
+          const analyticsRes = await client.get('/api/progress/analytics', {
+            signal: abortController.signal
+          });
+          const a = analyticsRes.data || {};
+          
+          if (isMounted) {
+            setStats({
+              totalTime: a.stats?.totalTimeHours || 0,
+              unitsCompleted: a.stats?.completedUnitsTotal || 0,
+              currentStreak: a.stats?.currentStreak || 0
             });
+            
+            setWeeklyActivity(Array.isArray(a.weekly) ? a.weekly : []);
           }
         } catch (err) {
-          console.error("Error fetching units:", err);
+          if (err.name === 'AbortError') return;
+          console.error("Failed to fetch analytics:", err);
+          // Set empty weekly activity as fallback
+          if (isMounted) {
+            const today = new Date().getDay();
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            setWeeklyActivity(
+              days.map((day, index) => ({
+                day,
+                minutes: 0,
+                isToday: index === today
+              }))
+            );
+          }
         }
-      }
 
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      setError("Failed to load dashboard. Please try refreshing.");
-    } finally {
-      setLoading(false);
-    }
-  }
+        // Recent activity from localStorage
+        const recent = JSON.parse(localStorage.getItem("sv_last_note") || "null");
+        if (recent && isMounted) {
+          setRecentActivity([recent]);
+        }
+
+        // Find next unit to study (only after progress loaded)
+        if (yearFilteredSubjects.length > 0 && isMounted) {
+          const subjectWithProgress = subjects.find(s => s.progress !== undefined && s.progress < 100) || yearFilteredSubjects[0];
+          if (subjectWithProgress) {
+            try {
+              const unitsRes = await client.get(`/api/subjects/${subjectWithProgress.id}/units`, {
+                signal: abortController.signal
+              });
+              const units = unitsRes.data || [];
+              const incompleteUnit = units.find(u => !u.is_completed);
+              if (incompleteUnit && isMounted) {
+                setNextUnit({
+                  subject: subjectWithProgress.name,
+                  unit: incompleteUnit.name,
+                  unitId: incompleteUnit.id,
+                  subjectId: subjectWithProgress.id
+                });
+              }
+            } catch (err) {
+              if (err.name !== 'AbortError') {
+                console.error("Error fetching units:", err);
+              }
+            }
+          }
+        }
+
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error("Error fetching dashboard data:", error);
+        if (isMounted) setError("Failed to load dashboard. Please try refreshing.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+
+    // Subscribe to learning updates - re-fetch from backend on event
+    const handleLearningUpdate = () => {
+      if (isMounted) {
+        setRefreshTrigger(prev => prev + 1);
+      }
+    };
+    
+    window.addEventListener("learning:update", handleLearningUpdate);
+    
+    return () => {
+      isMounted = false;
+      abortController.abort();
+      window.removeEventListener("learning:update", handleLearningUpdate);
+    };
+  }, [user?.selected_year, refreshTrigger, filterSubjectsByYear]);
 
   // Memoize paginated items
   const paginatedBookmarks = useMemo(() => {
@@ -213,7 +248,10 @@ export default function Dashboard() {
           <div className="mb-4 xs:mb-6 p-3 xs:p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3">
               <p className="text-sm xs:text-base">{error}</p>
-              <button onClick={fetchDashboardData} className="min-h-touch min-w-touch px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap shrink-0">
+              <button 
+                onClick={() => setRefreshTrigger(prev => prev + 1)} 
+                className="min-h-touch min-w-touch px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap shrink-0"
+              >
                 Retry
               </button>
             </div>
@@ -226,9 +264,9 @@ export default function Dashboard() {
           <p className="text-gray-600 text-fluid-xs xs:text-fluid-sm">Welcome back! Here's your learning overview</p>
         </div>
 
-        {/* Top Summary Metrics */}
+        {/* Top Summary Metrics - Backend Data Only */}
         <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-3 xs:gap-4 lg:gap-6 mb-4 xs:mb-6 sm:mb-8">
-          <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200 min-h-touch touch:active:scale-95 transition-transform">
+          <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200 min-h-touch">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-fluid-xs text-gray-500 mb-1 uppercase tracking-wide truncate">Study Time</p>
@@ -237,7 +275,7 @@ export default function Dashboard() {
               <div className="text-fluid-xl sm:text-fluid-2xl shrink-0">⏱️</div>
             </div>
           </div>
-          <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200 min-h-touch touch:active:scale-95 transition-transform">
+          <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200 min-h-touch">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-fluid-xs text-gray-500 mb-1 uppercase tracking-wide truncate">Units Completed</p>
@@ -246,7 +284,7 @@ export default function Dashboard() {
               <div className="text-fluid-xl sm:text-fluid-2xl shrink-0">✅</div>
             </div>
           </div>
-          <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200 min-h-touch xs:col-span-2 md:col-span-1 touch:active:scale-95 transition-transform">
+          <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200 min-h-touch xs:col-span-2 md:col-span-1">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-fluid-xs text-gray-500 mb-1 uppercase tracking-wide truncate">Study Streak</p>
@@ -257,9 +295,17 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Bookmarked for Learning - Always shown with empty state */}
+        {/* Bookmarked for Learning */}
         <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 border border-amber-200">
-          <h3 className="text-fluid-base sm:text-fluid-lg font-semibold text-gray-900 mb-3 xs:mb-4 truncate">📚 Saved for Learning</h3>
+          <div className="flex justify-between items-center mb-3 xs:mb-4">
+            <h3 className="text-fluid-base sm:text-fluid-lg font-semibold text-gray-900 truncate">📚 Saved for Learning</h3>
+            <button 
+              onClick={() => setRefreshTrigger(prev => prev + 1)}
+              className="text-xs text-amber-700 hover:text-amber-800"
+            >
+              Refresh
+            </button>
+          </div>
 
           {bookmarkedNotes.length === 0 ? (
             <div className="p-3 xs:p-4 bg-white rounded-lg border border-amber-100">
@@ -290,7 +336,7 @@ export default function Dashboard() {
                       const note = bookmark.notes;
                       navigate(`/notes?subjectId=${note.subject_id}&noteId=${note.id}`);
                     }}
-                    className="text-left p-3 xs:p-4 bg-white rounded-lg hover:shadow-md transition-all border border-amber-100 min-h-touch active:scale-98"
+                    className="text-left p-3 xs:p-4 bg-white rounded-lg hover:shadow-md transition-all border border-amber-100 min-h-touch"
                   >
                     <p className="font-medium text-fluid-sm text-gray-900 truncate">{bookmark.notes?.file_name}</p>
                     <p className="text-fluid-xs text-gray-500 mt-1 truncate">{bookmark.notes?.subject}</p>
@@ -331,7 +377,7 @@ export default function Dashboard() {
                 <h3 className="text-fluid-base sm:text-fluid-lg font-semibold truncate">{nextUnit.subject}</h3>
                 <p className="text-fluid-sm text-gray-300 truncate">{nextUnit.unit}</p>
               </div>
-              <button onClick={() => navigate(`/home`)} className="min-h-touch w-full xs:w-auto px-6 py-3 bg-white text-gray-900 rounded-lg font-medium hover:bg-gray-100 active:scale-98 transition-transform whitespace-nowrap">
+              <button onClick={() => navigate(`/notes?subjectId=${nextUnit.subjectId}`)} className="min-h-touch w-full xs:w-auto px-6 py-3 bg-white text-gray-900 rounded-lg font-medium hover:bg-gray-100 transition-transform whitespace-nowrap">
                 Continue →
               </button>
             </div>
@@ -339,10 +385,18 @@ export default function Dashboard() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 xs:gap-6 sm:gap-8">
-          {/* Subjects Progress - PAGINATED */}
+          {/* Subjects Progress - Backend Data Only */}
           <div className="lg:col-span-2 space-y-4 xs:space-y-6 sm:space-y-8">
             <div className="bg-white rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 border border-gray-200">
-              <h2 className="text-fluid-base sm:text-fluid-lg font-semibold text-gray-900 mb-3 xs:mb-4 truncate">My Subjects</h2>
+              <div className="flex justify-between items-center mb-3 xs:mb-4">
+                <h2 className="text-fluid-base sm:text-fluid-lg font-semibold text-gray-900 truncate">My Subjects</h2>
+                <button 
+                  onClick={() => setRefreshTrigger(prev => prev + 1)}
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                >
+                  Refresh
+                </button>
+              </div>
               {subjects.length === 0 ? (
                 <div className="text-center py-8 xs:py-12">
                   <p className="text-gray-500 text-fluid-sm">No subjects enrolled yet</p>
@@ -391,7 +445,7 @@ export default function Dashboard() {
                     <button
                       key={subject.id}
                       onClick={() => navigate(`/notes?subjectId=${subject.id}&subjectName=${encodeURIComponent(subject.name || "")}&branch=${encodeURIComponent(subject.branch || "")}&semester=${encodeURIComponent(subject.semester || "")}`)}
-                      className="min-h-touch w-full text-left p-3 xs:p-4 bg-white border border-amber-200 rounded-lg hover:border-amber-300 hover:shadow-sm transition active:scale-98"
+                      className="min-h-touch w-full text-left p-3 xs:p-4 bg-white border border-amber-200 rounded-lg hover:border-amber-300 hover:shadow-sm transition"
                     >
                       <h3 className="font-semibold text-fluid-xs xs:text-fluid-sm text-gray-900 truncate">{subject.name}</h3>
                       <p className="text-fluid-xs text-amber-700 mt-1">{Math.round(subject.progress)}% complete</p>
