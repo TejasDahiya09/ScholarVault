@@ -638,8 +638,6 @@ export default function NotesPage() {
         setCompletedNotes(prev => new Set(prev).add(noteId));
         setToast({ show: true, message: "Marked as complete!", type: "success" });
       }
-      // Always fetch latest bookmark/completion state from backend after mutation
-      await loadUserStatus();
       // Notify other pages (Dashboard, Progress) to refresh
       window.dispatchEvent(new Event("learning:update"));
     } catch (err) {
@@ -652,6 +650,7 @@ export default function NotesPage() {
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyBookmarked = bookmarkedNotes.has(noteId);
+    
     try {
       if (isCurrentlyBookmarked) {
         await bookmarksAPI.removeBookmark(noteId);
@@ -666,8 +665,6 @@ export default function NotesPage() {
         setBookmarkedNotes(prev => new Set(prev).add(noteId));
         setToast({ show: true, message: "Bookmarked!", type: "success" });
       }
-      // Always fetch latest bookmark/completion state from backend after mutation
-      await loadUserStatus();
       // Notify other pages (Dashboard, Progress) to refresh
       window.dispatchEvent(new Event("learning:update"));
     } catch (err) {
