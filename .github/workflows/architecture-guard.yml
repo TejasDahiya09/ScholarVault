@@ -1,0 +1,55 @@
+name: Architecture Contract Guard
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  architecture-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Block legacy tables
+        run: |
+          if grep -R "user_bookmarks" backend/src frontend/src; then
+            echo "❌ Legacy table user_bookmarks detected"
+            exit 1
+          fi
+          if grep -R "user_note_completions" backend/src frontend/src; then
+            echo "❌ Legacy table user_note_completions detected"
+            exit 1
+          fi
+
+      - name: Block forbidden fields
+        run: |
+          if grep -R "is_bookmarked" backend/src frontend/src; then
+            echo "❌ Forbidden field is_bookmarked detected"
+            exit 1
+          fi
+          if grep -R "is_completed" backend/src frontend/src; then
+            echo "❌ Forbidden field is_completed detected"
+            exit 1
+          fi
+
+      - name: Block user-state joins in subject/notes
+        run: |
+          if grep -R "join.*bookmarks" backend/src; then
+            echo "❌ User-state join detected in backend"
+            exit 1
+          fi
+          if grep -R "join.*completions" backend/src; then
+            echo "❌ User-state join detected in backend"
+            exit 1
+          fi
+
+      - name: Verify cache rules
+        run: |
+          if grep -R "no-store" backend/src | grep -v "middlewares/noCache"; then
+            echo "❌ no-store used outside allowed user-state APIs"
+            exit 1
+          fi
+
+      - name: Architecture Contract satisfied
+        run: echo "✅ Architecture Contract enforced"
