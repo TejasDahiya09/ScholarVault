@@ -34,21 +34,21 @@ export default function ActionPopup({ type }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50" style={{background: 'rgba(0,0,0,0.04)', transition: 'background 0.3s'}}>
       <div
-        className="popup-animate bg-white rounded-2xl px-8 py-8 flex flex-col items-center"
+        className="popup-animate bg-white rounded-2xl px-5 py-5 flex flex-col items-center"
         style={{
-          minWidth: 340,
-          maxWidth: 400,
+          minWidth: 240,
+          maxWidth: 290,
           boxShadow: '0 8px 40px 0 rgba(0,0,0,0.16), 0 1.5px 6px 0 rgba(0,0,0,0.08)',
           transition: 'box-shadow 0.3s, transform 0.3s',
         }}
       >
-        <div style={{ fontSize: 64, marginBottom: 12, transition: 'transform 0.3s' }}>{config.icon}</div>
-        <h2 className="text-[2rem] font-extrabold text-gray-800 mb-2" style={{lineHeight:1.1, transition: 'color 0.3s'}}>{config.title}</h2>
+        <div style={{ fontSize: 36, marginBottom: 8, transition: 'transform 0.3s' }}>{config.icon}</div>
+        <h2 className="text-lg font-extrabold text-gray-800 mb-1" style={{lineHeight:1.1, transition: 'color 0.3s'}}>{config.title}</h2>
         {config.subtitle && (
-          <div className="text-lg font-medium text-gray-600 text-center mb-1" style={{lineHeight:1.3, transition: 'color 0.3s'}}>{config.subtitle}</div>
+          <div className="text-[0.97rem] font-medium text-gray-600 text-center mb-0.5" style={{lineHeight:1.35, transition: 'color 0.3s', paddingLeft: 2, paddingRight: 2 }}>{config.subtitle}</div>
         )}
         {config.desc && (
-          <div className="text-base text-gray-400 text-center mt-1" style={{lineHeight:1.3, transition: 'color 0.3s'}}>{config.desc}</div>
+          <div className="text-xs text-gray-400 text-center mt-0.5" style={{lineHeight:1.3, transition: 'color 0.3s', paddingLeft: 2, paddingRight: 2 }}>{config.desc}</div>
         )}
       </div>
       <style>{`
