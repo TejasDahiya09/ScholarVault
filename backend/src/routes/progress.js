@@ -103,12 +103,24 @@ router.get("/analytics", authenticate, async (req, res, next) => {
         peakStudyTime: peakTime,
         completedUnitsTotal: totalCompletedNotes,
       },
-      weekly,
-      monthly: month,
-      subjectTime: [],
-      velocity: [],
-    });
-  } catch (err) { next(err); }
-});
-
-export default router;
+      // /**
+      //  * Get analytics for Progress page
+      //  */
+      // router.get("/analytics", authenticate, async (req, res, next) => {
+      //   try {
+      //     const userId = req.user.userId;
+      //
+      //     // Fetch study session analytics
+      //     const totalHours = await studySessionsDB.getTotalHours(userId);
+      //     const weeklyMap = await studySessionsDB.getMinutesByDay(userId, 7);
+      //     const monthlyMap = await studySessionsDB.getMinutesByDay(userId, 30);
+      //     const { currentStreak, longestStreak } = await studySessionsDB.getStreaks(userId, 15);
+      //
+      //     // Fetch completion analytics
+      //     const completionsByDate = await completionsDB.getCompletionsByDate(userId, 30);
+      //     const completedNoteIds = await completionsDB.getCompletedNoteIds(userId);
+      //     const totalCompletedNotes = completedNoteIds.length;
+      //
+      //     // ...existing code...
+      //   } catch (err) { next(err); }
+      // });
