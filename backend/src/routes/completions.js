@@ -52,17 +52,12 @@ router.post("/", authenticate, async (req, res, next) => {
       return res.status(400).json({ error: "subjectId is required" });
     }
     
-    await completionsDB.markComplete(userId, noteId, subjectId);
-    
-    // Return fresh progress for immediate UI sync
-    const progress = await completionsDB.getSubjectProgress(userId, subjectId);
-    
+    await completionsDB.markComplete(userId, noteId);
     res.json({
       ok: true,
       noteId,
       subjectId,
       completed: true,
-      progress,
     });
   } catch (err) {
     next(err);
@@ -84,18 +79,10 @@ router.delete("/:noteId", authenticate, async (req, res, next) => {
     }
     
     await completionsDB.markIncomplete(userId, noteId);
-    
-    // Return fresh progress if subjectId provided
-    let progress = null;
-    if (subjectId) {
-      progress = await completionsDB.getSubjectProgress(userId, subjectId);
-    }
-    
     res.json({
       ok: true,
       noteId,
       completed: false,
-      progress,
     });
   } catch (err) {
     next(err);
