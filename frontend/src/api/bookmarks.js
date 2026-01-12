@@ -15,13 +15,7 @@ export const bookmarksAPI = {
     return data.noteIds || [];
   },
 
-  /**
-   * Get bookmarks with full note details
-   */
-  async getBookmarksWithDetails() {
-    const { data } = await client.get("/api/bookmarks/details");
-    return data.bookmarks || [];
-  },
+  // ...existing code...
 
   /**
    * Add a bookmark (idempotent)

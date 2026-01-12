@@ -19,19 +19,7 @@ router.get("/", authenticate, noCache, async (req, res, next) => {
   }
 });
 
-/**
- * GET /api/bookmarks/details
- * Get bookmarks with note details for dashboard display
- */
-router.get("/details", authenticate, async (req, res, next) => {
-  try {
-    const userId = req.user.userId;
-    const bookmarks = await bookmarksDB.getUserBookmarksWithDetails(userId);
-    res.json({ bookmarks });
-  } catch (err) {
-    next(err);
-  }
-});
+
 
 /**
  * POST /api/bookmarks

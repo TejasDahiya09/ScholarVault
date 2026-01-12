@@ -60,14 +60,14 @@ export default function Login() {
       
       login(token, user || { email })
       
-      // Check if user has bookmarks
+      // Check if user has bookmarks (ID-only, contract-compliant)
       try {
-        const bookmarksRes = await client.get('/api/bookmarks/details')
-        const hasBookmarks = bookmarksRes.data?.bookmarks?.length > 0
-        navigate(hasBookmarks ? '/dashboard' : '/home')
+        const bookmarksRes = await client.get('/api/bookmarks');
+        const hasBookmarks = Array.isArray(bookmarksRes.data?.noteIds) && bookmarksRes.data.noteIds.length > 0;
+        navigate(hasBookmarks ? '/dashboard' : '/home');
       } catch (err) {
         // If error fetching bookmarks, go to subjects
-        navigate('/home')
+        navigate('/home');
       }
     } catch (e) {
       setErr(e?.response?.data?.error || e?.message || 'Login failed')
