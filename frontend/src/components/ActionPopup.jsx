@@ -1,20 +1,45 @@
 // ActionPopup.jsx
 import React from 'react';
-import { CheckCircleIcon, BookmarkIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, BookmarkIcon, XMarkIcon, XCircleIcon, StarIcon } from '@heroicons/react/24/outline';
+
+
+// type: 'bookmark-add' | 'bookmark-remove' | 'complete' | 'incomplete'
+const popupConfig = {
+  'bookmark-add': {
+    icon: <StarIcon className="h-14 w-14 text-yellow-400" />,
+    title: 'Saved!',
+    desc: 'This note has been saved for future learning. You can access it anytime from your bookmarks.',
+    border: 'border-yellow-300',
+  },
+  'bookmark-remove': {
+    icon: <StarIcon className="h-14 w-14 text-gray-300" />,
+    title: 'Removed!',
+    desc: 'This note has been removed from your bookmarks.',
+    border: 'border-gray-300',
+  },
+  'complete': {
+    icon: <CheckCircleIcon className="h-14 w-14 text-green-500" />,
+    title: 'Completed!',
+    desc: 'Marked as done and tracked in your progress. You can revisit or unmark anytime.',
+    border: 'border-green-300',
+  },
+  'incomplete': {
+    icon: <XCircleIcon className="h-14 w-14 text-red-400" />,
+    title: 'Marked as Incomplete',
+    desc: 'This note is no longer marked as complete.',
+    border: 'border-red-200',
+  },
+};
 
 export default function ActionPopup({ type, onClose }) {
-  // type: 'bookmark' | 'complete'
-  const icon = type === 'bookmark' ? <BookmarkIcon className="h-12 w-12 text-blue-500" /> : <CheckCircleIcon className="h-12 w-12 text-green-500" />;
-  const message = type === 'bookmark' ? 'Bookmarked!' : 'Marked as Complete!';
-  const lineColor = type === 'bookmark' ? 'border-blue-300' : 'border-green-300';
-
+  const config = popupConfig[type] || popupConfig['bookmark-add'];
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl p-8 flex flex-col items-center animate-popup transition-all duration-500">
-        <div className={`w-full border-t-4 ${lineColor} mb-4`} />
-        {icon}
-        <h2 className="mt-4 text-xl font-semibold text-gray-800">{message}</h2>
-        <p className="mt-2 text-gray-500">Your action was successful.</p>
+      <div className="bg-white rounded-xl shadow-2xl p-8 flex flex-col items-center animate-popup transition-all duration-500 min-w-[320px] max-w-[90vw]">
+        <div className={`w-full border-t-4 ${config.border} mb-4`} />
+        {config.icon}
+        <h2 className="mt-4 text-2xl font-bold text-gray-800">{config.title}</h2>
+        <p className="mt-2 text-gray-500 text-center max-w-xs">{config.desc}</p>
         <button
           onClick={onClose}
           className="mt-6 flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-300"

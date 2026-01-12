@@ -634,7 +634,7 @@ export default function NotesPage() {
     const wasCompleted = completedStore.isNoteCompleted(noteId, subjectId);
     try {
       await completedStore.toggleCompleted(noteId, subjectId);
-      setPopup({ show: true, type: wasCompleted ? null : "complete" });
+      setPopup({ show: true, type: wasCompleted ? "incomplete" : "complete" });
     } catch {
       setToast({ show: true, message: "Failed to update completion status", type: "error" });
     }
@@ -652,10 +652,11 @@ export default function NotesPage() {
           next.delete(noteId);
           return next;
         });
+        setPopup({ show: true, type: "bookmark-remove" });
       } else {
         await bookmarksAPI.addBookmark(noteId, subjectId);
         setBookmarkedNotes(prev => new Set(prev).add(noteId));
-        setPopup({ show: true, type: "bookmark" });
+        setPopup({ show: true, type: "bookmark-add" });
       }
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
