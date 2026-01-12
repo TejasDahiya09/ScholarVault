@@ -1,54 +1,66 @@
 // ActionPopup.jsx
 import React from 'react';
-import { CheckCircleIcon, XCircleIcon, StarIcon } from '@heroicons/react/24/solid';
-import { XMarkIcon } from '@heroicons/react/24/outline';
-
-
 
 const popupConfig = {
   'bookmark-add': {
-    icon: <StarIcon className="h-16 w-16 text-yellow-400 drop-shadow-lg" />, // filled star
+    icon: '⭐️',
     title: 'Saved!',
     subtitle: 'This note has been saved for future learning',
     desc: 'You can access it anytime from your bookmarks',
   },
   'bookmark-remove': {
-    icon: <StarIcon className="h-16 w-16 text-gray-300 drop-shadow-lg" />, // filled gray star
+    icon: '⭐️',
     title: 'Removed!',
     subtitle: 'This note has been removed from your bookmarks',
     desc: '',
   },
   'complete': {
-    icon: <CheckCircleIcon className="h-16 w-16 text-green-500 drop-shadow-lg" />, // filled check
+    icon: '✅',
     title: 'Completed!',
     subtitle: 'Marked as done and tracked in your progress',
     desc: 'You can revisit or unmark anytime',
   },
   'incomplete': {
-    icon: <XCircleIcon className="h-16 w-16 text-red-400 drop-shadow-lg" />, // filled x
+    icon: '❌',
     title: 'Marked as Incomplete',
     subtitle: 'This note is no longer marked as complete',
     desc: '',
   },
 };
 
-export default function ActionPopup({ type, onClose }) {
+
+export default function ActionPopup({ type }) {
   const config = popupConfig[type] || popupConfig['bookmark-add'];
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-2xl px-10 py-10 flex flex-col items-center animate-popup transition-all duration-500 min-w-[340px] max-w-[90vw]">
-        {config.icon}
-        <h2 className="mt-6 text-3xl font-bold text-gray-800">{config.title}</h2>
-        {config.subtitle && <div className="mt-2 text-base font-medium text-gray-700 text-center">{config.subtitle}</div>}
-        {config.desc && <div className="mt-1 text-sm text-gray-500 text-center">{config.desc}</div>}
-        <button
-          onClick={onClose}
-          className="mt-8 flex items-center gap-2 px-5 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-300 text-base font-medium"
-        >
-          <XMarkIcon className="h-5 w-5 text-gray-500" />
-          Close
-        </button>
+    <div className="fixed inset-0 flex items-center justify-center z-50" style={{background: 'rgba(0,0,0,0.04)', transition: 'background 0.3s'}}>
+      <div
+        className="popup-animate bg-white rounded-2xl px-8 py-8 flex flex-col items-center"
+        style={{
+          minWidth: 340,
+          maxWidth: 400,
+          boxShadow: '0 8px 40px 0 rgba(0,0,0,0.16), 0 1.5px 6px 0 rgba(0,0,0,0.08)',
+          transition: 'box-shadow 0.3s, transform 0.3s',
+        }}
+      >
+        <div style={{ fontSize: 64, marginBottom: 12, transition: 'transform 0.3s' }}>{config.icon}</div>
+        <h2 className="text-[2rem] font-extrabold text-gray-800 mb-2" style={{lineHeight:1.1, transition: 'color 0.3s'}}>{config.title}</h2>
+        {config.subtitle && (
+          <div className="text-lg font-medium text-gray-600 text-center mb-1" style={{lineHeight:1.3, transition: 'color 0.3s'}}>{config.subtitle}</div>
+        )}
+        {config.desc && (
+          <div className="text-base text-gray-400 text-center mt-1" style={{lineHeight:1.3, transition: 'color 0.3s'}}>{config.desc}</div>
+        )}
       </div>
+      <style>{`
+        .popup-animate {
+          animation: popup-fade-in 0.45s cubic-bezier(0.4,0,0.2,1);
+        }
+        @keyframes popup-fade-in {
+          0% { opacity: 0; transform: scale(0.85) translateY(40px); }
+          60% { opacity: 1; transform: scale(1.04) translateY(-6px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
