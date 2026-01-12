@@ -775,7 +775,7 @@ export default function NotesPage() {
             onToggleBookmark={handleToggleBookmark}
             onMarkComplete={handleMarkComplete}
             bookmarkedNotes={bookmarkedNotes}
-            completedNotes={completedNotes}
+            completedNotes={completedStore.getCompletedNoteIds(subjectId)}
             showMarkComplete={false}
           />
         )}
