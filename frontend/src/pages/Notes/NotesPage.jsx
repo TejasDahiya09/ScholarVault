@@ -136,12 +136,9 @@ export default function NotesPage() {
   // Fetch bookmarks and completions from API
   const loadUserStatus = async () => {
     try {
-      const [bookmarkIds, completedIds] = await Promise.all([
-        bookmarksAPI.getBookmarkedNoteIds(),
-        completionsAPI.getCompletedNoteIds(),
-      ]);
+      const bookmarkIds = await bookmarksAPI.getBookmarkedNoteIds();
       setBookmarkedNotes(new Set(bookmarkIds));
-      setCompletedNotes(new Set(completedIds));
+      // completions are hydrated via Zustand, no local state needed
     } catch (err) {
       console.error("Failed to load user status:", err);
     }
@@ -853,8 +850,8 @@ export default function NotesPage() {
                       }`}
                       title="Mark as complete"
                     >
-                      <span className="hidden sm:inline">{completedNotes.has(selectedNote?.id) ? "✓ Completed" : "Mark Complete"}</span>
-                      <span className="sm:hidden">{completedNotes.has(selectedNote?.id) ? "✓" : "Done"}</span>
+                      <span className="hidden sm:inline">{completions.has(selectedNote?.id) ? "✓ Completed" : "Mark Complete"}</span>
+                      <span className="sm:hidden">{completions.has(selectedNote?.id) ? "✓" : "Done"}</span>
                     </button>
                   )}
 
@@ -1281,7 +1278,7 @@ function Section({ title, items, onClick, onToggleBookmark, onMarkComplete, book
                     : "bg-gray-100 text-gray-700 border border-gray-300 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700"
                 }`}
               >
-                {completedNotes?.has(item.id) ? "✓ Completed" : "Mark as Complete"}
+                {completions?.has(item.id) ? "✓ Completed" : "Mark as Complete"}
               </button>
             )}
           </div>
