@@ -100,24 +100,13 @@ router.get("/:id/units", authenticate, async (req, res, next) => {
       throw new Error(`Failed to fetch notes: ${notesError.message}`);
     }
 
-    // Get completed note IDs from new completions table
-    const completedIds = await completionsDB.getCompletedNoteIds(userId);
-    const completedSet = new Set(completedIds);
-
-    // Group notes by unit_number
+    // Group notes by unit_number (structure only)
     const unitsMap = new Map();
     for (const n of notes || []) {
       const unitNum = n.unit_number ?? null;
       if (unitNum == null) continue;
-      const entry = unitsMap.get(unitNum) || { id: unitNum, name: `Unit ${unitNum}`, noteIds: [], is_completed: false };
-      entry.noteIds.push(n.id);
+      const entry = unitsMap.get(unitNum) || { id: unitNum, name: `Unit ${unitNum}` };
       unitsMap.set(unitNum, entry);
-    }
-
-    // Determine unit completion: all notes in unit completed
-    for (const entry of unitsMap.values()) {
-      entry.is_completed = entry.noteIds.every(id => completedSet.has(id));
-      delete entry.noteIds;
     }
 
     // Return sorted units by unit number

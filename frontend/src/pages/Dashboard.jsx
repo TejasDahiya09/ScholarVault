@@ -150,7 +150,7 @@ export default function Dashboard() {
         try {
           const unitsRes = await client.get(`/api/subjects/${nextSubject.id}/units`);
           const units = unitsRes.data || [];
-          const incompleteUnit = units.find(u => !u.is_completed);
+          const incompleteUnit = units[0];
           if (incompleteUnit) {
             setNextUnit({
               subject: nextSubject.name,

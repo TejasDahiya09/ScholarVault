@@ -1,3 +1,26 @@
+
+# 🏛️ Architecture Contract
+
+> **Why this exists:** These rules exist because user-specific state combined with cached APIs can cause subtle UI regressions that are difficult to detect and debug.
+
+## Data Ownership & Caching Rules
+
+- **Subject & notes APIs must never include user-specific state.**
+- **Bookmarks and completions are sourced exclusively from user-state APIs and merged client-side.**
+- **User progress (bookmarks, completions) is never included in subject or notes API responses.**
+- **Subject and notes APIs are cacheable and may return 304 Not Modified.**
+- **User-state APIs (bookmarks, completions) always use `Cache-Control: no-store` and must never be cached.**
+
+This contract prevents regressions and ensures cache safety, correct user-state isolation, and robust UI behavior.
+
+# ✅ Pull Request Checklist (for all contributors)
+
+- [ ] No `is_bookmarked` or `is_completed` fields in subject/notes APIs
+- [ ] No joins between subjects/notes and user-state tables (bookmarks/completions)
+- [ ] UI derives progress state only from `userProgressStore` (Zustand)
+- [ ] No workaround logic to re-sync user state after navigation
+
+Violating any item above is a hard blocker. The PR must not be merged.
 # ScholarVault 📚
 
 A comprehensive smart learning platform that combines study notes management, progress analytics, and AI-powered features to help engineering students optimize their learning journey with real-time insights and intelligent study tracking.

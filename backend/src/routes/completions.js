@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middlewares/auth.js";
+import { noCache } from "../middlewares/noCache.js";
 import completionsDB from "../db/completions.js";
 
 const router = Router();
@@ -9,13 +10,12 @@ const router = Router();
  * Get all completed note IDs for the authenticated user
  * Optional query: ?subjectId=uuid to filter by subject
  */
-router.get("/", authenticate, async (req, res, next) => {
+router.get("/", authenticate, noCache, async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const { subjectId } = req.query;
-    
     const completedIds = await completionsDB.getCompletedNoteIds(userId, subjectId || null);
-    res.json({ completions: completedIds });
+    res.json({ noteIds: completedIds });
   } catch (err) {
     next(err);
   }

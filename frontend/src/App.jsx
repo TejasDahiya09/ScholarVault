@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { useHydrateUserProgress } from "./store/useHydrateUserProgress";
 
 // Lazy load all pages for better performance
 const Landing = lazy(() => import("./pages/Landing"));
@@ -26,16 +27,15 @@ const LoadingFallback = () => (
 );
 
 export default function App() {
+  useHydrateUserProgress();
   return (
     <ErrorBoundary>
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
-
           {/* Public routes */}
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-
           {/* AppShell protected routes */}
           <Route
             path="/dashboard"

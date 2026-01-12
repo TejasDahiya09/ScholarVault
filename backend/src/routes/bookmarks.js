@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middlewares/auth.js";
+import { noCache } from "../middlewares/noCache.js";
 import bookmarksDB from "../db/bookmarks.js";
 
 const router = Router();
@@ -8,11 +9,11 @@ const router = Router();
  * GET /api/bookmarks
  * Get all bookmark note IDs for the authenticated user
  */
-router.get("/", authenticate, async (req, res, next) => {
+router.get("/", authenticate, noCache, async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const bookmarkIds = await bookmarksDB.getUserBookmarkIds(userId);
-    res.json({ bookmarks: bookmarkIds });
+    res.json({ noteIds: bookmarkIds });
   } catch (err) {
     next(err);
   }
