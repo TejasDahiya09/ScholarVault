@@ -67,20 +67,20 @@ router.get("/:id/notes", async (req, res, next) => {
   }
 });
 
-// /**
-//  * Get subject progress for authenticated user
-//  */
-// router.get("/:id/progress", authenticate, async (req, res, next) => {
-//   try {
-//     const userId = req.user.userId;
-//     const subjectId = req.params.id;
-//
-//     const progress = await completionsDB.getSubjectProgress(userId, subjectId);
-//     res.json(progress);
-//   } catch (err) {
-//     next(err);
-//   }
-// });
+/**
+ * Get subject progress for authenticated user
+ */
+router.get("/:id/progress", authenticate, async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const subjectId = req.params.id;
+
+    const progress = await completionsDB.getSubjectProgress(userId, subjectId);
+    res.json(progress);
+  } catch (err) {
+    next(err);
+  }
+});
 
 /**
  * Get units for a subject with completion flags

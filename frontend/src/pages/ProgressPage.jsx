@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
+import useCompletedStore from "../store/useCompletedStore";
 
 export default function ProgressPage() {
   const navigate = useNavigate();
