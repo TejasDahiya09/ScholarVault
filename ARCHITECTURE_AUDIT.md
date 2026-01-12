@@ -19,77 +19,77 @@
         .from("notes")
         .select("id, title, unit_id, file_path")
         .eq("subject_id", subjectId);
-    }
-    ```
-- **Explanation:** All user-specific joins, subqueries, and fields (is_bookmarked, is_completed, userId) were removed. Query now returns only structural note data.
-- **Bug/regression prevented:** Prevents user-specific state from leaking into cacheable subject APIs, eliminating bookmark/completion resurrection bugs.
-- **Legacy code:** Any legacy join/subquery logic was removed.
+    # 📐 ARCHITECTURE_AUDIT.md
 
-### b. backend/src/db/notes.js
-- **Old code / logic:** May have included user-specific joins or fields.
-- **New code:** Only structural note queries remain, e.g.:
-    ```js
-    .select("id, file_name, subject, subject_id, unit_number, semester, branch, s3_url, created_at")
-    ```
-- **Explanation:** No user-specific state in any note query.
-- **Bug/regression prevented:** Prevents user-state leakage into cacheable APIs.
-- **Legacy code:** No references to bookmarks/completions/userId remain.
+    ## ScholarVault Architecture Audit (Authoritative)
 
-### c. backend/src/routes/bookmarks.js
-- **Old code / logic:** May have returned full note objects or user-state flags. No cache-control headers.
-- **New code:**
-    ```js
-    import { noCache } from "../middlewares/noCache.js";
-    router.get("/", authenticate, noCache, async (req, res, next) => {
-      const userId = req.user.userId;
-      const bookmarkIds = await bookmarksDB.getUserBookmarkIds(userId);
-      res.json({ noteIds: bookmarkIds });
-    });
-    ```
-- **Explanation:** Now returns only `{ noteIds: [...] }`. Uses `noCache` middleware to set `Cache-Control: no-store`.
-- **Bug/regression prevented:** Ensures user-state API is never cached and only returns IDs.
-- **Legacy code:** Any code returning full objects or user-state flags was removed.
+    ### Status
 
-### d. backend/src/routes/completions.js
-- **Old code / logic:** May have returned full note objects or user-state flags. No cache-control headers.
-- **New code:**
-    ```js
-    import { noCache } from "../middlewares/noCache.js";
-    router.get("/", authenticate, noCache, async (req, res, next) => {
-      const userId = req.user.userId;
-      const completedIds = await completionsDB.getCompletedNoteIds(userId, subjectId || null);
-      res.json({ noteIds: completedIds });
-    });
-    ```
-- **Explanation:** Now returns only `{ noteIds: [...] }`. Uses `noCache` middleware to set `Cache-Control: no-store`.
-- **Bug/regression prevented:** Ensures user-state API is never cached and only returns IDs.
-- **Legacy code:** Any code returning full objects or user-state flags was removed.
+    * Platform state: **PRODUCTION-STABLE**
+    * Critical features verified:
 
-### e. backend/src/middlewares/noCache.js
-- **New file:**
-    ```js
-    export function noCache(req, res, next) {
-      res.setHeader("Cache-Control", "no-store");
-      res.setHeader("Pragma", "no-cache");
-      res.setHeader("Expires", "0");
-      next();
-    }
-    ```
-- **Explanation:** Ensures user-state APIs are never cached.
-- **Bug/regression prevented:** Prevents browser/proxy caching of user progress endpoints.
+      * Bookmarks
+      * Mark as Completed (Completions)
 
-### f. backend/src/db/bookmarks.js, backend/src/db/completions.js
-- **Old code / logic:** May have returned full note objects or joined with notes.
-- **New code:** Only returns arrays of note IDs for the user.
-- **Explanation:** No user-state joins in subject/notes queries.
-- **Bug/regression prevented:** Prevents user-state leakage.
-- **Legacy code:** No references to user_bookmarks or user_note_completions in subject/notes queries.
+    ---
 
-### g. backend/src/routes/subjects.js, backend/src/routes/notes.js
-- **Old code / logic:** May have included user-specific state in responses.
-- **New code:** Only returns structural data.
-- **Explanation:** No user-specific state in any subject/notes API.
-- **Bug/regression prevented:** Prevents resurrection bugs.
+    ## 1. System Layers
+
+    ### Frontend
+
+    * React + Vite + TailwindCSS
+    * Zustand for global state
+    * Optimistic updates with rollback
+    * NO event-based cross-page sync
+
+    ### Backend
+
+    * Node.js + Express
+    * Supabase (PostgreSQL)
+    * JWT authentication
+    * Explicit toggle logic (SELECT → INSERT/DELETE)
+
+    ### Database
+
+    * PostgreSQL via Supabase
+    * RLS enforced
+    * Schema-driven invariants (no error-driven logic)
+
+    ---
+
+    ## 2. Critical Invariants (DO NOT BREAK)
+
+    ### Bookmarks
+
+    * Table: `bookmarks`
+    * Columns: `id`, `user_id`, `note_id`, `created_at`
+    * Uniqueness: `UNIQUE (user_id, note_id)`
+    * **Bookmarks are NOT subject-aware (by design, currently)**
+
+    ### Completions
+
+    * Table: `completions`
+    * Columns include `subject_id`
+    * Uniqueness: `UNIQUE (user_id, note_id, subject_id)`
+    * True toggle semantics enforced
+
+    ---
+
+    ## 3. Lessons Learned
+
+    * Database constraints override application logic
+    * Schema drift causes silent production failures
+    * Toggle endpoints must never rely on catching duplicate-key errors
+
+    ---
+
+    ## 4. Audit Conclusion
+
+    ✅ Architecture is clean
+    ✅ Invariants are explicit
+    ✅ Safe for feature expansion with guardrails
+
+    ---
 - **Legacy code:** No user-specific state remains.
 
 ### h. Global cache disabling
