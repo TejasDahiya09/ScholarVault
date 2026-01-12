@@ -9,7 +9,6 @@ import client from "../../api/client";
 import { getSignedPdfUrl, resolveKeyFromUrl } from "../../api/files";
 import bookmarksAPI from "../../api/bookmarks";
 import completionsAPI from "../../api/completions";
-import { useUserProgressStore } from "../../store/userProgressStore";
 
 // Lazy load PDF viewer component for performance
 // Reduces initial bundle size and speeds up page load
@@ -46,9 +45,7 @@ export default function NotesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookmarkedNotes, setBookmarkedNotes] = useState(new Set());
-  const completions = useUserProgressStore((s) => s.completions);
-  const addCompletion = useUserProgressStore((s) => s.addCompletion);
-  const removeCompletion = useUserProgressStore((s) => s.removeCompletion);
+  const [completedNotes, setCompletedNotes] = useState(new Set());
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
   // Viewer
@@ -136,9 +133,12 @@ export default function NotesPage() {
   // Fetch bookmarks and completions from API
   const loadUserStatus = async () => {
     try {
-      const bookmarkIds = await bookmarksAPI.getBookmarkedNoteIds();
+      const [bookmarkIds, completedIds] = await Promise.all([
+        bookmarksAPI.getBookmarkedNoteIds(),
+        completionsAPI.getCompletedNoteIds(),
+      ]);
       setBookmarkedNotes(new Set(bookmarkIds));
-      // completions are hydrated via Zustand, no local state needed
+      setCompletedNotes(new Set(completedIds));
     } catch (err) {
       console.error("Failed to load user status:", err);
     }
@@ -622,17 +622,23 @@ export default function NotesPage() {
   // Placeholder handlers that show "feature disabled" message
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
-    const isCompleted = completions.has(noteId);
+    const isCurrentlyCompleted = completedNotes.has(noteId);
+    
     try {
-      if (isCompleted) {
+      if (isCurrentlyCompleted) {
         await completionsAPI.markIncomplete(noteId);
-        removeCompletion(noteId);
+        setCompletedNotes(prev => {
+          const next = new Set(prev);
+          next.delete(noteId);
+          return next;
+        });
         setToast({ show: true, message: "Marked as incomplete", type: "success" });
       } else {
         await completionsAPI.markComplete(noteId, subjectId);
-        addCompletion(noteId);
+        setCompletedNotes(prev => new Set(prev).add(noteId));
         setToast({ show: true, message: "Marked as complete!", type: "success" });
       }
+      // Notify other pages (Dashboard, Progress) to refresh
       window.dispatchEvent(new Event("learning:update"));
     } catch (err) {
       console.error("Completion toggle failed:", err);
@@ -850,8 +856,8 @@ export default function NotesPage() {
                       }`}
                       title="Mark as complete"
                     >
-                      <span className="hidden sm:inline">{completions.has(selectedNote?.id) ? "✓ Completed" : "Mark Complete"}</span>
-                      <span className="sm:hidden">{completions.has(selectedNote?.id) ? "✓" : "Done"}</span>
+                      <span className="hidden sm:inline">{completedNotes.has(selectedNote?.id) ? "✓ Completed" : "Mark Complete"}</span>
+                      <span className="sm:hidden">{completedNotes.has(selectedNote?.id) ? "✓" : "Done"}</span>
                     </button>
                   )}
 
@@ -1278,7 +1284,7 @@ function Section({ title, items, onClick, onToggleBookmark, onMarkComplete, book
                     : "bg-gray-100 text-gray-700 border border-gray-300 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700"
                 }`}
               >
-                {completions?.has(item.id) ? "✓ Completed" : "Mark as Complete"}
+                {completedNotes?.has(item.id) ? "✓ Completed" : "Mark as Complete"}
               </button>
             )}
           </div>
