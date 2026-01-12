@@ -1,33 +1,34 @@
 // ActionPopup.jsx
 import React from 'react';
-import { CheckCircleIcon, BookmarkIcon, XMarkIcon, XCircleIcon, StarIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, XCircleIcon, StarIcon } from '@heroicons/react/24/solid';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 
 
-// type: 'bookmark-add' | 'bookmark-remove' | 'complete' | 'incomplete'
+
 const popupConfig = {
   'bookmark-add': {
-    icon: <StarIcon className="h-14 w-14 text-yellow-400" />,
+    icon: <StarIcon className="h-16 w-16 text-yellow-400 drop-shadow-lg" />, // filled star
     title: 'Saved!',
-    desc: 'This note has been saved for future learning. You can access it anytime from your bookmarks.',
-    border: 'border-yellow-300',
+    subtitle: 'This note has been saved for future learning',
+    desc: 'You can access it anytime from your bookmarks',
   },
   'bookmark-remove': {
-    icon: <StarIcon className="h-14 w-14 text-gray-300" />,
+    icon: <StarIcon className="h-16 w-16 text-gray-300 drop-shadow-lg" />, // filled gray star
     title: 'Removed!',
-    desc: 'This note has been removed from your bookmarks.',
-    border: 'border-gray-300',
+    subtitle: 'This note has been removed from your bookmarks',
+    desc: '',
   },
   'complete': {
-    icon: <CheckCircleIcon className="h-14 w-14 text-green-500" />,
+    icon: <CheckCircleIcon className="h-16 w-16 text-green-500 drop-shadow-lg" />, // filled check
     title: 'Completed!',
-    desc: 'Marked as done and tracked in your progress. You can revisit or unmark anytime.',
-    border: 'border-green-300',
+    subtitle: 'Marked as done and tracked in your progress',
+    desc: 'You can revisit or unmark anytime',
   },
   'incomplete': {
-    icon: <XCircleIcon className="h-14 w-14 text-red-400" />,
+    icon: <XCircleIcon className="h-16 w-16 text-red-400 drop-shadow-lg" />, // filled x
     title: 'Marked as Incomplete',
-    desc: 'This note is no longer marked as complete.',
-    border: 'border-red-200',
+    subtitle: 'This note is no longer marked as complete',
+    desc: '',
   },
 };
 
@@ -35,14 +36,14 @@ export default function ActionPopup({ type, onClose }) {
   const config = popupConfig[type] || popupConfig['bookmark-add'];
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl p-8 flex flex-col items-center animate-popup transition-all duration-500 min-w-[320px] max-w-[90vw]">
-        <div className={`w-full border-t-4 ${config.border} mb-4`} />
+      <div className="bg-white rounded-2xl shadow-2xl px-10 py-10 flex flex-col items-center animate-popup transition-all duration-500 min-w-[340px] max-w-[90vw]">
         {config.icon}
-        <h2 className="mt-4 text-2xl font-bold text-gray-800">{config.title}</h2>
-        <p className="mt-2 text-gray-500 text-center max-w-xs">{config.desc}</p>
+        <h2 className="mt-6 text-3xl font-bold text-gray-800">{config.title}</h2>
+        {config.subtitle && <div className="mt-2 text-base font-medium text-gray-700 text-center">{config.subtitle}</div>}
+        {config.desc && <div className="mt-1 text-sm text-gray-500 text-center">{config.desc}</div>}
         <button
           onClick={onClose}
-          className="mt-6 flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-300"
+          className="mt-8 flex items-center gap-2 px-5 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-300 text-base font-medium"
         >
           <XMarkIcon className="h-5 w-5 text-gray-500" />
           Close
