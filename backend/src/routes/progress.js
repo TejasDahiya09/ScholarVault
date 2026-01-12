@@ -1,4 +1,15 @@
 import { Router } from "express";
+
+const router = Router();
+
+/**
+ * Legacy progress & analytics routes intentionally disabled.
+ * Reason: Violated Architecture Contract (user-state aggregation).
+ * This file is kept as a stub to avoid breaking imports.
+ */
+
+export default router;
+import { Router } from "express";
 import { authenticate } from "../middlewares/auth.js";
 import studySessionsDB from "../db/studySessions.js";
 import completionsDB from "../db/completions.js";
