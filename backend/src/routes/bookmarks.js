@@ -29,14 +29,17 @@ router.get("/", authenticate, noCache, async (req, res, next) => {
 router.post("/", authenticate, async (req, res, next) => {
   try {
     const userId = req.user.userId;
-    const { noteId } = req.body;
+    const { noteId, subjectId } = req.body;
     
     if (!noteId) {
       return res.status(400).json({ error: "noteId is required" });
     }
+    if (!subjectId) {
+      return res.status(400).json({ error: "subjectId is required" });
+    }
     
-    await bookmarksDB.addBookmark(userId, noteId);
-    res.json({ ok: true, noteId, bookmarked: true });
+    await bookmarksDB.addBookmark(userId, noteId, subjectId);
+    res.json({ ok: true, noteId, subjectId, bookmarked: true });
   } catch (err) {
     next(err);
   }

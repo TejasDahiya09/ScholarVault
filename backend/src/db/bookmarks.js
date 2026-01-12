@@ -1,3 +1,7 @@
+// IMPORTANT:
+// bookmarks.subject_id is REQUIRED
+// DB enforces UNIQUE (user_id, note_id, subject_id)
+// Never insert without subject_id
 
 import { supabase } from "../lib/services.js";
 
@@ -14,10 +18,10 @@ const bookmarksDB = {
   },
 
   // Add a bookmark
-  async addBookmark(userId, noteId) {
+  async addBookmark(userId, noteId, subjectId) {
     const { error } = await supabase
       .from("bookmarks")
-      .insert({ user_id: userId, note_id: noteId });
+      .insert({ user_id: userId, note_id: noteId, subject_id: subjectId });
     if (error) throw error;
     return { bookmarked: true };
   },
