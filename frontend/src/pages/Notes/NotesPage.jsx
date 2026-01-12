@@ -9,6 +9,7 @@ import client from "../../api/client";
 import { getSignedPdfUrl, resolveKeyFromUrl } from "../../api/files";
 import bookmarksAPI from "../../api/bookmarks";
 import completionsAPI from "../../api/completions";
+import { useUserProgressStore } from "../../store/userProgressStore";
 
 // Lazy load PDF viewer component for performance
 // Reduces initial bundle size and speeds up page load
@@ -45,7 +46,9 @@ export default function NotesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookmarkedNotes, setBookmarkedNotes] = useState(new Set());
-  const [completedNotes, setCompletedNotes] = useState(new Set());
+  const completions = useUserProgressStore((s) => s.completions);
+  const addCompletion = useUserProgressStore((s) => s.addCompletion);
+  const removeCompletion = useUserProgressStore((s) => s.removeCompletion);
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
   // Viewer
@@ -622,23 +625,17 @@ export default function NotesPage() {
   // Placeholder handlers that show "feature disabled" message
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
-    const isCurrentlyCompleted = completedNotes.has(noteId);
-    
+    const isCompleted = completions.has(noteId);
     try {
-      if (isCurrentlyCompleted) {
+      if (isCompleted) {
         await completionsAPI.markIncomplete(noteId);
-        setCompletedNotes(prev => {
-          const next = new Set(prev);
-          next.delete(noteId);
-          return next;
-        });
+        removeCompletion(noteId);
         setToast({ show: true, message: "Marked as incomplete", type: "success" });
       } else {
         await completionsAPI.markComplete(noteId, subjectId);
-        setCompletedNotes(prev => new Set(prev).add(noteId));
+        addCompletion(noteId);
         setToast({ show: true, message: "Marked as complete!", type: "success" });
       }
-      // Notify other pages (Dashboard, Progress) to refresh
       window.dispatchEvent(new Event("learning:update"));
     } catch (err) {
       console.error("Completion toggle failed:", err);
