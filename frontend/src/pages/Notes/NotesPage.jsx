@@ -10,6 +10,7 @@ import { getSignedPdfUrl, resolveKeyFromUrl } from "../../api/files";
 import bookmarksAPI from "../../api/bookmarks";
 import completionsAPI from "../../api/completions";
 import useCompletedStore from "../../store/useCompletedStore";
+import ActionPopup from "../../components/ActionPopup";
 
 // Lazy load PDF viewer component for performance
 // Reduces initial bundle size and speeds up page load
@@ -49,6 +50,7 @@ export default function NotesPage() {
   // Completed notes state is now managed by Zustand store
   const completedStore = useCompletedStore();
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [popup, setPopup] = useState({ show: false, type: null });
 
   // Viewer
   const [selectedNote, setSelectedNote] = useState(null);
@@ -632,27 +634,16 @@ export default function NotesPage() {
     const wasCompleted = completedStore.isNoteCompleted(noteId, subjectId);
     try {
       await completedStore.toggleCompleted(noteId, subjectId);
-      setToast({
-        show: true,
-        message: wasCompleted
-          ? "Marked as incomplete"
-          : "Marked as complete!",
-        type: "success"
-      });
+      setPopup({ show: true, type: wasCompleted ? null : "complete" });
     } catch {
-      setToast({
-        show: true,
-        message: "Failed to update completion status",
-        type: "error"
-      });
+      setToast({ show: true, message: "Failed to update completion status", type: "error" });
     }
-    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
+    setTimeout(() => setPopup({ show: false, type: null }), 2000);
   };
 
   const handleToggleBookmark = async (e, noteId) => {
     e.stopPropagation();
     const isCurrentlyBookmarked = bookmarkedNotes.has(noteId);
-    
     try {
       if (isCurrentlyBookmarked) {
         await bookmarksAPI.removeBookmark(noteId);
@@ -661,17 +652,16 @@ export default function NotesPage() {
           next.delete(noteId);
           return next;
         });
-        setToast({ show: true, message: "Bookmark removed", type: "success" });
       } else {
         await bookmarksAPI.addBookmark(noteId, subjectId);
         setBookmarkedNotes(prev => new Set(prev).add(noteId));
-        setToast({ show: true, message: "Bookmarked!", type: "success" });
+        setPopup({ show: true, type: "bookmark" });
       }
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
       setToast({ show: true, message: "Failed to update bookmark", type: "error" });
     }
-    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
+    setTimeout(() => setPopup({ show: false, type: null }), 2000);
   };
 
   // ------------------------------------------------------------------------------------
@@ -1233,6 +1223,10 @@ export default function NotesPage() {
         </ErrorBoundary>
       )}
 
+      {/* Action Popups */}
+      {popup.show && popup.type && (
+        <ActionPopup type={popup.type} onClose={() => setPopup({ show: false, type: null })} />
+      )}
     </>
   );
 
