@@ -1,6 +1,6 @@
-import { Router } from "express";
+import express from "express";
 
-const router = Router();
+const router = express.Router();
 
 /**
  * Legacy progress & analytics routes intentionally disabled.
@@ -9,15 +9,6 @@ const router = Router();
  */
 
 export default router;
-import { Router } from "express";
-import { authenticate } from "../middlewares/auth.js";
-import studySessionsDB from "../db/studySessions.js";
-import completionsDB from "../db/completions.js";
-import { supabase } from "../lib/services.js";
-
-const router = Router();
-
-/**
  * Start a user study session
  */
 router.post("/session/start", authenticate, async (req, res, next) => {
