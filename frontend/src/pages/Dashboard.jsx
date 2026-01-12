@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
 import bookmarksAPI from "../api/bookmarks";
+import useCompletedStore from "../store/useCompletedStore";
 
 export default function Dashboard() {
   const navigate = useNavigate();

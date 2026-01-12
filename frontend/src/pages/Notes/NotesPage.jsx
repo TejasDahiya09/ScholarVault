@@ -9,6 +9,7 @@ import client from "../../api/client";
 import { getSignedPdfUrl, resolveKeyFromUrl } from "../../api/files";
 import bookmarksAPI from "../../api/bookmarks";
 import completionsAPI from "../../api/completions";
+import useCompletedStore from "../../store/useCompletedStore";
 
 // Lazy load PDF viewer component for performance
 // Reduces initial bundle size and speeds up page load
@@ -45,7 +46,8 @@ export default function NotesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookmarkedNotes, setBookmarkedNotes] = useState(new Set());
-  const [completedNotes, setCompletedNotes] = useState(new Set());
+  // Completed notes state is now managed by Zustand store
+  const completedStore = useCompletedStore();
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
   // Viewer
@@ -130,15 +132,15 @@ export default function NotesPage() {
     });
   };
 
-  // Fetch bookmarks and completions from API
+  // Fetch bookmarks from API, completions from Zustand store
   const loadUserStatus = async () => {
     try {
-      const [bookmarkIds, completedIds] = await Promise.all([
-        bookmarksAPI.getBookmarkedNoteIds(),
-        completionsAPI.getCompletedNoteIds(),
-      ]);
+      const bookmarkIds = await bookmarksAPI.getBookmarkedNoteIds();
       setBookmarkedNotes(new Set(bookmarkIds));
-      setCompletedNotes(new Set(completedIds));
+      // Completed notes are handled by Zustand store
+      if (subjectId) {
+        await completedStore.fetchCompletedNotes(subjectId);
+      }
     } catch (err) {
       console.error("Failed to load user status:", err);
     }
@@ -190,6 +192,10 @@ export default function NotesPage() {
 
   useEffect(() => {
     load();
+    if (subjectId) {
+      completedStore.fetchCompletedNotes(subjectId);
+    }
+    // eslint-disable-next-line
   }, [subjectId, noteId]);
 
   // Load cached summary when note changes or AI mode switches
@@ -622,27 +628,23 @@ export default function NotesPage() {
   // Placeholder handlers that show "feature disabled" message
   const handleMarkComplete = async (e, noteId) => {
     e.stopPropagation();
-    const isCurrentlyCompleted = completedNotes.has(noteId);
-    
+    if (!subjectId) return;
+    const wasCompleted = completedStore.isNoteCompleted(noteId, subjectId);
     try {
-      if (isCurrentlyCompleted) {
-        await completionsAPI.markIncomplete(noteId);
-        setCompletedNotes(prev => {
-          const next = new Set(prev);
-          next.delete(noteId);
-          return next;
-        });
-        setToast({ show: true, message: "Marked as incomplete", type: "success" });
-      } else {
-        await completionsAPI.markComplete(noteId, subjectId);
-        setCompletedNotes(prev => new Set(prev).add(noteId));
-        setToast({ show: true, message: "Marked as complete!", type: "success" });
-      }
-      // Notify other pages (Dashboard, Progress) to refresh
-      window.dispatchEvent(new Event("learning:update"));
-    } catch (err) {
-      console.error("Completion toggle failed:", err);
-      setToast({ show: true, message: "Failed to update completion", type: "error" });
+      await completedStore.toggleCompleted(noteId, subjectId);
+      setToast({
+        show: true,
+        message: wasCompleted
+          ? "Marked as incomplete"
+          : "Marked as complete!",
+        type: "success"
+      });
+    } catch {
+      setToast({
+        show: true,
+        message: "Failed to update completion status",
+        type: "error"
+      });
     }
     setTimeout(() => setToast({ show: false, message: "", type: "success" }), 3000);
   };
@@ -665,8 +667,6 @@ export default function NotesPage() {
         setBookmarkedNotes(prev => new Set(prev).add(noteId));
         setToast({ show: true, message: "Bookmarked!", type: "success" });
       }
-      // Notify other pages (Dashboard, Progress) to refresh
-      window.dispatchEvent(new Event("learning:update"));
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
       setToast({ show: true, message: "Failed to update bookmark", type: "error" });
@@ -719,7 +719,7 @@ export default function NotesPage() {
             onToggleBookmark={handleToggleBookmark}
             onMarkComplete={handleMarkComplete}
             bookmarkedNotes={bookmarkedNotes}
-            completedNotes={completedNotes}
+            completedNotes={completedStore.getCompletedNoteIds(subjectId)}
             showMarkComplete={true}
           />
         )}
@@ -733,7 +733,7 @@ export default function NotesPage() {
             onToggleBookmark={handleToggleBookmark}
             onMarkComplete={handleMarkComplete}
             bookmarkedNotes={bookmarkedNotes}
-            completedNotes={completedNotes}
+            completedNotes={completedStore.getCompletedNoteIds(subjectId)}
             showMarkComplete={false}
           />
         )}
@@ -747,7 +747,7 @@ export default function NotesPage() {
             onToggleBookmark={handleToggleBookmark}
             onMarkComplete={handleMarkComplete}
             bookmarkedNotes={bookmarkedNotes}
-            completedNotes={completedNotes}
+            completedNotes={completedStore.getCompletedNoteIds(subjectId)}
             showMarkComplete={false}
           />
         )}
@@ -761,7 +761,7 @@ export default function NotesPage() {
             onToggleBookmark={handleToggleBookmark}
             onMarkComplete={handleMarkComplete}
             bookmarkedNotes={bookmarkedNotes}
-            completedNotes={completedNotes}
+            completedNotes={completedStore.getCompletedNoteIds(subjectId)}
             showMarkComplete={false}
           />
         )}
@@ -850,14 +850,14 @@ export default function NotesPage() {
                     <button
                       onClick={(e) => handleMarkComplete(e, selectedNote?.id)}
                       className={`px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded text-xs sm:text-sm whitespace-nowrap font-medium transition-all ${
-                        completedNotes.has(selectedNote?.id)
+                        completedStore.isNoteCompleted(selectedNote?.id, subjectId)
                           ? "bg-green-600 hover:bg-green-700 text-white"
                           : "bg-amber-500 hover:bg-amber-600 text-white"
                       }`}
                       title="Mark as complete"
                     >
-                      <span className="hidden sm:inline">{completedNotes.has(selectedNote?.id) ? "✓ Completed" : "Mark Complete"}</span>
-                      <span className="sm:hidden">{completedNotes.has(selectedNote?.id) ? "✓" : "Done"}</span>
+                      <span className="hidden sm:inline">{completedStore.isNoteCompleted(selectedNote?.id, subjectId) ? "✓ Completed" : "Mark Complete"}</span>
+                      <span className="sm:hidden">{completedStore.isNoteCompleted(selectedNote?.id, subjectId) ? "✓" : "Done"}</span>
                     </button>
                   )}
 
