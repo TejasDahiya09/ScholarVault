@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
 import bookmarksAPI from "../api/bookmarks";
@@ -27,19 +27,15 @@ export default function Dashboard() {
   const BOOKMARKS_PER_PAGE = 4;
   const SUBJECTS_PER_PAGE = 5;
 
-  // Fetch data on mount, year change, and when learning updates occur
+  // Dashboard refresh function for completions/bookmarks
+  const refreshDashboard = useRef(() => {});
+
   useEffect(() => {
-    fetchDashboardData();
-    
-    // Subscribe to learning updates from NotesPage
-    const handleLearningUpdate = () => {
-      fetchDashboardData();
+    const doRefresh = async () => {
+      await fetchDashboardData();
     };
-    window.addEventListener("learning:update", handleLearningUpdate);
-    
-    return () => {
-      window.removeEventListener("learning:update", handleLearningUpdate);
-    };
+    refreshDashboard.current = doRefresh;
+    doRefresh();
   }, [user?.selected_year]);
 
   // Stay on Dashboard even if there are no bookmarks
@@ -84,29 +80,30 @@ export default function Dashboard() {
         const subjectsRes = await client.get('/api/subjects');
         const allSubjects = subjectsRes.data || [];
         yearFilteredSubjects = filterSubjectsByYear(allSubjects);
-        
-        // Set subjects without loading progress first (faster initial render)
-        setSubjects(yearFilteredSubjects.map(s => ({ ...s, progress: -1 })));
-        
-        // Async load progress for each subject (progressive UI enhancement only)
-        // NOTE: Stats come from backend analytics - do NOT update stats.unitsCompleted here
-        yearFilteredSubjects.forEach(async (subject) => {
-          try {
-            const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
-            setSubjects(prev => prev.map(s => 
-              s.id === subject.id 
-                ? {
-                    ...s,
-                    progress: completionRes.data?.progress_percent || 0,
-                    completed: completionRes.data?.completed_units || 0,
-                    total: completionRes.data?.total_units || 0
-                  }
-                : s
-            ));
-          } catch (err) {
-            console.error(`Error fetching progress for ${subject.id}:`, err);
-          }
-        });
+
+        // Batch fetch all subject progress
+        const progressResults = await Promise.all(
+          yearFilteredSubjects.map(async (subject) => {
+            try {
+              const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
+              return {
+                ...subject,
+                progress: completionRes.data?.progress_percent || 0,
+                completed: completionRes.data?.completed_units || 0,
+                total: completionRes.data?.total_units || 0
+              };
+            } catch (err) {
+              console.error(`Error fetching progress for ${subject.id}:`, err);
+              return {
+                ...subject,
+                progress: 0,
+                completed: 0,
+                total: 0
+              };
+            }
+          })
+        );
+        setSubjects(progressResults);
       } catch (err) {
         console.error("Failed to fetch subjects:", err);
         setError("Failed to load subjects. Please try refreshing.");
@@ -116,33 +113,24 @@ export default function Dashboard() {
       try {
         const analyticsRes = await client.get('/api/progress/analytics');
         const a = analyticsRes.data || {};
-        
         // Backend analytics is the single source of truth for all stats
         setStats({
           totalTime: a.stats?.totalTimeHours || 0,
           unitsCompleted: a.stats?.completedUnitsTotal || 0,
           currentStreak: a.stats?.currentStreak || 0
         });
-        
         setWeeklyActivity(Array.isArray(a.weekly) ? a.weekly : []);
       } catch (err) {
         console.error("Failed to fetch analytics:", err);
-        // Set empty weekly activity as fallback
-        const today = new Date().getDay();
-        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        setWeeklyActivity(
-          days.map((day, index) => ({
-            day,
-            minutes: 0,
-            isToday: index === today
-          }))
-        );
+        setWeeklyActivity([]); // No fallback, just empty
       }
 
       // Recent activity
       const recent = JSON.parse(localStorage.getItem("sv_last_note") || "null");
       if (recent) {
         setRecentActivity([recent]);
+      } else {
+        setRecentActivity([]);
       }
 
       // Find next unit to study (lazy loaded)
