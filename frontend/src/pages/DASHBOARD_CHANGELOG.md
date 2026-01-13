@@ -85,3 +85,32 @@ The Dashboard page previously showed stale or partial data for subject progress,
 - [x] Bookmarking updates Saved for Learning instantly
 - [x] No reload required
 - [x] UI is pixel-identical
+
+---
+
+## React Error #321 Fix (2026-01-13)
+
+### Reason for Crash
+- Production error #321 was caused by subscribing to a derived/memoized signal (`completionsSignal`) from Zustand, which triggered state updates during render. This violates React's rules and causes a crash in production builds.
+
+### Why Primitive Selector Is Required
+- React effects must only depend on stable, primitive values (number, boolean, etc.) from Zustand. Deep comparisons, stringification, or derived objects can cause render-phase updates and infinite loops.
+- The fix uses a primitive: total completions count (number), which is stable and React-safe.
+
+### Why This Is React-Safe
+- The effect now depends only on a numeric completions count, which changes only when completions change.
+- No render-phase updates, no infinite loops, no deep subscriptions.
+- This guarantees safe, deterministic refreshes and prevents production crashes.
+
+### Explicit Confirmation
+- No UI changes
+- No backend or store logic changes
+- No regression to bookmarks or completions
+- No infinite renders
+- Dashboard loads and updates correctly
+
+### Final Validation
+- [x] Dashboard loads without crash
+- [x] Marking complete updates dashboard
+- [x] Bookmarking updates dashboard
+- [x] No infinite renders

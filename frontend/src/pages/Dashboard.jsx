@@ -1,30 +1,22 @@
 /**
- * ⚠️ DASHBOARD DATA CONTRACT (DO NOT VIOLATE)
+ * DASHBOARD DATA CONTRACT (DO NOT VIOLATE)
  *
- * - Subscriptions MUST be primitive-only (numbers/booleans)
- * - No derived objects in useEffect deps
- * - No local analytics/progress computation
- * - All data must come from backend refresh
- * - Any change requires changelog + regression confirmation
+ * - ❌ Dashboard MUST NOT subscribe to Zustand stores
+ * - ❌ No store-derived refresh triggers
+ * - ✅ Dashboard is backend-driven only
+ * - ✅ Refresh only on mount, year change, or manual retry
+ * - ❌ No reactive coupling with Notes/Bookmarks state
+ *
+ * RATIONALE:
+ * Dashboard aggregates analytics, not live UI state.
+ * Backend is the single source of truth.
  */
 
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-// Subscribe to completions count for refresh trigger (React-safe primitive)
-const completionsCount = useCompletedStore(
-  state => Object.values(state.completedBySubject).reduce((acc, set) => acc + (set ? set.size : 0), 0)
-);
-
-useEffect(() => {
-  if (refreshDashboard.current) {
-    refreshDashboard.current();
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [completionsCount]);
 import client from "../api/client";
 import useAuth from "../store/useAuth";
 import bookmarksAPI from "../api/bookmarks";
-import useCompletedStore from "../store/useCompletedStore";
 
 export default function Dashboard() {
   const navigate = useNavigate();
