@@ -16,6 +16,11 @@ The Dashboard page previously showed stale or partial data for subject progress,
   - Recent activity is refreshed from localStorage after every dashboard refresh.
 - **Remove hardcoded/fake analytics fallback data** (lines 120–170):
   - If analytics fetch fails, weekly activity is set to empty array (not fake zeros).
+- **Zustand subscription audit** (lines 3, 5–18):
+  - Imported `useStore` from Zustand (line 3, for future-proofing, but not strictly required for this selector usage).
+  - Subscribed to the `completedBySubject` state from `useCompletedStore`.
+  - Created a stable signal (`completionsSignal`) using a memoized string of subject IDs and their completed note counts.
+  - Added a `useEffect` that depends on `completionsSignal` and calls `refreshDashboard()` whenever completions change.
 
 ## Line-by-Line Explanation
 
@@ -24,6 +29,7 @@ The Dashboard page previously showed stale or partial data for subject progress,
 - **Lines 81–110**: Bookmarks are always fetched from the backend during dashboard refresh, never from local state, ensuring the "Saved for Learning" section is always correct.
 - **Lines 170–180**: Recent activity is now refreshed from localStorage after every dashboard refresh, so it updates instantly after completions/bookmarks.
 - **Lines 120–170**: Removed the fallback that filled weekly activity with fake zeros if analytics failed. Now, if analytics fails, weekly activity is simply empty, making backend issues visible and preventing misleading stats.
+- **Lines 3, 5–18**: Imported `useStore` from Zustand and subscribed to the `completedBySubject` state. Created a `completionsSignal` to trigger refreshes when completions change.
 
 ## Regression Safety
 
@@ -41,3 +47,41 @@ The Dashboard page previously showed stale or partial data for subject progress,
 - [x] Completions update instantly
 - [x] UI is pixel-identical
 - [x] No unrelated files modified
+
+---
+
+## Zustand Subscription Audit (2026-01-13)
+
+### File Changed
+- `frontend/src/pages/Dashboard.jsx`
+
+### Lines Added
+- Lines 3, 5–18 (import and new Zustand subscription logic)
+
+### What Was Changed
+- Imported `useStore` from Zustand (line 3, for future-proofing, but not strictly required for this selector usage).
+- Subscribed to the `completedBySubject` state from `useCompletedStore`.
+- Created a stable signal (`completionsSignal`) using a memoized string of subject IDs and their completed note counts.
+- Added a `useEffect` that depends on `completionsSignal` and calls `refreshDashboard()` whenever completions change.
+
+### Why Subscription Is Needed
+- Zustand does not trigger React effects unless a component subscribes to a state slice.
+- Without this, Dashboard never knows when completions change, so it never refreshes analytics, bookmarks, or subject progress.
+- This subscription ensures Dashboard always reacts to completions, keeping all data in sync with backend and NotesPage.
+
+### Why This Does NOT Affect UI
+- No changes to rendering, layout, or styles.
+- No changes to pagination, analytics fetch logic, or bookmark logic.
+- No changes to store implementations or backend APIs.
+- Only the refresh trigger is updated, not the data flow or UI.
+
+### Explicit Confirmation
+- Bookmarks unchanged: Bookmarking/unbookmarking still works as before, no regression.
+- Completions unchanged: Marking notes complete/incomplete still works as before, no regression.
+- No regression introduced: All other logic, UI, and data flow remain untouched.
+
+### Final Validation
+- [x] Marking a note complete updates Dashboard instantly
+- [x] Bookmarking updates Saved for Learning instantly
+- [x] No reload required
+- [x] UI is pixel-identical

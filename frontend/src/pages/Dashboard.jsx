@@ -1,5 +1,23 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useStore } from "zustand";
+  // Subscribe to completions version for refresh trigger
+  const completedStore = useCompletedStore();
+  // Use a stable signal: JSON.stringify of completedBySubject keys/lengths
+  const completionsSignal = useMemo(() => {
+    const obj = completedStore.completedBySubject || {};
+    return Object.keys(obj)
+      .sort()
+      .map(k => `${k}:${(obj[k] && obj[k].size) || 0}`)
+      .join(",");
+  }, [completedStore.completedBySubject]);
+
+  useEffect(() => {
+    if (refreshDashboard.current) {
+      refreshDashboard.current();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [completionsSignal]);
 import client from "../api/client";
 import useAuth from "../store/useAuth";
 import bookmarksAPI from "../api/bookmarks";
