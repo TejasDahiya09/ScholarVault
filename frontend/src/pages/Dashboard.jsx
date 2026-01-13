@@ -12,14 +12,23 @@
  * Backend is the single source of truth.
  */
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
 import bookmarksAPI from "../api/bookmarks";
 
+// GOVERNANCE: Navigation-aware refresh effect
+// This effect ensures that when the user navigates back to /dashboard (route re-entry),
+// fetchDashboardData() is called ONCE to refresh data. This replaces live updates, subscriptions,
+// and event-based sync by providing a single, explicit refresh trigger on navigation.
+// DO NOT REMOVE: Without this, Dashboard will show stale data after navigation unless remounted.
+// This effect must NOT cause infinite renders or double-fetches on initial mount.
+
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const prevPathname = useRef(location.pathname);
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,6 +59,18 @@ export default function Dashboard() {
     refreshDashboard.current = doRefresh;
     doRefresh();
   }, [user?.selected_year]);
+
+  // Navigation-aware refresh: triggers fetch on route re-entry to /dashboard
+  useEffect(() => {
+    // Only trigger if navigating INTO /dashboard from a different route (not on initial mount)
+    if (
+      location.pathname === "/dashboard" &&
+      prevPathname.current !== "/dashboard"
+    ) {
+      fetchDashboardData();
+    }
+    prevPathname.current = location.pathname;
+  }, [location.pathname]);
 
   // Stay on Dashboard even if there are no bookmarks
   // Previously redirected to "/home" which prevented accessing Dashboard.

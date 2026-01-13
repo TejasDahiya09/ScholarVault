@@ -1,3 +1,17 @@
+# Navigation-aware Refresh Fix (2026-01-13)
+
+## File Changed
+- `frontend/src/pages/Dashboard.jsx`
+
+## Reason for Change
+- Dashboard did not refresh when navigating back to /dashboard because the component was not remounted under the persistent AppShell. This caused stale data to be shown after marking a unit complete or making changes elsewhere.
+- Added a navigation-aware refresh trigger using React Router's useLocation, so that fetchDashboardData() runs ONCE on route re-entry to /dashboard, without affecting initial mount or causing double-fetches.
+
+## Confirmation
+Fixes navigation re-entry stale data issue.
+No backend changes.
+No UI changes.
+No regression to bookmarks or completions.
 # ScholarVault Dashboard Data Correctness Fixes
 
 ## Problem Summary
