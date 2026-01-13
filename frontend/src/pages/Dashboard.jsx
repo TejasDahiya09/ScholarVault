@@ -1,23 +1,26 @@
+/**
+ * ⚠️ DASHBOARD DATA CONTRACT (DO NOT VIOLATE)
+ *
+ * - Subscriptions MUST be primitive-only (numbers/booleans)
+ * - No derived objects in useEffect deps
+ * - No local analytics/progress computation
+ * - All data must come from backend refresh
+ * - Any change requires changelog + regression confirmation
+ */
+
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useStore } from "zustand";
-  // Subscribe to completions version for refresh trigger
-  const completedStore = useCompletedStore();
-  // Use a stable signal: JSON.stringify of completedBySubject keys/lengths
-  const completionsSignal = useMemo(() => {
-    const obj = completedStore.completedBySubject || {};
-    return Object.keys(obj)
-      .sort()
-      .map(k => `${k}:${(obj[k] && obj[k].size) || 0}`)
-      .join(",");
-  }, [completedStore.completedBySubject]);
+// Subscribe to completions count for refresh trigger (React-safe primitive)
+const completionsCount = useCompletedStore(
+  state => Object.values(state.completedBySubject).reduce((acc, set) => acc + (set ? set.size : 0), 0)
+);
 
-  useEffect(() => {
-    if (refreshDashboard.current) {
-      refreshDashboard.current();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [completionsSignal]);
+useEffect(() => {
+  if (refreshDashboard.current) {
+    refreshDashboard.current();
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [completionsCount]);
 import client from "../api/client";
 import useAuth from "../store/useAuth";
 import bookmarksAPI from "../api/bookmarks";
