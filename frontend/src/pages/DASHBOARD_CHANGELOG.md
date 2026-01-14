@@ -11,17 +11,17 @@
 No backend changes.
 No UI changes.
 No regression to bookmarks or completions.
-# Navigation-aware Refresh Fix (2026-01-13)
+# Dashboard-specific Cache Bypass (2026-01-14)
 
-## File Changed
-- `frontend/src/pages/Dashboard.jsx`
+## Root Cause
+- Axios GET response caching caused Dashboard to show stale data after marking notes complete or bookmarking, even though backend and frontend logic were correct.
 
-## Reason for Change
-- Dashboard did not refresh when navigating back to /dashboard because the component was not remounted under the persistent AppShell. This caused stale data to be shown after marking a unit complete or making changes elsewhere.
-- Added a navigation-aware refresh trigger using React Router's useLocation, so that fetchDashboardData() runs ONCE on route re-entry to /dashboard, without affecting initial mount or causing double-fetches.
+## Final Fix
+- Added a request-level noCache flag to client.js, allowing Dashboard.jsx to bypass cache for all its data fetches.
+- Only Dashboard requests are affected; other pages still benefit from caching.
+- Navigation-aware refresh logic is now deprecated and not required for correctness, as Dashboard remounts and cache bypass guarantees fresh data.
 
 ## Confirmation
-Fixes navigation re-entry stale data issue.
 No backend changes.
 No UI changes.
 No regression to bookmarks or completions.

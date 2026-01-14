@@ -6,6 +6,7 @@
  * - ✅ Dashboard is backend-driven only
  * - ✅ Refresh only on mount, year change, or manual retry
  * - ❌ No reactive coupling with Notes/Bookmarks state
+ * - ✅ Dashboard data must bypass client cache. Fresh backend data is mandatory.
  *
  * RATIONALE:
  * Dashboard aggregates analytics, not live UI state.
@@ -18,12 +19,11 @@ import client from "../api/client";
 import useAuth from "../store/useAuth";
 import bookmarksAPI from "../api/bookmarks";
 
-// GOVERNANCE: Navigation-aware refresh effect
-// This effect ensures that when the user navigates back to /dashboard (route re-entry),
-// fetchDashboardData() is called ONCE to refresh data. This replaces live updates, subscriptions,
-// and event-based sync by providing a single, explicit refresh trigger on navigation.
-// DO NOT REMOVE: Without this, Dashboard will show stale data after navigation unless remounted.
-// This effect must NOT cause infinite renders or double-fetches on initial mount.
+
+// DEPRECATED: Navigation-aware refresh effect
+// This effect was originally added to trigger fetchDashboardData() on route re-entry to /dashboard.
+// With cache bypass now enforced for all Dashboard data fetches, this effect is no longer required for correctness.
+// It is retained for auditability but should not be relied on. Future audits may safely remove it.
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -62,7 +62,7 @@ export default function Dashboard() {
 
   // Navigation-aware refresh: triggers fetch on route re-entry to /dashboard
   useEffect(() => {
-    // Only trigger if navigating INTO /dashboard from a different route (not on initial mount)
+    // Deprecated: see comment above. No longer required for correctness.
     if (
       location.pathname === "/dashboard" &&
       prevPathname.current !== "/dashboard"
