@@ -7,11 +7,12 @@ const client = axios.create({
   timeout: 120000, // 2 minutes to handle Render cold starts
 });
 
-// Enhanced in-memory cache with better invalidation
-const cache = new Map();
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes for better performance
 
-// Cache invalidation on mutations
+// In-memory cache (only used for unauthenticated GETs)
+const cache = new Map();
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes for public endpoints only
+
+// Cache invalidation on mutations (still used for unauthenticated endpoints)
 const invalidateCache = (pattern) => {
   for (const key of cache.keys()) {
     if (key.includes(pattern)) {
@@ -28,14 +29,19 @@ client.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Custom cache bypass for Dashboard (or any request with noCache: true)
+  // 🚨 USER-SCOPED CACHE INVARIANT:
+  // Authenticated GET requests must NEVER be cached or shared across users.
+  // Only unauthenticated GETs (e.g., public endpoints) may use cache.
+  // If config.noCache === true, always skip cache.
   const noCache = config.noCache === true;
   const urlForCache = config.url || '';
+  const isAuthenticated = !!token;
   const isLiveEndpoint = urlForCache.includes('/progress'); // always fetch fresh progress
   if (
     config.method === 'get' &&
     !urlForCache.includes('/auth') &&
     !isLiveEndpoint &&
+    !isAuthenticated &&
     !noCache
   ) {
     const cacheKey = urlForCache + JSON.stringify(config.params || {});
@@ -45,7 +51,7 @@ client.interceptors.request.use((config) => {
     }
   }
 
-  // Invalidate related caches on mutations
+  // Invalidate related caches on mutations (still applies for unauthenticated endpoints)
   if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
     const url = config.url || '';
 
@@ -70,11 +76,22 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
+
 // Response interceptor for error handling and caching
 client.interceptors.response.use(
   (response) => {
-    // Cache successful GET responses (exclude auth)
-    if (response.config.method === 'get' && response.status === 200 && !response.config.url.includes('/auth')) {
+    // 🚨 USER-SCOPED CACHE INVARIANT:
+    // Never cache authenticated GET responses or requests with noCache flag.
+    const token = localStorage.getItem("sv_token");
+    const isAuthenticated = !!token;
+    const noCache = response.config.noCache === true;
+    if (
+      response.config.method === 'get' &&
+      response.status === 200 &&
+      !response.config.url.includes('/auth') &&
+      !isAuthenticated &&
+      !noCache
+    ) {
       const cacheKey = response.config.url + JSON.stringify(response.config.params || {});
       cache.set(cacheKey, {
         data: response,
