@@ -28,10 +28,16 @@ client.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Check cache for GET requests only (not auth or live-progress endpoints)
+  // Custom cache bypass for Dashboard (or any request with noCache: true)
+  const noCache = config.noCache === true;
   const urlForCache = config.url || '';
   const isLiveEndpoint = urlForCache.includes('/progress'); // always fetch fresh progress
-  if (config.method === 'get' && !urlForCache.includes('/auth') && !isLiveEndpoint) {
+  if (
+    config.method === 'get' &&
+    !urlForCache.includes('/auth') &&
+    !isLiveEndpoint &&
+    !noCache
+  ) {
     const cacheKey = urlForCache + JSON.stringify(config.params || {});
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {

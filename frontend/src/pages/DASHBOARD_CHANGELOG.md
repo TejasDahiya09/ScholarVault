@@ -1,3 +1,16 @@
+# Dashboard-specific Cache Bypass (2026-01-14)
+
+## Root Cause
+- Axios GET response caching caused Dashboard to show stale data after marking notes complete or bookmarking, even though backend and frontend logic were correct.
+
+## Fix
+- Added a request-level noCache flag to client.js, allowing Dashboard.jsx to bypass cache for all its data fetches.
+- Only Dashboard requests are affected; other pages still benefit from caching.
+
+## Confirmation
+No backend changes.
+No UI changes.
+No regression to bookmarks or completions.
 # Navigation-aware Refresh Fix (2026-01-13)
 
 ## File Changed

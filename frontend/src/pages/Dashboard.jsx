@@ -101,7 +101,7 @@ export default function Dashboard() {
       
       // Fetch bookmarks from new API
       try {
-        const bookmarks = await bookmarksAPI.getBookmarksWithDetails();
+        const bookmarks = await bookmarksAPI.getBookmarksWithDetails({ noCache: true });
         setBookmarkedNotes(bookmarks);
       } catch (err) {
         console.error("Failed to fetch bookmarks:", err);
@@ -111,7 +111,7 @@ export default function Dashboard() {
       // Fetch subjects (all), then filter by selected year
       let yearFilteredSubjects = [];
       try {
-        const subjectsRes = await client.get('/api/subjects');
+        const subjectsRes = await client.get('/api/subjects', { noCache: true });
         const allSubjects = subjectsRes.data || [];
         yearFilteredSubjects = filterSubjectsByYear(allSubjects);
 
@@ -119,7 +119,7 @@ export default function Dashboard() {
         const progressResults = await Promise.all(
           yearFilteredSubjects.map(async (subject) => {
             try {
-              const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
+              const completionRes = await client.get(`/api/subjects/${subject.id}/progress`, { noCache: true });
               return {
                 ...subject,
                 progress: completionRes.data?.progress_percent || 0,
@@ -145,7 +145,7 @@ export default function Dashboard() {
 
       // Fetch analytics (time, streaks, weekly activity) - SINGLE SOURCE OF TRUTH
       try {
-        const analyticsRes = await client.get('/api/progress/analytics');
+        const analyticsRes = await client.get('/api/progress/analytics', { noCache: true });
         const a = analyticsRes.data || {};
         // Backend analytics is the single source of truth for all stats
         setStats({
