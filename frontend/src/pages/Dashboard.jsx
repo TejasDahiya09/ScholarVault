@@ -58,6 +58,14 @@ export default function Dashboard() {
     };
     refreshDashboard.current = doRefresh;
     doRefresh();
+    // Listen for learning:changed event to refetch analytics
+    const handleLearningChanged = () => {
+      fetchDashboardData();
+    };
+    window.addEventListener('learning:changed', handleLearningChanged);
+    return () => {
+      window.removeEventListener('learning:changed', handleLearningChanged);
+    };
   }, [user?.selected_year]);
 
   // Navigation-aware refresh: triggers fetch on route re-entry to /dashboard
@@ -153,7 +161,7 @@ export default function Dashboard() {
       try {
         const analyticsRes = await client.get('/api/progress/analytics', { noCache: true });
         const a = analyticsRes.data || {};
-        // 🚦 Zero-state normalization: Always map missing/empty to 0, never infer defaults.
+        // 🚦 Zero-state normalization: Always use backend values, fallback to zero ONLY if backend returns null/undefined
         setStats({
           totalTime: Number.isFinite(a.stats?.totalTimeHours) ? a.stats.totalTimeHours : 0,
           unitsCompleted: Number.isFinite(a.stats?.completedUnitsTotal) ? a.stats.completedUnitsTotal : 0,
@@ -162,6 +170,7 @@ export default function Dashboard() {
         setWeeklyActivity(Array.isArray(a.weekly) ? a.weekly : []);
       } catch (err) {
         console.error("Failed to fetch analytics:", err);
+        setStats({ totalTime: 0, unitsCompleted: 0, currentStreak: 0 });
         setWeeklyActivity([]); // No fallback, just empty
       }
 

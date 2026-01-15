@@ -23,6 +23,33 @@ const PdfViewerSection = lazy(() => Promise.resolve({
  * PERFORMANCE: Lazy loads PDF viewer, streams PDFs from backend with aggressive caching
  */
 export default function NotesPage() {
+    // Offline study session queue
+    const OFFLINE_QUEUE_KEY = 'sv_offline_study_queue';
+    function getOfflineQueue() {
+      try {
+        return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+      } catch { return []; }
+    }
+    function setOfflineQueue(queue) {
+      localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+    }
+    // On reconnect, batch-submit offline sessions
+    useEffect(() => {
+      function handleOnline() {
+        const queue = getOfflineQueue();
+        if (queue.length === 0) return;
+        client.post('/api/progress/offline-sessions', { sessions: queue })
+          .then(() => {
+            setOfflineQueue([]);
+            window.dispatchEvent(new Event('learning:changed'));
+          })
+          .catch(() => {});
+      }
+      window.addEventListener('online', handleOnline);
+      // Try once on mount
+      if (navigator.onLine) handleOnline();
+      return () => window.removeEventListener('online', handleOnline);
+    }, []);
   const navigate = useNavigate();
   const { darkMode } = useDarkMode();
   // Always force viewer modal and all document viewers to true light mode by neutralizing global dark mode inversion.
@@ -455,23 +482,39 @@ export default function NotesPage() {
   // Track note study time invisibly (no timer UI)
   useEffect(() => {
     if (!selectedNote || !subjectId) return;
-
     const startTime = Date.now();
     const noteId = selectedNote.id;
-
     // Silent start tracking
-    client.post(`/api/progress/note/${noteId}/start`, {
-      startedAt: new Date().toISOString()
-    }).catch(() => {}); // Ignore errors silently
-
+    let offlineSession = null;
+    if (!navigator.onLine) {
+      offlineSession = {
+        sessionId: `${noteId}-${startTime}`,
+        noteId,
+        clientStartedAt: new Date(startTime).toISOString(),
+        clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      };
+    } else {
+      client.post(`/api/progress/note/${noteId}/start`, {
+        startedAt: new Date().toISOString()
+      }).catch(() => {});
+    }
     // On unmount or note change, send duration
     return () => {
-      const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
-      if (durationSeconds > 5) { // Only track if studied for more than 5 seconds
-        client.post(`/api/progress/note/${noteId}/end`, {
-          subjectId,
-          durationSeconds
-        }).catch(() => {}); // Ignore errors silently
+      const endTime = Date.now();
+      const durationSeconds = Math.floor((endTime - startTime) / 1000);
+      if (durationSeconds > 5) {
+        if (!navigator.onLine && offlineSession) {
+          offlineSession.clientEndedAt = new Date(endTime).toISOString();
+          const queue = getOfflineQueue();
+          setOfflineQueue([...queue, offlineSession]);
+        } else {
+          client.post(`/api/progress/note/${noteId}/end`, {
+            subjectId,
+            durationSeconds
+          }).then(() => {
+            window.dispatchEvent(new Event('learning:changed'));
+          }).catch(() => {});
+        }
       }
     };
   }, [selectedNote, subjectId]);
@@ -635,6 +678,7 @@ export default function NotesPage() {
     try {
       await completedStore.toggleCompleted(noteId, subjectId);
       setPopup({ show: true, type: wasCompleted ? "incomplete" : "complete" });
+      window.dispatchEvent(new Event('learning:changed'));
     } catch {
       setToast({ show: true, message: "Failed to update completion status", type: "error" });
     }
@@ -658,6 +702,7 @@ export default function NotesPage() {
         setBookmarkedNotes(prev => new Set(prev).add(noteId));
         setPopup({ show: true, type: "bookmark-add" });
       }
+      window.dispatchEvent(new Event('learning:changed'));
     } catch (err) {
       console.error("Bookmark toggle failed:", err);
       setToast({ show: true, message: "Failed to update bookmark", type: "error" });
