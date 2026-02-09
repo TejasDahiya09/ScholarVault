@@ -60,16 +60,9 @@ export function clearCache() {
   cache.flushAll();
 }
 
-/**
- * Get cache statistics
- */
-export function getCacheStats() {
-  return cache.getStats();
-}
-
+// ...existing code...
 export default {
   cacheQuery,
   invalidateCache,
   clearCache,
-  getCacheStats,
 };

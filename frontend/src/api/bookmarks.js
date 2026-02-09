@@ -15,6 +15,14 @@ export const bookmarksAPI = {
     return data.noteIds || [];
   },
 
+  /**
+   * Get bookmarks with full note details (for Dashboard)
+   */
+  async getBookmarksWithDetails() {
+    const { data } = await client.get("/api/bookmarks/details");
+    return data.bookmarks || [];
+  },
+
   // ...existing code...
 
   /**

@@ -1,6 +1,6 @@
 import supabase from "../lib/services.js";
 import { notesService } from "../services/notes.js";
-import { aiService } from "../services/ai.js";
+// ...existing code...
 
 /**
  * Get all notes
@@ -44,73 +44,13 @@ export const getNoteById = async (req, res) => {
 
     const { data, error } = await supabase.supabase
       .from("notes")
-      .select("*")
-      .eq("id", id)
-      .single();
-
+      // ...existing code...
     if (error) throw error;
-
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-};
-
-/**
- * Get notes by unit
- */
-export const getNotesByUnit = async (req, res) => {
-  try {
-    const { subjectId, unitNumber } = req.params;
-
-    const { data, error } = await supabase.supabase
-      .from("notes")
-        .select("id, file_name, subject, subject_id, unit_number, semester, branch, created_at")
-      .eq("subject_id", subjectId)
-      .eq("unit_number", parseInt(unitNumber));
-
-    if (error) throw error;
-
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-/**
- * AI Summary - Streaming Response
- */
-export const getSummary = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const note = await notesService.getNoteById(id);
-    
-    if (!note) {
-      return res.status(404).json({ error: "Note not found" });
-    }
-
-    // Use OCR text if available, otherwise use a placeholder
-    const textToSummarize = note.ocr_text || `Document: ${note.file_name}. This is a study material from ${new Date(note.created_at).getFullYear()}.`;
-
-    // Set streaming headers for SSE (Server-Sent Events)
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-      'X-Accel-Buffering': 'no',
-    });
-
-    if (res.flushHeaders) res.flushHeaders();
-    res.write(':streaming-start\n\n');
-
-    await aiService.generateSummaryStream(textToSummarize, res);
-  } catch (err) {
-    console.error('Summary error:', err);
-    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
-    res.end();
-  }
-};
+}
 
 /**
  * AI Ask Question
@@ -171,8 +111,6 @@ export default {
   getAllNotes,
   getNotesBySubject,
   getNoteById,
-  getNotesByUnit,
-  getSummary,
   askQuestion,
   getNotesMetadata,
 };

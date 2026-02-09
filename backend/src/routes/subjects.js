@@ -3,6 +3,7 @@ import subjectsDB from "../db/subjects.js";
 import notesDB from "../db/notes.js";
 import completionsDB from "../db/completions.js";
 import { authenticate } from "../middlewares/auth.js";
+import { noCache } from "../middlewares/noCache.js";
 import { supabase } from "../lib/services.js";
 
 const router = Router();
@@ -67,16 +68,39 @@ router.get("/:id/notes", async (req, res, next) => {
   }
 });
 
+// ...existing code...
+
 /**
- * Get subject progress for authenticated user
+ * Get progress for a subject (user-scoped)
+ * GET /api/subjects/:id/progress
+ * Returns: progress_percent, completed_units, total_units, completed_note_ids
  */
-router.get("/:id/progress", authenticate, async (req, res, next) => {
+router.get("/:id/progress", authenticate, noCache, async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const subjectId = req.params.id;
 
-    const progress = await completionsDB.getSubjectProgress(userId, subjectId);
-    res.json(progress);
+    // Fetch all notes for this subject
+    const { data: notes, error: notesError } = await supabase
+      .from("notes")
+      .select("id")
+      .eq("subject_id", subjectId);
+    if (notesError) throw new Error(`Failed to fetch notes: ${notesError.message}`);
+
+    const totalNotes = (notes || []).length;
+
+    // Fetch user's completions for this subject — scoped by user_id
+    const completedIds = await completionsDB.getCompletedNoteIds(userId, subjectId);
+    const completedCount = completedIds.length;
+
+    const progressPercent = totalNotes > 0 ? Math.round((completedCount / totalNotes) * 100) : 0;
+
+    res.json({
+      progress_percent: progressPercent,
+      completed_units: completedCount,
+      total_units: totalNotes,
+      completed_note_ids: completedIds,
+    });
   } catch (err) {
     next(err);
   }

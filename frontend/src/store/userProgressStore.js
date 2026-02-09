@@ -4,6 +4,9 @@ export const useUserProgressStore = create((set) => ({
   bookmarks: new Set(),
   completions: new Set(),
 
+  // Reset all state (MUST be called on logout)
+  reset: () => set({ bookmarks: new Set(), completions: new Set() }),
+
   hydrate: (bookmarks, completions) =>
     set({
       bookmarks: new Set(bookmarks),

@@ -1,6 +1,6 @@
 import express from "express";
 import { supabase } from "../lib/services.js";
-import aiService from "../services/ai.js";
+import { aiService } from "../services/ai.js";
 
 const router = express.Router();
 

@@ -46,7 +46,4 @@ export const errorHandler = (err, req, res, next) => {
   });
 };
 
-export default {
-  authenticate,
-  errorHandler,
-};
+export default authenticate;

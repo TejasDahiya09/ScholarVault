@@ -39,9 +39,17 @@ const useAuth = create((set) => ({
 
     localStorage.removeItem("sv_token");
     localStorage.removeItem("sv_user");
+    localStorage.removeItem("sv_last_note");
     
     // Clear all session storage (summaries, temp data)
     sessionStorage.clear();
+
+    // Reset ALL Zustand stores to prevent cross-user data leakage
+    // Import lazily to avoid circular dependencies
+    const { default: useCompletedStore } = await import("./useCompletedStore");
+    const { useUserProgressStore } = await import("./userProgressStore");
+    useCompletedStore.getState().reset();
+    useUserProgressStore.getState().reset();
     
     set({ token: null, user: null });
   },

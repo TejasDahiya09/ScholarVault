@@ -16,10 +16,10 @@ router.get("/metadata", notesController.getNotesMetadata); // Metadata for clien
 
 // Specific routes must come before parameterized routes
 router.get("/subjects/:subjectId", notesController.getNotesBySubject);
-router.get("/subjects/:subjectId/units/:unitNumber", notesController.getNotesByUnit);
+// ...existing code...
 
 // Note-specific routes (must come before /:id to avoid conflicts)
-router.get("/:id/summary", notesController.getSummary);
+// ...existing code...
 router.get("/:id/ask", notesController.askQuestion);
 router.post("/:id/ask", notesController.askQuestion);
 router.get("/:id/search", searchController.searchInNote); // Search inside PDF
