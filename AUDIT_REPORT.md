@@ -26,6 +26,7 @@
 ### Detection Method
 
 Systematically read every file in `backend/src/db/`, `backend/src/routes/`, `backend/src/controllers/`, and `backend/src/services/`. For each database query (Supabase `.from()` call), checked whether:
+
 - `.eq("user_id", ...)` was present on user-specific data
 - JOINs included user filtering
 - Route handlers extracted `req.user.userId` and passed it through
@@ -33,7 +34,8 @@ Systematically read every file in `backend/src/db/`, `backend/src/routes/`, `bac
 ### What Was Audited
 
 | File | Contains User Data? | Has user_id Scoping? |
-|---|---|---|
+
+| --- | --- | --- |
 | `backend/src/db/bookmarks.js` | Yes (per-user bookmarks) | ✅ All 3 methods use `.eq("user_id", userId)` |
 | `backend/src/db/completions.js` | Yes (per-user completions) | ✅ All methods use `.eq("user_id", userId)` |
 | `backend/src/db/studySessions.js` | Yes (per-user sessions) | ✅ All 7 methods use `.eq("user_id", userId)` |
@@ -50,23 +52,33 @@ Systematically read every file in `backend/src/db/`, `backend/src/routes/`, `bac
 
 #### Problem 1.1: `completionsDB.getCompletedNoteIds()` silently ignored `subjectId`
 
-**How I detected it:**  
+
+**How I detected it:**
+
 Read `backend/src/routes/completions.js` line 14:
+
 ```js
 const completedIds = await completionsDB.getCompletedNoteIds(userId, subjectId || null);
 ```
+
 Then read `backend/src/db/completions.js` line 6:
+
 ```js
 async getCompletedNoteIds(userId) {  // <-- only accepts 1 param!
 ```
+
 The route passed `subjectId` as a second argument, but the function signature only accepted `userId`. JavaScript silently ignores extra arguments — so the filter was never applied.
 
-**Impact:** When the frontend requested completions for a specific subject, it got ALL completions across ALL subjects. This could cause incorrect progress percentages.
+**Impact:**
 
-**Why this solution is optimal:**  
+When the frontend requested completions for a specific subject, it got ALL completions across ALL subjects. This could cause incorrect progress percentages.
+
+**Why this solution is optimal:**
+
 Adding an optional `subjectId` parameter with a default of `null` is backward-compatible. Existing callers that pass only `userId` continue to work. Callers that pass `subjectId` now get filtered results. No breaking changes.
 
 **Fix applied in `backend/src/db/completions.js`:**
+
 ```js
 // BEFORE:
 async getCompletedNoteIds(userId) {
