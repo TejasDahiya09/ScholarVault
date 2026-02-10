@@ -25,7 +25,7 @@ router.get("/", authenticate, noCache, async (req, res, next) => {
  * GET /api/completions/count
  * Get total completed notes count for the user
  */
-router.get("/count", authenticate, async (req, res, next) => {
+router.get("/count", authenticate, noCache, async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const count = await completionsDB.getTotalCompletedCount(userId);
