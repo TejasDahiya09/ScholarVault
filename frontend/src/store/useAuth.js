@@ -25,9 +25,10 @@ const useAuth = create((set) => ({
 
   logout: async () => {
     const token = localStorage.getItem("sv_token");
+    let sessionEndOk = false;
     try {
       const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-      await fetch(`${API_BASE}/api/progress/session/end`, {
+      const resp = await fetch(`${API_BASE}/api/progress/session/end`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,7 +36,11 @@ const useAuth = create((set) => ({
         },
         body: JSON.stringify({ endedAt: new Date().toISOString() }),
       });
+      if (resp.ok) sessionEndOk = true;
     } catch {}
+    if (sessionEndOk) {
+      window.dispatchEvent(new CustomEvent("learning:update"));
+    }
 
     localStorage.removeItem("sv_token");
     localStorage.removeItem("sv_user");

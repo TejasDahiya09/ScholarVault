@@ -43,22 +43,29 @@ router.post("/session/end", authenticate, async (req, res, next) => {
 router.get("/analytics", authenticate, noCache, async (req, res, next) => {
   try {
     const userId = req.user.userId;
+    const user = await req.app.locals.userDB.findById(userId);
+    const timezone = user?.timezone || "UTC";
 
-    // Fetch all analytics data in parallel — all scoped by user_id
+    // Fetch all analytics data in parallel — all scoped by user_id and timezone
     const [totalHours, streaks, weeklyMap, completedCount, peakHour] = await Promise.all([
-      studySessionsDB.getTotalHours(userId),
-      studySessionsDB.getStreaks(userId),
-      studySessionsDB.getMinutesByDay(userId, 7),
+      studySessionsDB.getTotalHours(userId, timezone),
+      studySessionsDB.getStreaks(userId, 15, timezone),
+      studySessionsDB.getMinutesByDay(userId, 7, timezone),
       completionsDB.getTotalCompletedCount(userId),
-      studySessionsDB.getSessionHours(userId),
+      studySessionsDB.getSessionHours(userId, timezone),
     ]);
 
-    // Build weekly activity array (last 7 days)
+    // Build weekly activity array (last 7 user-local days)
     const weekly = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86400000);
-      const dateStr = d.toISOString().slice(0, 10);
-      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+      const d = new Date();
+      // Shift to user-local day boundary
+      const utc = d.getTime() - i * 86400000;
+      const local = new Date(
+        new Date(utc).toLocaleString("en-US", { timeZone: timezone })
+      );
+      const dateStr = local.toISOString().slice(0, 10);
+      const dayName = local.toLocaleDateString("en-US", { weekday: "short", timeZone: timezone });
       const seconds = weeklyMap.get(dateStr) || 0;
       weekly.push({
         date: dateStr,
