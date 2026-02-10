@@ -1,5 +1,5 @@
 import { supabase } from "../lib/services.js";
-import aiService from "./ai.js";
+import { aiService } from "./ai.js";
 import NodeCache from "node-cache";
 import { distance } from "fastest-levenshtein";
 import stringSimilarity from "string-similarity";
@@ -335,7 +335,7 @@ export const searchService = {
     }
 
     // Check cache for this exact query + options combination (page 1 only)
-    const cacheKey = `search:${query}:${subjectId}:${noteId}:${page}:${perPage}`;
+    const cacheKey = `search:${userId || 'anon'}:${query}:${subjectId}:${noteId}:${page}:${perPage}`;
     if (page === 1) {
       const cached = searchCache.get(cacheKey);
       if (cached) {

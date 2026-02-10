@@ -1,19 +1,8 @@
-
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import client from "../api/client";
 import useAuth from "../store/useAuth";
 import useCompletedStore from "../store/useCompletedStore";
-
-// Helper to format countdown
-function formatCountdown(ms) {
-  if (!ms || ms <= 0) return "0d 0h 0m";
-  const totalSec = Math.floor(ms / 1000);
-  const days = Math.floor(totalSec / 86400);
-  const hours = Math.floor((totalSec % 86400) / 3600);
-  const mins = Math.floor((totalSec % 3600) / 60);
-  return `${days}d ${hours}h ${mins}m`;
-}
 
 export default function ProgressPage() {
   const navigate = useNavigate();
@@ -33,65 +22,20 @@ export default function ProgressPage() {
   const [subjectTime, setSubjectTime] = useState([]);
   const [velocity, setVelocity] = useState([]);
 
-  // Freeze state
-  const [freezeTokens, setFreezeTokens] = useState(0);
-  const [freezeActiveUntil, setFreezeActiveUntil] = useState(null);
-  const [freezeLoading, setFreezeLoading] = useState(false);
-  const [freezeError, setFreezeError] = useState("");
-
   // Fetch data on mount, year change, and when learning updates occur
   useEffect(() => {
     fetchProgressData();
-    fetchFreezeStatus();
-    // Listen for learning:changed event to refetch analytics
-    const handleLearningChanged = () => {
+    
+    // Subscribe to learning updates from NotesPage
+    const handleLearningUpdate = () => {
       fetchProgressData();
-      fetchFreezeStatus();
     };
-    window.addEventListener('learning:changed', handleLearningChanged);
+    window.addEventListener("learning:update", handleLearningUpdate);
+    
     return () => {
-      window.removeEventListener('learning:changed', handleLearningChanged);
+      window.removeEventListener("learning:update", handleLearningUpdate);
     };
   }, [user?.selected_year]);
-
-  // Poll freeze countdown if active
-  useEffect(() => {
-    if (!freezeActiveUntil) return;
-    const interval = setInterval(() => {
-      setFreezeActiveUntil((prev) => prev); // trigger re-render
-    }, 60000); // update every minute
-    return () => clearInterval(interval);
-  }, [freezeActiveUntil]);
-  // Fetch freeze status and tokens
-  async function fetchFreezeStatus() {
-    try {
-      setFreezeLoading(true);
-      setFreezeError("");
-      const res = await client.get("/api/user/freeze-status");
-      setFreezeTokens(res.data?.freeze_tokens ?? 0);
-      setFreezeActiveUntil(res.data?.freeze_active_until ? new Date(res.data.freeze_active_until) : null);
-    } catch (err) {
-      setFreezeError("Could not fetch freeze status.");
-    } finally {
-      setFreezeLoading(false);
-    }
-  }
-
-  // Activate freeze
-  async function handleActivateFreeze() {
-    setFreezeLoading(true);
-    setFreezeError("");
-    try {
-      const res = await client.post("/api/user/activate-freeze");
-      setFreezeTokens(res.data?.freeze_tokens ?? freezeTokens - 1);
-      setFreezeActiveUntil(res.data?.freeze_active_until ? new Date(res.data.freeze_active_until) : null);
-      window.dispatchEvent(new Event("learning:changed")); // sync analytics
-    } catch (err) {
-      setFreezeError(err?.response?.data?.message || "Failed to activate freeze.");
-    } finally {
-      setFreezeLoading(false);
-    }
-  }
 
   // Helper to filter subjects by selected year
   const filterSubjectsByYear = (subjects) => {
@@ -148,14 +92,15 @@ export default function ProgressPage() {
       try {
         const analyticsRes = await client.get('/api/progress/analytics');
         const a = analyticsRes.data || {};
+        
         // Use backend completedUnitsTotal as authoritative count
         // This ensures Dashboard and Progress page always show the same value
         setStats({
-          totalTime: Number.isFinite(a.stats?.totalTimeHours) ? a.stats.totalTimeHours : 0,
+          totalTime: a.stats?.totalTimeHours || 0,
           totalUnits: totalUnitsFromSubjects,
-          completedUnits: Number.isFinite(a.stats?.completedUnitsTotal) ? a.stats.completedUnitsTotal : 0,
-          longestStreak: Number.isFinite(a.stats?.longestStreak) ? a.stats.longestStreak : 0,
-          currentStreak: Number.isFinite(a.stats?.currentStreak) ? a.stats.currentStreak : 0,
+          completedUnits: a.stats?.completedUnitsTotal || 0,
+          longestStreak: a.stats?.longestStreak || 0,
+          currentStreak: a.stats?.currentStreak || 0,
           peakStudyTime: typeof a.stats?.peakStudyTime === 'string' && a.stats.peakStudyTime ? a.stats.peakStudyTime : null,
         });
         setWeeklyData(Array.isArray(a.weekly) ? a.weekly : []);
@@ -164,7 +109,6 @@ export default function ProgressPage() {
         setVelocity(Array.isArray(a.velocity) ? a.velocity : []);
       } catch (err) {
         // Fallback to zeroed analytics
-        setStats({ totalTime: 0, totalUnits: totalUnitsFromSubjects, completedUnits: 0, longestStreak: 0, currentStreak: 0, peakStudyTime: null });
         setWeeklyData([]);
         setMonthlyData([]);
         setSubjectTime([]);
@@ -492,50 +436,7 @@ export default function ProgressPage() {
                     <span className="font-semibold text-gray-900">{stats.longestStreak} days</span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 text-center">Keep studying daily to maintain your streak!"
-                </p>
-              </div>
-            </div>
-
-            {/* Streak Freeze / Vacation Mode */}
-            <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 border border-blue-200">
-              <h2 className="text-base sm:text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
-                <span className="text-xl">❄️</span>
-                Streak Freeze
-              </h2>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">Freeze Tokens</span>
-                  <span className="font-semibold text-blue-700">{freezeTokens}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">Status</span>
-                  {freezeActiveUntil && freezeActiveUntil > new Date() ? (
-                    <span className="font-semibold text-blue-700">Active</span>
-                  ) : (
-                    <span className="font-semibold text-gray-500">Inactive</span>
-                  )}
-                </div>
-                {freezeActiveUntil && freezeActiveUntil > new Date() && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">Time Remaining</span>
-                    <span className="font-semibold text-blue-700">
-                      {formatCountdown(freezeActiveUntil - new Date())}
-                    </span>
-                  </div>
-                )}
-                <button
-                  className={`mt-4 w-full px-4 py-2 rounded-lg font-semibold text-white transition-all duration-200
-                    ${freezeLoading ? "bg-blue-300" : freezeTokens > 0 && (!freezeActiveUntil || freezeActiveUntil <= new Date()) ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-300 cursor-not-allowed"}`}
-                  disabled={freezeLoading || freezeTokens === 0 || (freezeActiveUntil && freezeActiveUntil > new Date())}
-                  onClick={handleActivateFreeze}
-                >
-                  {freezeLoading ? "Activating..." : freezeActiveUntil && freezeActiveUntil > new Date() ? "Freeze Active" : freezeTokens > 0 ? "Activate Freeze" : "No Tokens Available"}
-                </button>
-                {freezeError && <p className="text-xs text-red-600 text-center mt-2">{freezeError}</p>}
-                <p className="text-xs text-gray-500 text-center mt-2">
-                  Use a freeze token to pause your streak for 24 hours. Earn tokens by consistent study or special events. You cannot activate freeze if already active or out of tokens.
-                </p>
+                <p className="text-xs text-gray-500 text-center">Keep studying daily to maintain your streak!</p>
               </div>
             </div>
           </div>

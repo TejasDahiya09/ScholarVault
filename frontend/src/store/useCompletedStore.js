@@ -12,6 +12,9 @@ const useCompletedStore = create((set, get) => ({
   // subjectId -> Set<noteId>
   completedBySubject: {},
 
+  // Reset all state (MUST be called on logout)
+  reset: () => set({ completedBySubject: {} }),
+
   getCompletedNoteIds: (subjectId) =>
     get().completedBySubject[subjectId] ?? new Set(),
 

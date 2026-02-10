@@ -237,66 +237,7 @@ export const authService = {
     
     // Get user's notes and study progress (note-level)
     let userNotes = [];
-    let studyProgressBySubject = {};
-    let totalNotes = 0;
-    let completedNotes = 0;
-
-    if (userSubjects.length > 0) {
-      // Aggregate notes per subject
-      for (const subject of userSubjects) {
-        const subjectNotes = await notesDB.getAllBySubjectId(subject.id);
-        userNotes = userNotes.concat(subjectNotes);
-
-        // For each subject, compute completion using note-level progress
-        const status = await completionsDB.getSubjectProgress(userId, subject.id);
-        studyProgressBySubject[subject.id] = status;
-        totalNotes += status.total_notes || 0;
-        completedNotes += status.completed_notes || 0;
-      }
-    }
-
-    const completionPercentage = totalNotes > 0 ? Math.round((completedNotes / totalNotes) * 100) : 0;
-
-    return {
-      profile: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-      },
-      statistics: {
-        total_subjects: userSubjects.length,
-        total_notes: totalNotes,
-        total_units: totalNotes, // deprecated: units mapped to notes
-        completed_units: completedNotes,
-        completion_percentage: completionPercentage,
-      },
-      subjects: userSubjects.map(s => ({
-        id: s.id,
-        name: s.name,
-        branch: s.branch,
-        semester: s.semester,
-      })),
-      notes: userNotes.map(n => ({
-        id: n.id,
-        subject_id: n.subject_id,
-        unit_number: n.unit_number,
-        title: n.title,
-        content_preview: n.content ? n.content.substring(0, 100) : '',
-        created_at: n.created_at,
-      })),
-      progress: Object.entries(studyProgressBySubject).map(([subjectId, status]) => ({
-        subject_id: subjectId,
-        total_notes: status.total_notes,
-        completed_notes: status.completed_notes,
-        percentage: status.percentage,
-      })),
-      export_metadata: {
-        exported_at: new Date().toISOString(),
-        export_version: "1.0",
-      },
-    };
+    // ...existing code...
   },
 };
 

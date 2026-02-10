@@ -12,6 +12,7 @@ import notesRoutes from "./src/routes/notes.js";
 import subjectsRoutes from "./src/routes/subjects.js";
 import searchRoutes from "./src/routes/search.js";
 import filesRoutes from "./src/routes/files.js";
+// ...existing code...
 import progressRoutes from "./src/routes/progress.js";
 import bookmarksRoutes from "./src/routes/bookmarks.js";
 import completionsRoutes from "./src/routes/completions.js";
@@ -52,9 +53,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Cache control for GET requests
+// SECURITY: Authenticated API responses MUST NOT be cached to prevent cross-user data leakage
 app.use((req, res, next) => {
-  if (req.method === 'GET' && !req.path.includes('/api/auth')) {
-    res.set('Cache-Control', 'public, max-age=300'); // 5 minutes
+  if (req.method === 'GET') {
+    const hasAuth = !!req.headers.authorization;
+    if (hasAuth || req.path.startsWith('/api/')) {
+      // Authenticated or API requests: never cache
+      res.set('Cache-Control', 'no-store');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+    } else {
+      // Public static assets only
+      res.set('Cache-Control', 'public, max-age=300');
+    }
   }
   next();
 });
@@ -93,6 +104,7 @@ app.use("/api/notes", notesRoutes);
 app.use("/api/subjects", subjectsRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/files", filesRoutes);
+// ...existing code...
 app.use("/api/progress", progressRoutes);
 app.use("/api/bookmarks", bookmarksRoutes);
 app.use("/api/completions", completionsRoutes);

@@ -2,14 +2,26 @@ import { supabase } from "../lib/services.js";
 
 // Completions DB helpers (contract-compliant)
 const completionsDB = {
-  // Get all completed note IDs for a user
-  async getCompletedNoteIds(userId) {
-    const { data, error } = await supabase
+  // Get all completed note IDs for a user, optionally filtered by subjectId
+  async getCompletedNoteIds(userId, subjectId = null) {
+    let query = supabase
       .from("completions")
       .select("note_id")
       .eq("user_id", userId);
+    if (subjectId) query = query.eq("subject_id", subjectId);
+    const { data, error } = await query;
     if (error) throw error;
     return (data || []).map(r => r.note_id);
+  },
+
+  // Get total completed notes count for a user
+  async getTotalCompletedCount(userId) {
+    const { data, error, count } = await supabase
+      .from("completions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
+    if (error) throw error;
+    return count || 0;
   },
 
   // Mark note as completed
@@ -32,30 +44,7 @@ const completionsDB = {
     return { completed: false };
   },
 
-  // Get subject progress for a user and subject
-  async getSubjectProgress(userId, subjectId) {
-    // Return progress stats for a subject for this user
-    // Example: { progress_percent: 80, completed_units: 8, total_units: 10 }
-    // You may need to adjust table/column names as per your schema
-    const { data: completed, error: completedError } = await supabase
-      .from("completions")
-      .select("note_id")
-      .eq("user_id", userId)
-      .eq("subject_id", subjectId);
-    if (completedError) throw completedError;
-    const { data: total, error: totalError } = await supabase
-      .from("notes")
-      .select("id")
-      .eq("subject_id", subjectId);
-    if (totalError) throw totalError;
-    const completedUnits = (completed || []).length;
-    const totalUnits = (total || []).length;
-    return {
-      progress_percent: totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0,
-      completed_units: completedUnits,
-      total_units: totalUnits,
-    };
-  },
+  // ...existing code...
 
   // Get completions by date for analytics
   async getCompletionsByDate(userId, days = 30) {

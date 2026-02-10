@@ -6,7 +6,6 @@
  * - ✅ Dashboard is backend-driven only
  * - ✅ Refresh only on mount, year change, or manual retry
  * - ❌ No reactive coupling with Notes/Bookmarks state
- * - ✅ Dashboard data must bypass client cache. Fresh backend data is mandatory.
  *
  * RATIONALE:
  * Dashboard aggregates analytics, not live UI state.
@@ -19,11 +18,12 @@ import client from "../api/client";
 import useAuth from "../store/useAuth";
 import bookmarksAPI from "../api/bookmarks";
 
-
-// DEPRECATED: Navigation-aware refresh effect
-// This effect was originally added to trigger fetchDashboardData() on route re-entry to /dashboard.
-// With cache bypass now enforced for all Dashboard data fetches, this effect is no longer required for correctness.
-// It is retained for auditability but should not be relied on. Future audits may safely remove it.
+// GOVERNANCE: Navigation-aware refresh effect
+// This effect ensures that when the user navigates back to /dashboard (route re-entry),
+// fetchDashboardData() is called ONCE to refresh data. This replaces live updates, subscriptions,
+// and event-based sync by providing a single, explicit refresh trigger on navigation.
+// DO NOT REMOVE: Without this, Dashboard will show stale data after navigation unless remounted.
+// This effect must NOT cause infinite renders or double-fetches on initial mount.
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -58,19 +58,20 @@ export default function Dashboard() {
     };
     refreshDashboard.current = doRefresh;
     doRefresh();
-    // Listen for learning:changed event to refetch analytics
-    const handleLearningChanged = () => {
+
+    // Listen for learning:update events from NotesPage mutations
+    const handleLearningUpdate = () => {
       fetchDashboardData();
     };
-    window.addEventListener('learning:changed', handleLearningChanged);
+    window.addEventListener("learning:update", handleLearningUpdate);
     return () => {
-      window.removeEventListener('learning:changed', handleLearningChanged);
+      window.removeEventListener("learning:update", handleLearningUpdate);
     };
   }, [user?.selected_year]);
 
   // Navigation-aware refresh: triggers fetch on route re-entry to /dashboard
   useEffect(() => {
-    // Deprecated: see comment above. No longer required for correctness.
+    // Only trigger if navigating INTO /dashboard from a different route (not on initial mount)
     if (
       location.pathname === "/dashboard" &&
       prevPathname.current !== "/dashboard"
@@ -106,25 +107,20 @@ export default function Dashboard() {
     try {
       setLoading(true);
       setError(null);
-
-      // 🚦 Zero-state normalization: Always reset dashboard state before fetching.
-      // This prevents stale/inferred values and ensures new users see true DB state.
-      setStats({ totalTime: 0, unitsCompleted: 0, currentStreak: 0 });
-      setSubjects([]);
-
+      
       // Fetch bookmarks from new API
       try {
-        const bookmarks = await bookmarksAPI.getBookmarksWithDetails({ noCache: true });
+        const bookmarks = await bookmarksAPI.getBookmarksWithDetails();
         setBookmarkedNotes(bookmarks);
       } catch (err) {
         console.error("Failed to fetch bookmarks:", err);
         setBookmarkedNotes([]);
       }
-
+      
       // Fetch subjects (all), then filter by selected year
       let yearFilteredSubjects = [];
       try {
-        const subjectsRes = await client.get('/api/subjects', { noCache: true });
+        const subjectsRes = await client.get('/api/subjects');
         const allSubjects = subjectsRes.data || [];
         yearFilteredSubjects = filterSubjectsByYear(allSubjects);
 
@@ -132,13 +128,12 @@ export default function Dashboard() {
         const progressResults = await Promise.all(
           yearFilteredSubjects.map(async (subject) => {
             try {
-              const completionRes = await client.get(`/api/subjects/${subject.id}/progress`, { noCache: true });
-              // 🚦 Zero-state normalization: If backend returns empty/missing, always use 0.
+              const completionRes = await client.get(`/api/subjects/${subject.id}/progress`);
               return {
                 ...subject,
-                progress: Number.isFinite(completionRes.data?.progress_percent) ? completionRes.data.progress_percent : 0,
-                completed: Number.isFinite(completionRes.data?.completed_units) ? completionRes.data.completed_units : 0,
-                total: Number.isFinite(completionRes.data?.total_units) ? completionRes.data.total_units : 0
+                progress: completionRes.data?.progress_percent || 0,
+                completed: completionRes.data?.completed_units || 0,
+                total: completionRes.data?.total_units || 0
               };
             } catch (err) {
               console.error(`Error fetching progress for ${subject.id}:`, err);
@@ -159,18 +154,17 @@ export default function Dashboard() {
 
       // Fetch analytics (time, streaks, weekly activity) - SINGLE SOURCE OF TRUTH
       try {
-        const analyticsRes = await client.get('/api/progress/analytics', { noCache: true });
+        const analyticsRes = await client.get('/api/progress/analytics');
         const a = analyticsRes.data || {};
-        // 🚦 Zero-state normalization: Always use backend values, fallback to zero ONLY if backend returns null/undefined
+        // Backend analytics is the single source of truth for all stats
         setStats({
-          totalTime: Number.isFinite(a.stats?.totalTimeHours) ? a.stats.totalTimeHours : 0,
-          unitsCompleted: Number.isFinite(a.stats?.completedUnitsTotal) ? a.stats.completedUnitsTotal : 0,
-          currentStreak: Number.isFinite(a.stats?.currentStreak) ? a.stats.currentStreak : 0
+          totalTime: a.stats?.totalTimeHours || 0,
+          unitsCompleted: a.stats?.completedUnitsTotal || 0,
+          currentStreak: a.stats?.currentStreak || 0
         });
         setWeeklyActivity(Array.isArray(a.weekly) ? a.weekly : []);
       } catch (err) {
         console.error("Failed to fetch analytics:", err);
-        setStats({ totalTime: 0, unitsCompleted: 0, currentStreak: 0 });
         setWeeklyActivity([]); // No fallback, just empty
       }
 
@@ -296,7 +290,7 @@ export default function Dashboard() {
         </div>
 
         {/* Bookmarked for Learning - Always shown with empty state */}
-        <div className="bg-linear-to-r from-amber-50 to-orange-50 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 border border-amber-200">
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 border border-amber-200">
           <h3 className="text-fluid-base sm:text-fluid-lg font-semibold text-gray-900 mb-3 xs:mb-4 truncate">📚 Saved for Learning</h3>
 
           {bookmarkedNotes.length === 0 ? (
@@ -362,7 +356,7 @@ export default function Dashboard() {
 
         {/* Continue Studying */}
         {nextUnit && (
-          <div className="bg-linear-to-r from-gray-900 to-gray-800 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 text-white">
+          <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-lg xs:rounded-xl shadow-sm p-4 xs:p-5 sm:p-6 mb-4 xs:mb-6 sm:mb-8 text-white">
             <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-3 xs:gap-4">
               <div className="flex-1 min-w-0 w-full xs:w-auto">
                 <p className="text-fluid-xs text-gray-300 mb-2 uppercase tracking-wide">Continue Studying</p>
